@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Middleware\AuthenticateBearerToken;
-use App\Http\Middleware\RequireRight;
+use App\Users\Http\Middleware\AuthenticateBearerToken;
+use App\Users\Http\Middleware\RequireRight;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;

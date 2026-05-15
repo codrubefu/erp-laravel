@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\Group;
-use App\Models\Right;
-use App\Models\User;
+use App\Users\Models\Group;
+use App\Users\Models\Right;
+use App\Users\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -69,5 +69,7 @@ class DatabaseSeeder extends Seeder
             'password' => bcrypt('password'),
         ]);
         $testUser->groups()->sync([$admin->id]);
+
+        $this->call(LocationSeeder::class);
     }
 }

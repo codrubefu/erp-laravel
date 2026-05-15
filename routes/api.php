@@ -1,10 +1,10 @@
 <?php
 
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\GroupController;
-use App\Http\Controllers\Api\LocationController;
-use App\Http\Controllers\Api\RightController;
-use App\Http\Controllers\Api\UserController;
+use App\Users\Http\Controllers\Api\AuthController;
+use App\Users\Http\Controllers\Api\GroupController;
+use App\Users\Http\Controllers\Api\LocationController;
+use App\Users\Http\Controllers\Api\RightController;
+use App\Users\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -34,6 +34,8 @@ Route::middleware('auth.bearer')->group(function (): void {
     Route::patch('/locations/{location}', [LocationController::class, 'update'])->middleware('right:locations.manage');
     Route::delete('/locations/{location}', [LocationController::class, 'destroy'])->middleware('right:locations.manage');
 
+    Route::get('/administrators', [UserController::class, 'administrators'])->middleware('right:users.view');
+    Route::get('/clients', [UserController::class, 'clients'])->middleware('right:users.view');
     Route::get('/users', [UserController::class, 'index'])->middleware('right:users.view');
     Route::post('/users', [UserController::class, 'store'])->middleware('right:users.manage');
     Route::get('/users/{user}', [UserController::class, 'show'])->middleware('right:users.view');
