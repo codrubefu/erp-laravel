@@ -11,6 +11,53 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'name', type: 'string', example: 'admin'),
         new OA\Property(property: 'label', type: 'string', example: 'Administrator'),
         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Full application access.'),
+        new OA\Property(
+            property: 'rights',
+            type: 'array',
+            items: new OA\Items(ref: '#/components/schemas/Right'),
+        ),
+        new OA\Property(property: 'users_count', type: 'integer', example: 3),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'Right',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 1),
+        new OA\Property(property: 'name', type: 'string', example: 'users.view'),
+        new OA\Property(property: 'label', type: 'string', example: 'View users'),
+        new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Read user records.'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'StoreGroupRequest',
+    required: ['name', 'label'],
+    properties: [
+        new OA\Property(property: 'name', type: 'string', example: 'manager'),
+        new OA\Property(property: 'label', type: 'string', example: 'Manager'),
+        new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Can view operational data.'),
+        new OA\Property(
+            property: 'right_ids',
+            type: 'array',
+            items: new OA\Items(type: 'integer'),
+            example: [1, 2, 3],
+        ),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'UpdateGroupRequest',
+    properties: [
+        new OA\Property(property: 'name', type: 'string', example: 'manager'),
+        new OA\Property(property: 'label', type: 'string', example: 'Manager'),
+        new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Can view operational data.'),
+        new OA\Property(
+            property: 'right_ids',
+            type: 'array',
+            items: new OA\Items(type: 'integer'),
+            example: [1, 2, 3],
+        ),
     ],
     type: 'object',
 )]

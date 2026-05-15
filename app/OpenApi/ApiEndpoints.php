@@ -59,6 +59,175 @@ class ApiEndpoints
     }
 
     #[OA\Get(
+        path: '/groups',
+        summary: 'List user groups',
+        security: [['bearerAuth' => []]],
+        tags: ['Groups'],
+        parameters: [
+            new OA\QueryParameter(name: 'search', required: false, schema: new OA\Schema(type: 'string'), example: 'admin'),
+            new OA\QueryParameter(name: 'per_page', required: false, schema: new OA\Schema(type: 'integer'), example: 15),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Paginated group list.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/Group'),
+                        ),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing groups.view right.'),
+        ],
+    )]
+    public function groupsIndex(): void
+    {
+    }
+
+    #[OA\Post(
+        path: '/groups',
+        summary: 'Create a user group',
+        security: [['bearerAuth' => []]],
+        tags: ['Groups'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/StoreGroupRequest'),
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'Group created.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/Group'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing groups.manage right.'),
+            new OA\Response(response: 422, description: 'Validation failed.'),
+        ],
+    )]
+    public function groupsStore(): void
+    {
+    }
+
+    #[OA\Get(
+        path: '/groups/{group}',
+        summary: 'Show a user group',
+        security: [['bearerAuth' => []]],
+        tags: ['Groups'],
+        parameters: [
+            new OA\PathParameter(name: 'group', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Group details.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/Group'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing groups.view right.'),
+            new OA\Response(response: 404, description: 'Group not found.'),
+        ],
+    )]
+    public function groupsShow(): void
+    {
+    }
+
+    #[OA\Patch(
+        path: '/groups/{group}',
+        summary: 'Update a user group',
+        security: [['bearerAuth' => []]],
+        tags: ['Groups'],
+        parameters: [
+            new OA\PathParameter(name: 'group', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/UpdateGroupRequest'),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Group updated.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/Group'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing groups.manage right.'),
+            new OA\Response(response: 404, description: 'Group not found.'),
+            new OA\Response(response: 422, description: 'Validation failed.'),
+        ],
+    )]
+    public function groupsUpdate(): void
+    {
+    }
+
+    #[OA\Put(
+        path: '/groups/{group}',
+        summary: 'Replace a user group',
+        security: [['bearerAuth' => []]],
+        tags: ['Groups'],
+        parameters: [
+            new OA\PathParameter(name: 'group', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/UpdateGroupRequest'),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Group updated.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/Group'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing groups.manage right.'),
+            new OA\Response(response: 404, description: 'Group not found.'),
+            new OA\Response(response: 422, description: 'Validation failed.'),
+        ],
+    )]
+    public function groupsReplace(): void
+    {
+    }
+
+    #[OA\Delete(
+        path: '/groups/{group}',
+        summary: 'Delete a user group',
+        security: [['bearerAuth' => []]],
+        tags: ['Groups'],
+        parameters: [
+            new OA\PathParameter(name: 'group', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 204, description: 'Group deleted.'),
+            new OA\Response(response: 403, description: 'Missing groups.manage right.'),
+            new OA\Response(response: 404, description: 'Group not found.'),
+            new OA\Response(response: 422, description: 'Cannot delete a group that still has users.'),
+        ],
+    )]
+    public function groupsDestroy(): void
+    {
+    }
+
+    #[OA\Get(
         path: '/users',
         summary: 'List users',
         security: [['bearerAuth' => []]],
