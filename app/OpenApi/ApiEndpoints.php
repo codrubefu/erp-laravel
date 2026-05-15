@@ -228,6 +228,175 @@ class ApiEndpoints
     }
 
     #[OA\Get(
+        path: '/rights',
+        summary: 'List rights',
+        security: [['bearerAuth' => []]],
+        tags: ['Rights'],
+        parameters: [
+            new OA\QueryParameter(name: 'search', required: false, schema: new OA\Schema(type: 'string'), example: 'users'),
+            new OA\QueryParameter(name: 'per_page', required: false, schema: new OA\Schema(type: 'integer'), example: 15),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Paginated right list.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/Right'),
+                        ),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing rights.view right.'),
+        ],
+    )]
+    public function rightsIndex(): void
+    {
+    }
+
+    #[OA\Post(
+        path: '/rights',
+        summary: 'Create a right',
+        security: [['bearerAuth' => []]],
+        tags: ['Rights'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/StoreRightRequest'),
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'Right created.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/Right'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing rights.manage right.'),
+            new OA\Response(response: 422, description: 'Validation failed.'),
+        ],
+    )]
+    public function rightsStore(): void
+    {
+    }
+
+    #[OA\Get(
+        path: '/rights/{right}',
+        summary: 'Show a right',
+        security: [['bearerAuth' => []]],
+        tags: ['Rights'],
+        parameters: [
+            new OA\PathParameter(name: 'right', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Right details.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/Right'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing rights.view right.'),
+            new OA\Response(response: 404, description: 'Right not found.'),
+        ],
+    )]
+    public function rightsShow(): void
+    {
+    }
+
+    #[OA\Patch(
+        path: '/rights/{right}',
+        summary: 'Update a right',
+        security: [['bearerAuth' => []]],
+        tags: ['Rights'],
+        parameters: [
+            new OA\PathParameter(name: 'right', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/UpdateRightRequest'),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Right updated.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/Right'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing rights.manage right.'),
+            new OA\Response(response: 404, description: 'Right not found.'),
+            new OA\Response(response: 422, description: 'Validation failed.'),
+        ],
+    )]
+    public function rightsUpdate(): void
+    {
+    }
+
+    #[OA\Put(
+        path: '/rights/{right}',
+        summary: 'Replace a right',
+        security: [['bearerAuth' => []]],
+        tags: ['Rights'],
+        parameters: [
+            new OA\PathParameter(name: 'right', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/UpdateRightRequest'),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Right updated.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/Right'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing rights.manage right.'),
+            new OA\Response(response: 404, description: 'Right not found.'),
+            new OA\Response(response: 422, description: 'Validation failed.'),
+        ],
+    )]
+    public function rightsReplace(): void
+    {
+    }
+
+    #[OA\Delete(
+        path: '/rights/{right}',
+        summary: 'Delete a right',
+        security: [['bearerAuth' => []]],
+        tags: ['Rights'],
+        parameters: [
+            new OA\PathParameter(name: 'right', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 204, description: 'Right deleted.'),
+            new OA\Response(response: 403, description: 'Missing rights.manage right.'),
+            new OA\Response(response: 404, description: 'Right not found.'),
+            new OA\Response(response: 422, description: 'Cannot delete a right assigned to groups.'),
+        ],
+    )]
+    public function rightsDestroy(): void
+    {
+    }
+
+    #[OA\Get(
         path: '/users',
         summary: 'List users',
         security: [['bearerAuth' => []]],

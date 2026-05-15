@@ -1,8 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\AccessControlController;
 use App\Http\Controllers\Api\GroupController;
+use App\Http\Controllers\Api\RightController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -12,7 +12,12 @@ Route::middleware('auth.bearer')->group(function (): void {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    Route::get('/rights', [AccessControlController::class, 'rights'])->middleware('right:rights.view');
+    Route::get('/rights', [RightController::class, 'index'])->middleware('right:rights.view');
+    Route::post('/rights', [RightController::class, 'store'])->middleware('right:rights.manage');
+    Route::get('/rights/{right}', [RightController::class, 'show'])->middleware('right:rights.view');
+    Route::put('/rights/{right}', [RightController::class, 'update'])->middleware('right:rights.manage');
+    Route::patch('/rights/{right}', [RightController::class, 'update'])->middleware('right:rights.manage');
+    Route::delete('/rights/{right}', [RightController::class, 'destroy'])->middleware('right:rights.manage');
 
     Route::get('/groups', [GroupController::class, 'index'])->middleware('right:groups.view');
     Route::post('/groups', [GroupController::class, 'store'])->middleware('right:groups.manage');

@@ -27,6 +27,26 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'name', type: 'string', example: 'users.view'),
         new OA\Property(property: 'label', type: 'string', example: 'View users'),
         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Read user records.'),
+        new OA\Property(property: 'groups_count', type: 'integer', example: 2),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'StoreRightRequest',
+    required: ['name', 'label'],
+    properties: [
+        new OA\Property(property: 'name', type: 'string', example: 'reports.view'),
+        new OA\Property(property: 'label', type: 'string', example: 'View reports'),
+        new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Read report data.'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'UpdateRightRequest',
+    properties: [
+        new OA\Property(property: 'name', type: 'string', example: 'reports.view'),
+        new OA\Property(property: 'label', type: 'string', example: 'View reports'),
+        new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Read report data.'),
     ],
     type: 'object',
 )]
