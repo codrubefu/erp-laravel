@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Subscription\Models\Subscription;
 use App\Users\Models\Group;
+use App\Users\Models\Location;
 use App\Users\Models\Right;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -28,6 +29,37 @@ class UserCrudTest extends TestCase
             ->assertOk()
             ->assertJsonFragment(['id' => $admin->id])
             ->assertJsonFragment(['email' => 'jane@example.com']);
+    }
+
+    public function test_user_with_locations_only_sees_users_from_shared_locations(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.view']);
+        $allowedLocation = Location::query()->create([
+            'name' => 'HQ',
+            'description' => 'Main office',
+        ]);
+        $otherLocation = Location::query()->create([
+            'name' => 'Remote',
+            'description' => 'Remote office',
+        ]);
+        $visibleUser = User::factory()->create([
+            'first_name' => 'Visible',
+            'email' => 'visible@example.com',
+        ]);
+        $hiddenUser = User::factory()->create([
+            'first_name' => 'Hidden',
+            'email' => 'hidden@example.com',
+        ]);
+
+        $admin->locations()->attach($allowedLocation);
+        $visibleUser->locations()->attach($allowedLocation);
+        $hiddenUser->locations()->attach($otherLocation);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/users')
+            ->assertOk()
+            ->assertJsonFragment(['email' => 'visible@example.com'])
+            ->assertJsonMissing(['email' => 'hidden@example.com']);
     }
 
     public function test_user_with_manage_right_can_create_user_with_groups(): void
@@ -105,6 +137,29 @@ class UserCrudTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.first_name', 'Updated')
             ->assertJsonPath('data.email', 'updated@example.com');
+    }
+
+    public function test_user_with_locations_cannot_update_user_from_other_location(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.manage']);
+        $allowedLocation = Location::query()->create([
+            'name' => 'Allowed',
+            'description' => 'Allowed location',
+        ]);
+        $blockedLocation = Location::query()->create([
+            'name' => 'Blocked',
+            'description' => 'Blocked location',
+        ]);
+        $user = User::factory()->create(['email' => 'blocked-update@example.com']);
+
+        $admin->locations()->attach($allowedLocation);
+        $user->locations()->attach($blockedLocation);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->patchJson("/api/users/{$user->id}", [
+                'first_name' => 'Updated',
+            ])
+            ->assertNotFound();
     }
 
     public function test_user_with_manage_right_can_sync_subscriptions_through_dedicated_route(): void
