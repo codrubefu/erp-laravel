@@ -4,6 +4,7 @@ namespace App\Users\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Subscription\Models\Subscription;
+use App\Users\Models\Scopes\LocationAccessScope;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -21,6 +22,11 @@ class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new LocationAccessScope());
+    }
 
     public function accessTokens(): HasMany
     {

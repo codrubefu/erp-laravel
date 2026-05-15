@@ -32,7 +32,7 @@ class UserController extends Controller
 
     private function userList(Request $request, ?bool $hasGroups = null): AnonymousResourceCollection
     {
-        $users = $this->accessibleUsersQuery($request)
+        $users = User::query()
             ->with(['groups.rights', 'locations', 'activeSubscriptions'])
             ->when($hasGroups === true, fn ($query) => $query->has('groups'))
             ->when($hasGroups === false, fn ($query) => $query->doesntHave('groups'))
@@ -79,15 +79,11 @@ class UserController extends Controller
 
     public function show(User $user): UserResource
     {
-        $this->ensureUserIsAccessible(request(), $user);
-
         return new UserResource($user->load(['groups.rights', 'locations', 'subscriptions', 'activeSubscriptions']));
     }
 
     public function update(UpdateUserRequest $request, User $user): UserResource
     {
-        $this->ensureUserIsAccessible($request, $user);
-
         $data = $request->validated();
         $groupIds = $data['group_ids'] ?? null;
         $locationIds = $data['location_ids'] ?? null;
@@ -121,8 +117,6 @@ class UserController extends Controller
 
     public function syncSubscriptions(SyncUserSubscriptionsRequest $request, User $user): UserResource
     {
-        $this->ensureUserIsAccessible($request, $user);
-
         DB::transaction(function () use ($request, $user): void {
             $user->subscriptions()->sync($request->validated('subscription_ids'));
         });
@@ -132,8 +126,6 @@ class UserController extends Controller
 
     public function destroy(Request $request, User $user): JsonResponse
     {
-        $this->ensureUserIsAccessible($request, $user);
-
         if ($request->user()?->is($user)) {
             return response()->json([
                 'message' => 'You cannot delete your own user account.',
@@ -148,23 +140,5 @@ class UserController extends Controller
         });
 
         return response()->json(status: 204);
-    }
-
-    private function accessibleUsersQuery(Request $request)
-    {
-        $locationIds = $request->user()?->locations()->pluck('locations.id');
-
-        return User::query()->when(
-            $locationIds !== null && $locationIds->isNotEmpty(),
-            fn ($query) => $query->whereHas('locations', fn ($query) => $query->whereIn('locations.id', $locationIds))
-        );
-    }
-
-    private function ensureUserIsAccessible(Request $request, User $user): void
-    {
-        abort_unless(
-            $this->accessibleUsersQuery($request)->whereKey($user->getKey())->exists(),
-            404
-        );
     }
 }
