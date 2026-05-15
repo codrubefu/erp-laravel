@@ -5,6 +5,47 @@ namespace App\OpenApi;
 use OpenApi\Attributes as OA;
 
 #[OA\Schema(
+    schema: 'Location',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 1),
+        new OA\Property(property: 'name', type: 'string', example: 'Main Office'),
+        new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Headquarters'),
+        new OA\Property(property: 'users_count', type: 'integer', example: 5),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'StoreLocationRequest',
+    required: ['name'],
+    properties: [
+        new OA\Property(property: 'name', type: 'string', example: 'Main Office'),
+        new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Headquarters'),
+        new OA\Property(
+            property: 'user_ids',
+            type: 'array',
+            items: new OA\Items(type: 'integer'),
+            example: [1, 2],
+        ),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'UpdateLocationRequest',
+    properties: [
+        new OA\Property(property: 'name', type: 'string', example: 'Main Office'),
+        new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Headquarters'),
+        new OA\Property(
+            property: 'user_ids',
+            type: 'array',
+            items: new OA\Items(type: 'integer'),
+            example: [1, 2],
+        ),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
     schema: 'Group',
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 1),
@@ -96,6 +137,11 @@ use OpenApi\Attributes as OA;
             type: 'array',
             items: new OA\Items(ref: '#/components/schemas/Group'),
         ),
+        new OA\Property(
+            property: 'locations',
+            type: 'array',
+            items: new OA\Items(ref: '#/components/schemas/Location'),
+        ),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true),
     ],
@@ -117,6 +163,12 @@ use OpenApi\Attributes as OA;
             items: new OA\Items(type: 'integer'),
             example: [1, 2],
         ),
+        new OA\Property(
+            property: 'location_ids',
+            type: 'array',
+            items: new OA\Items(type: 'integer'),
+            example: [1, 2],
+        ),
     ],
     type: 'object',
 )]
@@ -131,6 +183,12 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'password', type: 'string', format: 'password', nullable: true, example: 'new-password'),
         new OA\Property(
             property: 'group_ids',
+            type: 'array',
+            items: new OA\Items(type: 'integer'),
+            example: [1, 2],
+        ),
+        new OA\Property(
+            property: 'location_ids',
             type: 'array',
             items: new OA\Items(type: 'integer'),
             example: [1, 2],

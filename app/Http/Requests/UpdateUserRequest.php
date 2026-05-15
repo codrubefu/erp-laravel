@@ -31,6 +31,8 @@ class UpdateUserRequest extends FormRequest
             'password' => ['sometimes', 'nullable', 'string', 'min:8'],
             'group_ids' => ['sometimes', 'array'],
             'group_ids.*' => ['integer', 'exists:groups,id'],
+            'location_ids' => ['sometimes', 'array'],
+            'location_ids.*' => ['integer', 'exists:locations,id'],
         ];
     }
 }

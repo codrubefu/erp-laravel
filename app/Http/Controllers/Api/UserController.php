@@ -17,7 +17,7 @@ class UserController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $users = User::query()
-            ->with('groups.rights')
+            ->with(['groups.rights', 'locations'])
             ->when($request->string('search')->isNotEmpty(), function ($query) use ($request): void {
                 $search = $request->string('search')->toString();
 
@@ -39,44 +39,53 @@ class UserController extends Controller
     {
         $data = $request->validated();
         $groupIds = $data['group_ids'] ?? [];
+        $locationIds = $data['location_ids'] ?? [];
         unset($data['group_ids']);
+        unset($data['location_ids']);
 
-        $user = DB::transaction(function () use ($data, $groupIds): User {
+        $user = DB::transaction(function () use ($data, $groupIds, $locationIds): User {
             $user = User::query()->create($data);
             $user->groups()->sync($groupIds);
+            $user->locations()->sync($locationIds);
 
             return $user;
         });
 
-        return (new UserResource($user->load('groups.rights')))
+        return (new UserResource($user->load(['groups.rights', 'locations'])))
             ->response()
             ->setStatusCode(201);
     }
 
     public function show(User $user): UserResource
     {
-        return new UserResource($user->load('groups.rights'));
+        return new UserResource($user->load(['groups.rights', 'locations']));
     }
 
     public function update(UpdateUserRequest $request, User $user): UserResource
     {
         $data = $request->validated();
         $groupIds = $data['group_ids'] ?? null;
+        $locationIds = $data['location_ids'] ?? null;
         unset($data['group_ids']);
+        unset($data['location_ids']);
 
         if (array_key_exists('password', $data) && blank($data['password'])) {
             unset($data['password']);
         }
 
-        DB::transaction(function () use ($user, $data, $groupIds): void {
+        DB::transaction(function () use ($user, $data, $groupIds, $locationIds): void {
             $user->update($data);
 
             if ($groupIds !== null) {
                 $user->groups()->sync($groupIds);
             }
+
+            if ($locationIds !== null) {
+                $user->locations()->sync($locationIds);
+            }
         });
 
-        return new UserResource($user->load('groups.rights'));
+        return new UserResource($user->load(['groups.rights', 'locations']));
     }
 
     public function destroy(Request $request, User $user): JsonResponse
@@ -90,6 +99,7 @@ class UserController extends Controller
         DB::transaction(function () use ($user): void {
             $user->accessTokens()->delete();
             $user->groups()->detach();
+            $user->locations()->detach();
             $user->delete();
         });
 

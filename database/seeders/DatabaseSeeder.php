@@ -25,6 +25,8 @@ class DatabaseSeeder extends Seeder
             ['name' => 'groups.manage', 'label' => 'Manage groups', 'description' => 'Create, update, and delete user groups.'],
             ['name' => 'rights.view', 'label' => 'View rights', 'description' => 'Read available application rights.'],
             ['name' => 'rights.manage', 'label' => 'Manage rights', 'description' => 'Create, update, and delete application rights.'],
+            ['name' => 'locations.view', 'label' => 'View locations', 'description' => 'Read locations and assigned users.'],
+            ['name' => 'locations.manage', 'label' => 'Manage locations', 'description' => 'Create, update, and delete locations.'],
         ])->mapWithKeys(fn (array $right) => [
             $right['name'] => Right::query()->updateOrCreate(
                 ['name' => $right['name']],
@@ -47,6 +49,7 @@ class DatabaseSeeder extends Seeder
             'users.view',
             'groups.view',
             'rights.view',
+            'locations.view',
         ])->pluck('id'));
 
         $staff = Group::query()->updateOrCreate(

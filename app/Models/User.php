@@ -28,6 +28,11 @@ class User extends Authenticatable
         return $this->belongsToMany(Group::class)->withTimestamps();
     }
 
+    public function locations(): BelongsToMany
+    {
+        return $this->belongsToMany(Location::class)->withTimestamps();
+    }
+
     public function hasRight(string $right): bool
     {
         return $this->groups()

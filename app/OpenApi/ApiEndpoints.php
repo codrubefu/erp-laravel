@@ -397,6 +397,174 @@ class ApiEndpoints
     }
 
     #[OA\Get(
+        path: '/locations',
+        summary: 'List locations',
+        security: [['bearerAuth' => []]],
+        tags: ['Locations'],
+        parameters: [
+            new OA\QueryParameter(name: 'search', required: false, schema: new OA\Schema(type: 'string'), example: 'office'),
+            new OA\QueryParameter(name: 'per_page', required: false, schema: new OA\Schema(type: 'integer'), example: 15),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Paginated location list.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/Location'),
+                        ),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing locations.view right.'),
+        ],
+    )]
+    public function locationsIndex(): void
+    {
+    }
+
+    #[OA\Post(
+        path: '/locations',
+        summary: 'Create a location',
+        security: [['bearerAuth' => []]],
+        tags: ['Locations'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/StoreLocationRequest'),
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'Location created.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/Location'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing locations.manage right.'),
+            new OA\Response(response: 422, description: 'Validation failed.'),
+        ],
+    )]
+    public function locationsStore(): void
+    {
+    }
+
+    #[OA\Get(
+        path: '/locations/{location}',
+        summary: 'Show a location',
+        security: [['bearerAuth' => []]],
+        tags: ['Locations'],
+        parameters: [
+            new OA\PathParameter(name: 'location', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Location details.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/Location'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing locations.view right.'),
+            new OA\Response(response: 404, description: 'Location not found.'),
+        ],
+    )]
+    public function locationsShow(): void
+    {
+    }
+
+    #[OA\Patch(
+        path: '/locations/{location}',
+        summary: 'Update a location',
+        security: [['bearerAuth' => []]],
+        tags: ['Locations'],
+        parameters: [
+            new OA\PathParameter(name: 'location', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/UpdateLocationRequest'),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Location updated.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/Location'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing locations.manage right.'),
+            new OA\Response(response: 404, description: 'Location not found.'),
+            new OA\Response(response: 422, description: 'Validation failed.'),
+        ],
+    )]
+    public function locationsUpdate(): void
+    {
+    }
+
+    #[OA\Put(
+        path: '/locations/{location}',
+        summary: 'Replace a location',
+        security: [['bearerAuth' => []]],
+        tags: ['Locations'],
+        parameters: [
+            new OA\PathParameter(name: 'location', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/UpdateLocationRequest'),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Location updated.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/Location'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing locations.manage right.'),
+            new OA\Response(response: 404, description: 'Location not found.'),
+            new OA\Response(response: 422, description: 'Validation failed.'),
+        ],
+    )]
+    public function locationsReplace(): void
+    {
+    }
+
+    #[OA\Delete(
+        path: '/locations/{location}',
+        summary: 'Delete a location',
+        security: [['bearerAuth' => []]],
+        tags: ['Locations'],
+        parameters: [
+            new OA\PathParameter(name: 'location', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 204, description: 'Location deleted.'),
+            new OA\Response(response: 403, description: 'Missing locations.manage right.'),
+            new OA\Response(response: 404, description: 'Location not found.'),
+        ],
+    )]
+    public function locationsDestroy(): void
+    {
+    }
+
+    #[OA\Get(
         path: '/users',
         summary: 'List users',
         security: [['bearerAuth' => []]],
