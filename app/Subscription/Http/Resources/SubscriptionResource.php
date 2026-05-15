@@ -20,6 +20,8 @@ class SubscriptionResource extends JsonResource
             'trial_days' => $this->trial_days,
             'max_users' => $this->max_users,
             'is_active' => $this->is_active,
+            'users_count' => $this->whenCounted('users'),
+            'users' => $this->whenLoaded('users'),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'deleted_at' => $this->deleted_at,

@@ -3,6 +3,7 @@
 namespace App\Users\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Subscription\Models\Subscription;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -34,6 +35,16 @@ class User extends Authenticatable
     public function locations(): BelongsToMany
     {
         return $this->belongsToMany(Location::class)->withTimestamps();
+    }
+
+    public function subscriptions(): BelongsToMany
+    {
+        return $this->belongsToMany(Subscription::class)->withTimestamps();
+    }
+
+    public function activeSubscriptions(): BelongsToMany
+    {
+        return $this->subscriptions()->where('subscriptions.is_active', true);
     }
 
     public function hasRight(string $right): bool

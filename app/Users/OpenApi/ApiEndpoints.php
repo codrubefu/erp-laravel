@@ -744,6 +744,38 @@ class ApiEndpoints
     {
     }
 
+    #[OA\Post(
+        path: '/users/subscription/{user}',
+        summary: 'Sync subscriptions for a user',
+        security: [['bearerAuth' => []]],
+        tags: ['Users'],
+        parameters: [
+            new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/SyncUserSubscriptionsRequest'),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'User subscriptions synced.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/User'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing users.manage right.'),
+            new OA\Response(response: 404, description: 'User not found.'),
+            new OA\Response(response: 422, description: 'Validation failed.'),
+        ],
+    )]
+    public function usersSyncSubscriptions(): void
+    {
+    }
+
     #[OA\Put(
         path: '/users/{user}',
         summary: 'Replace a user',

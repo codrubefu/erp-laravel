@@ -38,8 +38,21 @@ Route::middleware('auth.bearer')->group(function (): void {
     Route::get('/clients', [UserController::class, 'clients'])->middleware('right:users.view');
     Route::get('/users', [UserController::class, 'index'])->middleware('right:users.view');
     Route::post('/users', [UserController::class, 'store'])->middleware('right:users.manage');
+    Route::patch('/users/subscription/{user}', [UserController::class, 'syncSubscriptions'])->middleware('right:users.manage');
     Route::get('/users/{user}', [UserController::class, 'show'])->middleware('right:users.view');
     Route::put('/users/{user}', [UserController::class, 'update'])->middleware('right:users.manage');
     Route::patch('/users/{user}', [UserController::class, 'update'])->middleware('right:users.manage');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->middleware('right:users.manage');
+
+    Route::post('/clients', [UserController::class, 'store'])->middleware('right:users.manage');
+    Route::get('/clients/{user}', [UserController::class, 'show'])->middleware('right:users.view');
+    Route::put('/clients/{user}', [UserController::class, 'update'])->middleware('right:users.manage');
+    Route::patch('/clients/{user}', [UserController::class, 'update'])->middleware('right:users.manage');
+    Route::delete('/clients/{user}', [UserController::class, 'destroy'])->middleware('right:users.manage');
+
+    Route::post('/administrators', [UserController::class, 'store'])->middleware('right:users.manage');
+    Route::get('/administrators/{user}', [UserController::class, 'show'])->middleware('right:users.view');
+    Route::put('/administrators/{user}', [UserController::class, 'update'])->middleware('right:users.manage');
+    Route::patch('/administrators/{user}', [UserController::class, 'update'])->middleware('right:users.manage');
+    Route::delete('/administrators/{user}', [UserController::class, 'destroy'])->middleware('right:users.manage');
 });

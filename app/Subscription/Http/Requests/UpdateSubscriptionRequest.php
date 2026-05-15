@@ -24,6 +24,8 @@ class UpdateSubscriptionRequest extends FormRequest
             'trial_days' => ['sometimes', 'integer', 'min:0'],
             'max_users' => ['nullable', 'integer', 'min:1'],
             'is_active' => ['sometimes', 'boolean'],
+            'user_ids' => ['sometimes', 'array'],
+            'user_ids.*' => ['integer', 'exists:users,id'],
         ];
     }
 }

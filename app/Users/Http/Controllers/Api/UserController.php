@@ -3,6 +3,7 @@
 namespace App\Users\Http\Controllers\Api;
 
 use App\Users\Http\Controllers\Controller;
+use App\Users\Http\Requests\SyncUserSubscriptionsRequest;
 use App\Users\Http\Requests\StoreUserRequest;
 use App\Users\Http\Requests\UpdateUserRequest;
 use App\Users\Http\Resources\UserResource;
@@ -32,7 +33,7 @@ class UserController extends Controller
     private function userList(Request $request, ?bool $hasGroups = null): AnonymousResourceCollection
     {
         $users = User::query()
-            ->with(['groups.rights', 'locations'])
+            ->with(['groups.rights', 'locations', 'activeSubscriptions'])
             ->when($hasGroups === true, fn ($query) => $query->has('groups'))
             ->when($hasGroups === false, fn ($query) => $query->doesntHave('groups'))
             ->when($request->string('search')->isNotEmpty(), function ($query) use ($request): void {
@@ -57,25 +58,28 @@ class UserController extends Controller
         $data = $request->validated();
         $groupIds = $data['group_ids'] ?? [];
         $locationIds = $data['location_ids'] ?? [];
+        $subscriptionIds = $data['subscription_ids'] ?? [];
         unset($data['group_ids']);
         unset($data['location_ids']);
+        unset($data['subscription_ids']);
 
-        $user = DB::transaction(function () use ($data, $groupIds, $locationIds): User {
+        $user = DB::transaction(function () use ($data, $groupIds, $locationIds, $subscriptionIds): User {
             $user = User::query()->create($data);
             $user->groups()->sync($groupIds);
             $user->locations()->sync($locationIds);
+            $user->subscriptions()->sync($subscriptionIds);
 
             return $user;
         });
 
-        return (new UserResource($user->load(['groups.rights', 'locations'])))
+        return (new UserResource($user->load(['groups.rights', 'locations', 'subscriptions', 'activeSubscriptions'])))
             ->response()
             ->setStatusCode(201);
     }
 
     public function show(User $user): UserResource
     {
-        return new UserResource($user->load(['groups.rights', 'locations']));
+        return new UserResource($user->load(['groups.rights', 'locations', 'subscriptions', 'activeSubscriptions']));
     }
 
     public function update(UpdateUserRequest $request, User $user): UserResource
@@ -83,14 +87,16 @@ class UserController extends Controller
         $data = $request->validated();
         $groupIds = $data['group_ids'] ?? null;
         $locationIds = $data['location_ids'] ?? null;
+        $subscriptionIds = $data['subscription_ids'] ?? null;
         unset($data['group_ids']);
         unset($data['location_ids']);
+        unset($data['subscription_ids']);
 
         if (array_key_exists('password', $data) && blank($data['password'])) {
             unset($data['password']);
         }
 
-        DB::transaction(function () use ($user, $data, $groupIds, $locationIds): void {
+        DB::transaction(function () use ($user, $data, $groupIds, $locationIds, $subscriptionIds): void {
             $user->update($data);
 
             if ($groupIds !== null) {
@@ -100,9 +106,22 @@ class UserController extends Controller
             if ($locationIds !== null) {
                 $user->locations()->sync($locationIds);
             }
+
+            if ($subscriptionIds !== null) {
+                $user->subscriptions()->sync($subscriptionIds);
+            }
         });
 
-        return new UserResource($user->load(['groups.rights', 'locations']));
+        return new UserResource($user->load(['groups.rights', 'locations', 'subscriptions', 'activeSubscriptions']));
+    }
+
+    public function syncSubscriptions(SyncUserSubscriptionsRequest $request, User $user): UserResource
+    {
+        DB::transaction(function () use ($request, $user): void {
+            $user->subscriptions()->sync($request->validated('subscription_ids'));
+        });
+
+        return new UserResource($user->load(['groups.rights', 'locations', 'subscriptions', 'activeSubscriptions']));
     }
 
     public function destroy(Request $request, User $user): JsonResponse

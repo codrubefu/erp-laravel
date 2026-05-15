@@ -34,14 +34,14 @@ class AuthController extends Controller
         return response()->json([
             'token' => $this->tokens->create($user),
             'token_type' => 'Bearer',
-            'user' => $user->load(['groups.rights', 'locations']),
+            'user' => $user->load(['groups.rights', 'locations', 'activeSubscriptions']),
         ]);
     }
 
     public function me(Request $request): JsonResponse
     {
         return response()->json([
-            'user' => $request->user()->load(['groups.rights', 'locations']),
+            'user' => $request->user()->load(['groups.rights', 'locations', 'activeSubscriptions']),
         ]);
     }
 

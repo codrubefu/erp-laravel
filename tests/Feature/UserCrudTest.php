@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Subscription\Models\Subscription;
 use App\Users\Models\Group;
 use App\Users\Models\Right;
 use App\Users\Models\User;
@@ -55,6 +56,42 @@ class UserCrudTest extends TestCase
         $this->assertDatabaseHas('group_user', ['group_id' => $group->id]);
     }
 
+    public function test_user_can_have_multiple_active_subscriptions(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['users.manage']);
+        $subscriptions = [
+            Subscription::query()->create($this->subscriptionData([
+                'name' => 'Basic',
+                'is_active' => true,
+            ])),
+            Subscription::query()->create($this->subscriptionData([
+                'name' => 'Pro',
+                'is_active' => true,
+            ])),
+        ];
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/users', [
+                'first_name' => 'Subscribed',
+                'last_name' => 'User',
+                'email' => 'subscribed@example.com',
+                'password' => 'password',
+                'subscription_ids' => collect($subscriptions)->pluck('id')->all(),
+            ])
+            ->assertCreated()
+            ->assertJsonCount(2, 'data.subscriptions')
+            ->assertJsonCount(2, 'data.active_subscriptions');
+
+        $userId = $response->json('data.id');
+
+        foreach ($subscriptions as $subscription) {
+            $this->assertDatabaseHas('subscription_user', [
+                'subscription_id' => $subscription->id,
+                'user_id' => $userId,
+            ]);
+        }
+    }
+
     public function test_user_with_manage_right_can_update_user(): void
     {
         [, $token] = $this->authenticatedUserWithRights(['users.manage']);
@@ -68,6 +105,40 @@ class UserCrudTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.first_name', 'Updated')
             ->assertJsonPath('data.email', 'updated@example.com');
+    }
+
+    public function test_user_with_manage_right_can_sync_subscriptions_through_dedicated_route(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['users.manage']);
+        $user = User::factory()->create();
+        $oldSubscription = Subscription::query()->create($this->subscriptionData([
+            'name' => 'Legacy',
+            'is_active' => true,
+        ]));
+        $newSubscription = Subscription::query()->create($this->subscriptionData([
+            'name' => 'Fresh',
+            'is_active' => true,
+        ]));
+
+        $user->subscriptions()->attach($oldSubscription);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson("/api/users/subscription/{$user->id}", [
+                'subscription_ids' => [$newSubscription->id],
+            ])
+            ->assertOk()
+            ->assertJsonCount(1, 'data.subscriptions')
+            ->assertJsonPath('data.subscriptions.0.id', $newSubscription->id)
+            ->assertJsonCount(1, 'data.active_subscriptions');
+
+        $this->assertDatabaseHas('subscription_user', [
+            'subscription_id' => $newSubscription->id,
+            'user_id' => $user->id,
+        ]);
+        $this->assertDatabaseMissing('subscription_user', [
+            'subscription_id' => $oldSubscription->id,
+            'user_id' => $user->id,
+        ]);
     }
 
     public function test_user_with_manage_right_can_delete_user(): void
@@ -124,5 +195,19 @@ class UserCrudTest extends TestCase
         ])->json('token');
 
         return [$user, $token];
+    }
+
+    private function subscriptionData(array $overrides = []): array
+    {
+        return array_merge([
+            'description' => 'Test subscription',
+            'price' => 99.99,
+            'currency' => 'EUR',
+            'billing_interval' => 'monthly',
+            'duration_days' => null,
+            'trial_days' => 14,
+            'max_users' => 25,
+            'is_active' => true,
+        ], $overrides);
     }
 }

@@ -24,6 +24,8 @@ class StoreUserRequest extends FormRequest
             'group_ids.*' => ['integer', 'exists:groups,id'],
             'location_ids' => ['sometimes', 'array'],
             'location_ids.*' => ['integer', 'exists:locations,id'],
+            'subscription_ids' => ['sometimes', 'array'],
+            'subscription_ids.*' => ['integer', 'exists:subscriptions,id'],
         ];
     }
 }

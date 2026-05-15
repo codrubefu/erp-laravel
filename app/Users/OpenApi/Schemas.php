@@ -142,6 +142,16 @@ use OpenApi\Attributes as OA;
             type: 'array',
             items: new OA\Items(ref: '#/components/schemas/Location'),
         ),
+        new OA\Property(
+            property: 'subscriptions',
+            type: 'array',
+            items: new OA\Items(ref: '#/components/schemas/Subscription'),
+        ),
+        new OA\Property(
+            property: 'active_subscriptions',
+            type: 'array',
+            items: new OA\Items(ref: '#/components/schemas/Subscription'),
+        ),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true),
     ],
@@ -169,6 +179,12 @@ use OpenApi\Attributes as OA;
             items: new OA\Items(type: 'integer'),
             example: [1, 2],
         ),
+        new OA\Property(
+            property: 'subscription_ids',
+            type: 'array',
+            items: new OA\Items(type: 'integer'),
+            example: [1, 2],
+        ),
     ],
     type: 'object',
 )]
@@ -189,6 +205,25 @@ use OpenApi\Attributes as OA;
         ),
         new OA\Property(
             property: 'location_ids',
+            type: 'array',
+            items: new OA\Items(type: 'integer'),
+            example: [1, 2],
+        ),
+        new OA\Property(
+            property: 'subscription_ids',
+            type: 'array',
+            items: new OA\Items(type: 'integer'),
+            example: [1, 2],
+        ),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'SyncUserSubscriptionsRequest',
+    required: ['subscription_ids'],
+    properties: [
+        new OA\Property(
+            property: 'subscription_ids',
             type: 'array',
             items: new OA\Items(type: 'integer'),
             example: [1, 2],
