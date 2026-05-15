@@ -32,6 +32,8 @@ services:
       MYSQL_PASSWORD: secret
     volumes:
       - dbdata:/var/lib/mysql
+    ports:
+      - "3306:3306"  
 
 volumes:
   dbdata:
