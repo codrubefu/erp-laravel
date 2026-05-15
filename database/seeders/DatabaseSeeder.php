@@ -27,6 +27,12 @@ class DatabaseSeeder extends Seeder
             ['name' => 'rights.manage', 'label' => 'Manage rights', 'description' => 'Create, update, and delete application rights.'],
             ['name' => 'locations.view', 'label' => 'View locations', 'description' => 'Read locations and assigned users.'],
             ['name' => 'locations.manage', 'label' => 'Manage locations', 'description' => 'Create, update, and delete locations.'],
+            ['name' => 'subscriptions.view', 'label' => 'View subscriptions', 'description' => 'Read subscriptions.'],
+            ['name' => 'subscriptions.create', 'label' => 'Create subscriptions', 'description' => 'Create subscriptions.'],
+            ['name' => 'subscriptions.update', 'label' => 'Update subscriptions', 'description' => 'Update subscriptions and toggle active status.'],
+            ['name' => 'subscriptions.delete', 'label' => 'Delete subscriptions', 'description' => 'Delete subscriptions.'],
+            ['name' => 'subscriptions.restore', 'label' => 'Restore subscriptions', 'description' => 'Restore deleted subscriptions.'],
+            ['name' => 'subscriptions.manage', 'label' => 'Manage subscriptions', 'description' => 'Manage all subscription actions.'],
         ])->mapWithKeys(fn (array $right) => [
             $right['name'] => Right::query()->updateOrCreate(
                 ['name' => $right['name']],
@@ -50,6 +56,7 @@ class DatabaseSeeder extends Seeder
             'groups.view',
             'rights.view',
             'locations.view',
+            'subscriptions.view',
         ])->pluck('id'));
 
         $staff = Group::query()->updateOrCreate(
