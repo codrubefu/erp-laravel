@@ -4,6 +4,7 @@ namespace App\Users\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Subscription\Models\Subscription;
+use App\Events\Models\EventOccurrence;
 use App\Users\Models\Scopes\LocationAccessScope;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -51,6 +52,13 @@ class User extends Authenticatable
     public function activeSubscriptions(): BelongsToMany
     {
         return $this->subscriptions()->where('subscriptions.is_active', true);
+    }
+
+    public function eventOccurrences(): BelongsToMany
+    {
+        return $this->belongsToMany(EventOccurrence::class, 'event_occurrence_user')
+            ->withPivot(['status', 'registered_at', 'notes'])
+            ->withTimestamps();
     }
 
     public function hasRight(string $right): bool

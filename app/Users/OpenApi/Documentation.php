@@ -16,7 +16,7 @@ use OpenApi\Attributes as OA;
 #[OA\SecurityScheme(
     securityScheme: 'bearerAuth',
     type: 'http',
-    bearerFormat: 'Bearer',
+    bearerFormat: 'JWT',
     scheme: 'bearer',
 )]
 class Documentation

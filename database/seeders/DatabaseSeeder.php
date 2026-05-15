@@ -33,6 +33,10 @@ class DatabaseSeeder extends Seeder
             ['name' => 'subscriptions.delete', 'label' => 'Delete subscriptions', 'description' => 'Delete subscriptions.'],
             ['name' => 'subscriptions.restore', 'label' => 'Restore subscriptions', 'description' => 'Restore deleted subscriptions.'],
             ['name' => 'subscriptions.manage', 'label' => 'Manage subscriptions', 'description' => 'Manage all subscription actions.'],
+            ['name' => 'events.view', 'label' => 'View events', 'description' => 'Read events and event occurrences.'],
+            ['name' => 'events.manage', 'label' => 'Manage events', 'description' => 'Create, update, and delete events.'],
+            ['name' => 'event_participants.view', 'label' => 'View event participants', 'description' => 'Read event occurrence participants.'],
+            ['name' => 'event_participants.manage', 'label' => 'Manage event participants', 'description' => 'Add and remove event occurrence participants.'],
         ])->mapWithKeys(fn (array $right) => [
             $right['name'] => Right::query()->updateOrCreate(
                 ['name' => $right['name']],
@@ -57,6 +61,8 @@ class DatabaseSeeder extends Seeder
             'rights.view',
             'locations.view',
             'subscriptions.view',
+            'events.view',
+            'event_participants.view',
         ])->pluck('id'));
 
         $staff = Group::query()->updateOrCreate(
