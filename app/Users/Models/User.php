@@ -3,6 +3,7 @@
 namespace App\Users\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Articles\Models\Article;
 use App\Subscription\Models\Subscription;
 use App\Events\Models\EventOccurrence;
 use App\Users\Models\Scopes\LocationAccessScope;
@@ -32,6 +33,11 @@ class User extends Authenticatable
     public function accessTokens(): HasMany
     {
         return $this->hasMany(PersonalAccessToken::class);
+    }
+
+    public function articles(): HasMany
+    {
+        return $this->hasMany(Article::class, 'created_by');
     }
 
     public function groups(): BelongsToMany

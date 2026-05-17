@@ -2,6 +2,7 @@
 
 namespace App\Users\Models;
 
+use App\Articles\Models\Article;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,5 +17,10 @@ class Location extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class)->withTimestamps();
+    }
+
+    public function articles(): BelongsToMany
+    {
+        return $this->belongsToMany(Article::class)->withTimestamps();
     }
 }
