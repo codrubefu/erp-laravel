@@ -79,15 +79,7 @@ class DatabaseSeeder extends Seeder
 
         User::factory(10)->create()->each(fn (User $user) => $user->groups()->sync([$staff->id]));
 
-        $testUser = User::factory()->create([
-            'first_name' => 'Test',
-            'last_name' => 'User',
-            'phone' => '+15550000000',
-            'active' => true,
-            'email' => 'test@example.com',
-            'password' => bcrypt('password'),
-        ]);
-        $testUser->groups()->sync([$admin->id]);
+     
 
         $this->call(LocationSeeder::class);
     }
