@@ -17,6 +17,7 @@ class CreateOrganizationAdminCommandTest extends TestCase
     {
         $exitCode = Artisan::call('create:organisation', [
             '--organization' => 'Acme SRL',
+            '--slug' => 'acme',
             '--description' => 'Test organization',
             '--email' => 'admin@acme.test',
             '--first-name' => 'Ana',
@@ -38,6 +39,7 @@ class CreateOrganizationAdminCommandTest extends TestCase
             ->firstOrFail();
 
         $this->assertSame('Test organization', $organization->description);
+        $this->assertSame('acme', $organization->slug);
         $this->assertSame($organization->id, $user->organization_id);
         $this->assertSame('Ana', $user->first_name);
         $this->assertSame('Popescu', $user->last_name);
@@ -50,6 +52,7 @@ class CreateOrganizationAdminCommandTest extends TestCase
     {
         $this->artisan('create:organisation')
             ->expectsQuestion('Organization name', 'Prompt SRL')
+            ->expectsQuestion('Organization slug', 'prompt-custom')
             ->expectsQuestion('Organization description', 'Prompt organization')
             ->expectsQuestion('Administrator email', 'admin@prompt.test')
             ->expectsQuestion('Administrator first name', 'Maria')
@@ -60,6 +63,7 @@ class CreateOrganizationAdminCommandTest extends TestCase
         $organization = Organization::query()->where('name', 'Prompt SRL')->firstOrFail();
         $user = User::query()->where('email', 'admin@prompt.test')->firstOrFail();
 
+        $this->assertSame('prompt-custom', $organization->slug);
         $this->assertSame($organization->id, $user->organization_id);
         $this->assertTrue($user->groups()->whereHas('rights', fn ($query) => $query->where('name', 'users.manage'))->exists());
     }

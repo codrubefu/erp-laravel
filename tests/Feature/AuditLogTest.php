@@ -88,6 +88,7 @@ class AuditLogTest extends TestCase
 
         $token = $this->postJson('/api/login', [
             'email' => $user->email,
+            'organization_id' => $user->organization_id,
             'password' => 'password',
         ])->json('token');
 

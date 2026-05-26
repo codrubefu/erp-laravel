@@ -99,6 +99,10 @@ class UserController extends Controller
         unset($data['subscription_ids']);
         unset($data['subscriptions']);
 
+        if (array_key_exists('password', $data) && blank($data['password'])) {
+            unset($data['password']);
+        }
+
         $user = DB::transaction(function () use ($data, $groupIds, $locationIds, $subscriptionAssignments): User {
             $user = User::query()->create($data);
             $user->groups()->sync($groupIds);

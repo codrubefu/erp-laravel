@@ -27,7 +27,9 @@ class UpdateUserRequest extends FormRequest
                 'required',
                 'email',
                 'max:255',
-                Rule::unique('users', 'email')->ignore($user?->id),
+                Rule::unique('users', 'email')
+                    ->where('organization_id', $user?->organization_id)
+                    ->ignore($user?->id),
             ],
             'password' => ['sometimes', 'nullable', 'string', 'min:8'],
             'group_ids' => ['sometimes', 'array'],

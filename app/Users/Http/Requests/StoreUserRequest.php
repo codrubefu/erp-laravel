@@ -3,6 +3,7 @@
 namespace App\Users\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreUserRequest extends FormRequest
 {
@@ -19,8 +20,13 @@ class StoreUserRequest extends FormRequest
             'last_name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:255'],
             'active' => ['sometimes', 'boolean'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8'],
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->where('organization_id', $this->user()?->organization_id),
+            ],
+            'password' => ['sometimes', 'nullable', 'string', 'min:8'],
             'group_ids' => ['sometimes', 'array'],
             'group_ids.*' => ['integer', 'exists:groups,id'],
             'location_ids' => ['sometimes', 'array'],

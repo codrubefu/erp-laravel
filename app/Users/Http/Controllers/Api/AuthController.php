@@ -20,12 +20,16 @@ class AuthController extends Controller
     {
         $credentials = $request->validate([
             'email' => ['required', 'email'],
+            'organization_id' => ['required', 'integer', 'exists:organizations,id'],
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::query()->where('email', $credentials['email'])->first();
+        $user = User::query()
+            ->where('email', $credentials['email'])
+            ->where('organization_id', $credentials['organization_id'])
+            ->first();
 
-        if (! $user || ! $user->active || ! Hash::check($credentials['password'], $user->password)) {
+        if (! $user || ! $user->active || $user->password === null || ! Hash::check($credentials['password'], $user->password)) {
             return response()->json([
                 'message' => 'Invalid credentials.',
             ], 401);

@@ -190,7 +190,7 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Schema(
     schema: 'StoreUserRequest',
-    required: ['first_name', 'last_name', 'email', 'password'],
+    required: ['first_name', 'last_name', 'email'],
     properties: [
         new OA\Property(property: 'user_code', type: 'string', nullable: true, maxLength: 32, example: 'USR00000000000000000000000000001'),
         new OA\Property(property: 'first_name', type: 'string', example: 'John'),
@@ -198,7 +198,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'phone', type: 'string', nullable: true, example: '+15550001111'),
         new OA\Property(property: 'active', type: 'boolean', example: true),
         new OA\Property(property: 'email', type: 'string', format: 'email', example: 'john@example.com'),
-        new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password'),
+        new OA\Property(property: 'password', type: 'string', format: 'password', nullable: true, example: 'password'),
         new OA\Property(
             property: 'group_ids',
             type: 'array',

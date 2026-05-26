@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Subscription\Models\Subscription;
 use App\Users\Models\Group;
 use App\Users\Models\Location;
+use App\Users\Models\Organization;
 use App\Users\Models\Right;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -201,6 +202,75 @@ class UserCrudTest extends TestCase
             'user_code' => 'USR00000000000000000000000000001',
         ]);
         $this->assertDatabaseHas('group_user', ['group_id' => $group->id]);
+    }
+
+    public function test_user_with_manage_right_can_create_user_without_password(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['users.manage']);
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/users', [
+                'first_name' => 'No',
+                'last_name' => 'Password',
+                'email' => 'no-password@example.com',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.email', 'no-password@example.com');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $response->json('data.id'),
+            'email' => 'no-password@example.com',
+            'password' => null,
+        ]);
+    }
+
+    public function test_user_email_must_be_unique_within_same_organization(): void
+    {
+        $organization = Organization::query()->create(['name' => 'Same Org', 'slug' => 'same-org']);
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.manage']);
+        $admin->update(['organization_id' => $organization->id]);
+
+        User::factory()->create([
+            'organization_id' => $organization->id,
+            'email' => 'shared@example.com',
+        ]);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/users', [
+                'first_name' => 'Duplicate',
+                'last_name' => 'Email',
+                'email' => 'shared@example.com',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('email');
+    }
+
+    public function test_user_email_can_be_reused_in_different_organizations(): void
+    {
+        $firstOrganization = Organization::query()->create(['name' => 'First Org', 'slug' => 'first-org']);
+        $secondOrganization = Organization::query()->create(['name' => 'Second Org', 'slug' => 'second-org']);
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.manage']);
+        $admin->update(['organization_id' => $secondOrganization->id]);
+
+        User::factory()->create([
+            'organization_id' => $firstOrganization->id,
+            'email' => 'shared@example.com',
+        ]);
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/users', [
+                'first_name' => 'Shared',
+                'last_name' => 'Email',
+                'email' => 'shared@example.com',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.email', 'shared@example.com');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $response->json('data.id'),
+            'organization_id' => $secondOrganization->id,
+            'email' => 'shared@example.com',
+        ]);
     }
 
     public function test_user_can_have_multiple_active_subscriptions(): void
@@ -422,6 +492,7 @@ class UserCrudTest extends TestCase
 
         $token = $this->postJson('/api/login', [
             'email' => $user->email,
+            'organization_id' => $user->organization_id,
             'password' => 'password',
         ])->json('token');
 

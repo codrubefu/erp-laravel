@@ -31,6 +31,7 @@ class RightsMiddlewareTest extends TestCase
 
         $token = $this->postJson('/api/login', [
             'email' => 'admin@example.com',
+            'organization_id' => $user->organization_id,
             'password' => 'password',
         ])->json('token');
 
@@ -54,6 +55,7 @@ class RightsMiddlewareTest extends TestCase
 
         $token = $this->postJson('/api/login', [
             'email' => 'staff@example.com',
+            'organization_id' => $user->organization_id,
             'password' => 'password',
         ])->json('token');
 

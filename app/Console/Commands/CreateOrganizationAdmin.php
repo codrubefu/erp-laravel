@@ -16,6 +16,7 @@ class CreateOrganizationAdmin extends Command
 {
     protected $signature = 'create:organisation
         {--organization= : Organization name}
+        {--slug= : Organization slug}
         {--description= : Organization description}
         {--email= : Administrator email}
         {--first-name= : Administrator first name}
@@ -26,8 +27,11 @@ class CreateOrganizationAdmin extends Command
 
     public function handle(): int
     {
+        $organizationName = $this->option('organization') ?: $this->ask('Organization name');
+
         $data = [
-            'organization' => $this->option('organization') ?: $this->ask('Organization name'),
+            'organization' => $organizationName,
+            'slug' => $this->option('slug') ?: $this->ask('Organization slug', Str::slug($organizationName)),
             'description' => $this->option('description') ?: $this->ask('Organization description'),
             'email' => $this->option('email') ?: $this->ask('Administrator email'),
             'first_name' => $this->option('first-name') ?: $this->ask('Administrator first name'),
@@ -37,8 +41,9 @@ class CreateOrganizationAdmin extends Command
 
         $validator = Validator::make($data, [
             'organization' => ['required', 'string', 'max:255', Rule::unique('organizations', 'name')],
+            'slug' => ['required', 'string', 'max:255', Rule::unique('organizations', 'slug')],
             'description' => ['nullable', 'string'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+            'email' => ['required', 'email', 'max:255'],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string', 'min:8'],
@@ -55,6 +60,7 @@ class CreateOrganizationAdmin extends Command
         [$organization, $user, $adminGroup, $userGroup] = DB::transaction(function () use ($data): array {
             $organization = Organization::query()->create([
                 'name' => $data['organization'],
+                'slug' => $data['slug'],
                 'description' => $data['description'],
             ]);
 
@@ -100,7 +106,7 @@ class CreateOrganizationAdmin extends Command
         $this->info('Organization administrator created.');
         $this->table(
             ['Organization ID', 'Organization', 'User ID', 'Email', 'Admin Group', 'User Group'],
-            [[$organization->id, $organization->name, $user->id, $user->email, $adminGroup->name, $userGroup->name]],
+            [[$organization->id, "{$organization->name} ({$organization->slug})", $user->id, $user->email, $adminGroup->name, $userGroup->name]],
         );
 
         return self::SUCCESS;

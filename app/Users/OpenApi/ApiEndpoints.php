@@ -13,9 +13,10 @@ class ApiEndpoints
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['email', 'password'],
+                required: ['email', 'organization_id', 'password'],
                 properties: [
                     new OA\Property(property: 'email', type: 'string', format: 'email', example: 'test@example.com'),
+                    new OA\Property(property: 'organization_id', type: 'integer', example: 1),
                     new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password'),
                 ],
                 type: 'object',
