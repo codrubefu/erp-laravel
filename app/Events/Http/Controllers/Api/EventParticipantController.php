@@ -3,6 +3,7 @@
 namespace App\Events\Http\Controllers\Api;
 
 use App\Events\Http\Requests\AddEventParticipantRequest;
+use App\Events\Http\Requests\UpdateEventParticipantRequest;
 use App\Events\Http\Resources\EventParticipantResource;
 use App\Events\Models\EventOccurrence;
 use App\Events\Services\EventEligibilityService;
@@ -100,6 +101,72 @@ class EventParticipantController extends Controller
             'message' => 'Participant added successfully.',
             'data' => new EventParticipantResource($participant),
         ], 201);
+    }
+
+    #[OA\Patch(
+        path: '/event-occurrences/{occurrence}/participants/{user}',
+        summary: 'Update occurrence participant',
+        description: 'Updates the participant pivot data for a concrete event occurrence.',
+        security: [['bearerAuth' => []]],
+        tags: ['Event Participants'],
+        parameters: [
+            new OA\PathParameter(name: 'occurrence', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/UpdateEventParticipantRequest')),
+        responses: [
+            new OA\Response(response: 200, description: 'Participant updated.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/EventParticipant')])),
+            new OA\Response(response: 400, description: 'Bad request.', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 401, description: 'Unauthenticated.', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 403, description: 'Forbidden.', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 404, description: 'Not found.', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 422, description: 'Validation error.', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
+        ],
+    )]
+    public function update(UpdateEventParticipantRequest $request, EventOccurrence $occurrence, User $user): JsonResponse
+    {
+        $participant = $occurrence->participants()->whereKey($user->id)->first();
+
+        if (! $participant) {
+            return $this->error('Participant not found for this occurrence.', 404);
+        }
+
+        $data = $request->validated();
+        $currentStatus = $participant->pivot->status;
+        $nextStatus = $data['status'] ?? $currentStatus;
+        $activeStatuses = ['registered', 'attended'];
+        $isActivatingParticipant = ! in_array($currentStatus, $activeStatuses, true)
+            && in_array($nextStatus, $activeStatuses, true);
+
+        if ($isActivatingParticipant) {
+            $occurrence->load('event.requiredSubscription');
+
+            if (! $this->eligibility->canUserJoinOccurrence($user, $occurrence)) {
+                return $this->error('User does not have the required active subscription.', 403);
+            }
+
+            $maxParticipants = $occurrence->event->max_participants;
+            if ($maxParticipants !== null && $occurrence->activeParticipants()->count() >= $maxParticipants) {
+                return $this->error('Event occurrence has reached the maximum number of participants.', 400);
+            }
+        }
+
+        $attributes = [];
+        foreach (['status', 'registered_at', 'notes'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $attributes[$field] = $data[$field];
+            }
+        }
+
+        $occurrence->participants()->updateExistingPivot($user->id, $attributes);
+
+        $participant = $occurrence->participants()->whereKey($user->id)->firstOrFail();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Participant updated successfully.',
+            'data' => new EventParticipantResource($participant),
+        ]);
     }
 
     #[OA\Delete(

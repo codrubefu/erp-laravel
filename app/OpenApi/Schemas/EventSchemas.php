@@ -97,6 +97,15 @@ use OpenApi\Attributes as OA;
     type: 'object',
 )]
 #[OA\Schema(
+    schema: 'UpdateEventParticipantRequest',
+    properties: [
+        new OA\Property(property: 'status', type: 'string', enum: ['registered', 'attended', 'cancelled', 'no_show'], example: 'attended'),
+        new OA\Property(property: 'registered_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'notes', type: 'string', nullable: true, example: 'A intarziat.'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
     schema: 'StandardSuccessResponse',
     properties: [
         new OA\Property(property: 'success', type: 'boolean', example: true),

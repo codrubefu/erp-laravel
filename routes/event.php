@@ -28,6 +28,10 @@ Route::middleware('auth.bearer')->group(function (): void {
         ->middleware('right:event_participants.view,event_participants.manage');
     Route::post('/event-occurrences/{occurrence}/participants', [EventParticipantController::class, 'store'])
         ->middleware('right:event_participants.manage');
+    Route::put('/event-occurrences/{occurrence}/participants/{user}', [EventParticipantController::class, 'update'])
+        ->middleware('right:event_participants.manage');
+    Route::patch('/event-occurrences/{occurrence}/participants/{user}', [EventParticipantController::class, 'update'])
+        ->middleware('right:event_participants.manage');
     Route::delete('/event-occurrences/{occurrence}/participants/{user}', [EventParticipantController::class, 'destroy'])
         ->middleware('right:event_participants.manage');
 });
