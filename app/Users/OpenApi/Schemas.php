@@ -150,6 +150,7 @@ use OpenApi\Attributes as OA;
     schema: 'User',
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 35),
+        new OA\Property(property: 'user_code', type: 'string', nullable: true, maxLength: 32, example: 'USR00000000000000000000000000001'),
         new OA\Property(property: 'first_name', type: 'string', example: 'John'),
         new OA\Property(property: 'last_name', type: 'string', example: 'Doe'),
         new OA\Property(property: 'phone', type: 'string', nullable: true, example: '+15550001111'),
@@ -192,6 +193,7 @@ use OpenApi\Attributes as OA;
     schema: 'StoreUserRequest',
     required: ['first_name', 'last_name', 'email', 'password'],
     properties: [
+        new OA\Property(property: 'user_code', type: 'string', nullable: true, maxLength: 32, example: 'USR00000000000000000000000000001'),
         new OA\Property(property: 'first_name', type: 'string', example: 'John'),
         new OA\Property(property: 'last_name', type: 'string', example: 'Doe'),
         new OA\Property(property: 'phone', type: 'string', nullable: true, example: '+15550001111'),
@@ -228,6 +230,7 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(
     schema: 'UpdateUserRequest',
     properties: [
+        new OA\Property(property: 'user_code', type: 'string', nullable: true, maxLength: 32, example: 'USR00000000000000000000000000001'),
         new OA\Property(property: 'first_name', type: 'string', example: 'John'),
         new OA\Property(property: 'last_name', type: 'string', example: 'Doe'),
         new OA\Property(property: 'phone', type: 'string', nullable: true, example: '+15550001111'),

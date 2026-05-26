@@ -37,6 +37,7 @@ Route::middleware('auth.bearer')->group(function (): void {
     Route::get('/administrators', [UserController::class, 'administrators'])->middleware('right:users.view');
     Route::get('/clients', [UserController::class, 'clients'])->middleware('right:users.view');
     Route::get('/users', [UserController::class, 'index'])->middleware('right:users.view');
+    Route::get('/users/search/user-code', [UserController::class, 'searchByUserCode'])->middleware('right:users.view');
     Route::post('/users', [UserController::class, 'store'])->middleware('right:users.manage');
     Route::patch('/users/subscription/{user}', [UserController::class, 'syncSubscriptions'])->middleware('right:users.manage');
     Route::get('/users/{user}', [UserController::class, 'show'])->middleware('right:users.view');

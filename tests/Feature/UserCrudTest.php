@@ -63,6 +63,79 @@ class UserCrudTest extends TestCase
             ->assertJsonMissing(['email' => 'hidden@example.com']);
     }
 
+    public function test_user_can_search_users_by_partial_user_code(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['users.view']);
+
+        User::factory()->create([
+            'user_code' => 'USR11100000000000000000000000001',
+            'first_name' => 'Matching',
+            'email' => 'matching-code@example.com',
+        ]);
+        User::factory()->create([
+            'user_code' => 'USR22200000000000000000000000002',
+            'first_name' => 'Other',
+            'email' => 'other-code@example.com',
+        ]);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/users?search=111')
+            ->assertOk()
+            ->assertJsonFragment(['email' => 'matching-code@example.com'])
+            ->assertJsonMissing(['email' => 'other-code@example.com']);
+    }
+
+    public function test_user_code_search_endpoint_only_searches_user_code(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['users.view']);
+
+        User::factory()->create([
+            'user_code' => 'USR11100000000000000000000000001',
+            'first_name' => 'Matching',
+            'email' => 'matching-code@example.com',
+        ]);
+        User::factory()->create([
+            'user_code' => 'USR22200000000000000000000000002',
+            'first_name' => '111',
+            'email' => '111@example.com',
+        ]);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/users/search/user-code?search=111')
+            ->assertOk()
+            ->assertJsonFragment(['email' => 'matching-code@example.com'])
+            ->assertJsonMissing(['email' => '111@example.com']);
+    }
+
+    public function test_user_code_search_endpoint_ignores_location_scope_and_returns_user_code(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.view']);
+        $allowedLocation = Location::query()->create([
+            'name' => 'Allowed',
+            'description' => 'Allowed location',
+        ]);
+        $otherLocation = Location::query()->create([
+            'name' => 'Other',
+            'description' => 'Other location',
+        ]);
+        $targetUser = User::factory()->create([
+            'user_code' => '323',
+            'first_name' => 'Mathias',
+            'email' => 'mathias323@example.com',
+        ]);
+
+        $admin->locations()->attach($allowedLocation);
+        $targetUser->locations()->attach($otherLocation);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/users/search/user-code?search=323')
+            ->assertOk()
+            ->assertJsonFragment([
+                'email' => 'mathias323@example.com',
+                'user_code' => '323',
+            ]);
+    }
+
     public function test_clients_endpoint_only_lists_users_with_profile_view_right(): void
     {
         [, $token] = $this->authenticatedUserWithRights(['users.view']);
@@ -109,6 +182,7 @@ class UserCrudTest extends TestCase
 
         $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/users', [
+                'user_code' => 'USR00000000000000000000000000001',
                 'first_name' => 'New',
                 'last_name' => 'User',
                 'phone' => '+15550001111',
@@ -118,10 +192,14 @@ class UserCrudTest extends TestCase
                 'group_ids' => [$group->id],
             ])
             ->assertCreated()
+            ->assertJsonPath('data.user_code', 'USR00000000000000000000000000001')
             ->assertJsonPath('data.email', 'new@example.com')
             ->assertJsonPath('data.groups.0.id', $group->id);
 
-        $this->assertDatabaseHas('users', ['email' => 'new@example.com']);
+        $this->assertDatabaseHas('users', [
+            'email' => 'new@example.com',
+            'user_code' => 'USR00000000000000000000000000001',
+        ]);
         $this->assertDatabaseHas('group_user', ['group_id' => $group->id]);
     }
 
@@ -240,10 +318,12 @@ class UserCrudTest extends TestCase
 
         $this->withHeader('Authorization', "Bearer {$token}")
             ->patchJson("/api/users/{$user->id}", [
+                'user_code' => 'USR00000000000000000000000000002',
                 'first_name' => 'Updated',
                 'email' => 'updated@example.com',
             ])
             ->assertOk()
+            ->assertJsonPath('data.user_code', 'USR00000000000000000000000000002')
             ->assertJsonPath('data.first_name', 'Updated')
             ->assertJsonPath('data.email', 'updated@example.com');
     }

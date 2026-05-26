@@ -17,6 +17,7 @@ class UpdateUserRequest extends FormRequest
         $user = $this->route('user');
 
         return [
+            'user_code' => ['nullable', 'string', 'max:32'],
             'first_name' => ['sometimes', 'required', 'string', 'max:255'],
             'last_name' => ['sometimes', 'required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:255'],

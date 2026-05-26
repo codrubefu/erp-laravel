@@ -64,8 +64,15 @@ class ApiEndpoints
         security: [['bearerAuth' => []]],
         tags: ['Users'],
         parameters: [
-            new OA\QueryParameter(name: 'search', required: false, schema: new OA\Schema(type: 'string'), example: 'john'),
+            new OA\QueryParameter(
+                name: 'search',
+                description: 'Search by first name, last name, email, phone, or user code.',
+                required: false,
+                schema: new OA\Schema(type: 'string'),
+                example: 'USR00000000000000000000000000001',
+            ),
             new OA\QueryParameter(name: 'per_page', required: false, schema: new OA\Schema(type: 'integer'), example: 15),
+            new OA\QueryParameter(name: 'page', required: false, schema: new OA\Schema(type: 'integer'), example: 1),
         ],
         responses: [
             new OA\Response(
@@ -95,8 +102,15 @@ class ApiEndpoints
         security: [['bearerAuth' => []]],
         tags: ['Users'],
         parameters: [
-            new OA\QueryParameter(name: 'search', required: false, schema: new OA\Schema(type: 'string'), example: 'john'),
+            new OA\QueryParameter(
+                name: 'search',
+                description: 'Search by first name, last name, email, phone, or user code.',
+                required: false,
+                schema: new OA\Schema(type: 'string'),
+                example: 'USR00000000000000000000000000001',
+            ),
             new OA\QueryParameter(name: 'per_page', required: false, schema: new OA\Schema(type: 'integer'), example: 15),
+            new OA\QueryParameter(name: 'page', required: false, schema: new OA\Schema(type: 'integer'), example: 1),
         ],
         responses: [
             new OA\Response(
@@ -632,7 +646,13 @@ class ApiEndpoints
         security: [['bearerAuth' => []]],
         tags: ['Users'],
         parameters: [
-            new OA\QueryParameter(name: 'search', required: false, schema: new OA\Schema(type: 'string'), example: 'john'),
+            new OA\QueryParameter(
+                name: 'search',
+                description: 'Search by first name, last name, email, phone, or user code.',
+                required: false,
+                schema: new OA\Schema(type: 'string'),
+                example: 'USR00000000000000000000000000001',
+            ),
             new OA\QueryParameter(name: 'per_page', required: false, schema: new OA\Schema(type: 'integer'), example: 15),
         ],
         responses: [
@@ -654,6 +674,44 @@ class ApiEndpoints
         ],
     )]
     public function usersIndex(): void
+    {
+    }
+
+    #[OA\Get(
+        path: '/users/search/user-code',
+        summary: 'Search users by user code',
+        security: [['bearerAuth' => []]],
+        tags: ['Users'],
+        parameters: [
+            new OA\QueryParameter(
+                name: 'search',
+                description: 'Search only by user code.',
+                required: false,
+                schema: new OA\Schema(type: 'string'),
+                example: '111',
+            ),
+            new OA\QueryParameter(name: 'per_page', required: false, schema: new OA\Schema(type: 'integer'), example: 15),
+            new OA\QueryParameter(name: 'page', required: false, schema: new OA\Schema(type: 'integer'), example: 1),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Paginated user list filtered only by user code.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/User'),
+                        ),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing users.view right.'),
+        ],
+    )]
+    public function usersSearchByUserCode(): void
     {
     }
 

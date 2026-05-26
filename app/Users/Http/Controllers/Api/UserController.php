@@ -9,6 +9,7 @@ use App\Users\Http\Requests\StoreUserRequest;
 use App\Users\Http\Requests\UpdateUserRequest;
 use App\Users\Http\Resources\UserResource;
 use App\Users\Models\User;
+use App\Users\Models\Scopes\LocationAccessScope;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
@@ -30,6 +31,22 @@ class UserController extends Controller
     public function clients(Request $request): AnonymousResourceCollection
     {
         return $this->userList($request, onlyRight: 'profile.view');
+    }
+
+    public function searchByUserCode(Request $request): AnonymousResourceCollection
+    {
+        $users = User::query()
+            ->withoutGlobalScope(LocationAccessScope::class)
+            ->with(['groups.rights', 'locations', 'activeSubscriptions'])
+            ->when($request->string('search')->isNotEmpty(), function ($query) use ($request): void {
+                $search = $request->string('search')->toString();
+
+                $query->where('user_code', 'like', "%{$search}%");
+            })
+            ->orderBy('user_code')
+            ->paginate($request->integer('per_page', 15));
+
+        return UserResource::collection($users);
     }
 
     private function userList(
@@ -60,7 +77,8 @@ class UserController extends Controller
                     $query->where('first_name', 'like', "%{$search}%")
                         ->orWhere('last_name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhere('phone', 'like', "%{$search}%");
+                        ->orWhere('phone', 'like', "%{$search}%")
+                        ->orWhere('user_code', 'like', "%{$search}%");
                 });
             })
             ->orderBy('last_name')
