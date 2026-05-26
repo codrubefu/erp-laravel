@@ -10,6 +10,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'id', type: 'integer', example: 1),
         new OA\Property(property: 'name', type: 'string', example: 'Main Office'),
         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Headquarters'),
+        new OA\Property(property: 'organization_id', type: 'integer', nullable: true, example: 1),
         new OA\Property(property: 'users_count', type: 'integer', example: 5),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true),
@@ -52,6 +53,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'name', type: 'string', example: 'admin'),
         new OA\Property(property: 'label', type: 'string', example: 'Administrator'),
         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Full application access.'),
+        new OA\Property(property: 'organization_id', type: 'integer', nullable: true, example: 1),
         new OA\Property(
             property: 'rights',
             type: 'array',
@@ -68,6 +70,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'name', type: 'string', example: 'users.view'),
         new OA\Property(property: 'label', type: 'string', example: 'View users'),
         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Read user records.'),
+        new OA\Property(property: 'organization_id', type: 'integer', nullable: true, example: 1),
         new OA\Property(property: 'groups_count', type: 'integer', example: 2),
     ],
     type: 'object',
@@ -152,6 +155,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'phone', type: 'string', nullable: true, example: '+15550001111'),
         new OA\Property(property: 'active', type: 'boolean', example: true),
         new OA\Property(property: 'email', type: 'string', format: 'email', example: 'john@example.com'),
+        new OA\Property(property: 'organization_id', type: 'integer', nullable: true, example: 1),
         new OA\Property(property: 'email_verified_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(
             property: 'groups',

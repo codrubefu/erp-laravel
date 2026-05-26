@@ -41,6 +41,20 @@ php artisan boost:install
 
 Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
 
+## Multi-organization support
+
+The API now includes an organization layer for tenant isolation:
+
+- Core domain tables include an `organization_id` foreign key.
+- Records are automatically assigned to the authenticated user's organization on create when `organization_id` is not explicitly provided.
+- This behavior is centralized in `App\Users\Models\Concerns\SetsOrganizationFromAuthenticatedUser`.
+
+To apply the schema changes, run:
+
+```bash
+php artisan migrate
+```
+
 ## Contributing
 
 Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).

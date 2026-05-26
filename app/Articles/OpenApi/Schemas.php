@@ -11,6 +11,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'title', type: 'string', example: 'Quarterly Operations Update'),
         new OA\Property(property: 'description', type: 'string', example: 'Summary of operational changes for the quarter.'),
         new OA\Property(property: 'created_by', type: 'integer', example: 1),
+        new OA\Property(property: 'organization_id', type: 'integer', nullable: true, example: 1),
         new OA\Property(property: 'author', ref: '#/components/schemas/User'),
         new OA\Property(
             property: 'groups',
