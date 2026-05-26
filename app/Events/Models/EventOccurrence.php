@@ -4,6 +4,8 @@ namespace App\Events\Models;
 
 use App\Users\Models\Organization;
 use App\Users\Models\User;
+use App\Users\Models\Concerns\BelongsToAuthenticatedOrganization;
+use App\Users\Models\Concerns\LogsModelChanges;
 use App\Users\Models\Concerns\SetsOrganizationFromAuthenticatedUser;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 #[Fillable(['event_id','occurrence_date','start_datetime','end_datetime','status','organization_id'])]
 class EventOccurrence extends Model
 {
+    use LogsModelChanges;
+    use BelongsToAuthenticatedOrganization;
     use SetsOrganizationFromAuthenticatedUser;
 
     use HasFactory;

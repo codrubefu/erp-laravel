@@ -6,6 +6,8 @@ use App\Users\Models\Group;
 use App\Users\Models\Location;
 use App\Users\Models\Organization;
 use App\Users\Models\User;
+use App\Users\Models\Concerns\BelongsToAuthenticatedOrganization;
+use App\Users\Models\Concerns\LogsModelChanges;
 use App\Users\Models\Concerns\SetsOrganizationFromAuthenticatedUser;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,6 +19,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable(['title', 'description', 'created_by', 'organization_id'])]
 class Article extends Model
 {
+    use LogsModelChanges;
+    use BelongsToAuthenticatedOrganization;
     use SetsOrganizationFromAuthenticatedUser;
 
     use HasFactory, SoftDeletes;

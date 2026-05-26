@@ -2,6 +2,8 @@
 
 namespace App\Subscription\Models;
 
+use App\Users\Models\Concerns\BelongsToAuthenticatedOrganization;
+use App\Users\Models\Concerns\LogsModelChanges;
 use App\Users\Models\Concerns\SetsOrganizationFromAuthenticatedUser;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -24,6 +26,8 @@ use App\Users\Models\User;
 ])]
 class Subscription extends Model
 {
+    use LogsModelChanges;
+    use BelongsToAuthenticatedOrganization;
     use SetsOrganizationFromAuthenticatedUser;
 
 

@@ -2,6 +2,7 @@
 
 namespace App\Users\Models;
 
+use App\Users\Models\Concerns\LogsModelChanges;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['name', 'description'])]
 class Organization extends Model
 {
+    use LogsModelChanges;
     use HasFactory;
 
     public function users(): HasMany

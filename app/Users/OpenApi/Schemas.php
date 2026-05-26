@@ -70,7 +70,6 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'name', type: 'string', example: 'users.view'),
         new OA\Property(property: 'label', type: 'string', example: 'View users'),
         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Read user records.'),
-        new OA\Property(property: 'organization_id', type: 'integer', nullable: true, example: 1),
         new OA\Property(property: 'groups_count', type: 'integer', example: 2),
     ],
     type: 'object',

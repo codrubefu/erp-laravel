@@ -8,6 +8,8 @@ use App\Users\Models\Organization;
 use App\Articles\Models\Article;
 use App\Subscription\Models\Subscription;
 use App\Events\Models\EventOccurrence;
+use App\Users\Models\Concerns\BelongsToAuthenticatedOrganization;
+use App\Users\Models\Concerns\LogsModelChanges;
 use App\Users\Models\Concerns\SetsOrganizationFromAuthenticatedUser;
 use App\Users\Models\Scopes\LocationAccessScope;
 use Database\Factories\UserFactory;
@@ -26,6 +28,8 @@ use Illuminate\Notifications\Notifiable;
 #[UseFactory(UserFactory::class)]
 class User extends Authenticatable
 {
+    use LogsModelChanges;
+    use BelongsToAuthenticatedOrganization;
     use SetsOrganizationFromAuthenticatedUser;
 
 
