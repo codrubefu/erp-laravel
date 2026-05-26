@@ -52,12 +52,23 @@ class User extends Authenticatable
 
     public function subscriptions(): BelongsToMany
     {
-        return $this->belongsToMany(Subscription::class)->withTimestamps();
+        return $this->belongsToMany(Subscription::class)
+            ->withPivot(['id', 'start_date', 'expires_at'])
+            ->withTimestamps();
     }
 
     public function activeSubscriptions(): BelongsToMany
     {
-        return $this->subscriptions()->where('subscriptions.is_active', true);
+        return $this->subscriptions()
+            ->where('subscriptions.is_active', true)
+            ->where(function ($query): void {
+                $query->where('subscription_user.start_date', '<=', now()->toDateString())
+                    ->orWhereNull('subscription_user.start_date');
+            })
+            ->where(function ($query): void {
+                $query->where('subscription_user.expires_at', '>=', now()->toDateString())
+                    ->orWhereNull('subscription_user.expires_at');
+            });
     }
 
     public function eventOccurrences(): BelongsToMany

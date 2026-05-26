@@ -8,6 +8,7 @@ use App\Users\Models\Location;
 use App\Users\Models\Right;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class UserCrudTest extends TestCase
@@ -60,6 +61,42 @@ class UserCrudTest extends TestCase
             ->assertOk()
             ->assertJsonFragment(['email' => 'visible@example.com'])
             ->assertJsonMissing(['email' => 'hidden@example.com']);
+    }
+
+    public function test_clients_endpoint_only_lists_users_with_profile_view_right(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['users.view']);
+        $client = User::factory()->create(['email' => 'client@example.com']);
+        $administrator = User::factory()->create(['email' => 'administrator@example.com']);
+        $withoutRights = User::factory()->create(['email' => 'without-rights@example.com']);
+
+        $this->attachRightsToUser($client, ['profile.view']);
+        $this->attachRightsToUser($administrator, ['profile.view', 'users.view']);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/clients')
+            ->assertOk()
+            ->assertJsonFragment(['email' => 'client@example.com'])
+            ->assertJsonMissing(['email' => 'administrator@example.com'])
+            ->assertJsonMissing(['email' => 'without-rights@example.com']);
+    }
+
+    public function test_administrators_endpoint_excludes_users_with_only_profile_view_right(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['users.view']);
+        $client = User::factory()->create(['email' => 'client@example.com']);
+        $administrator = User::factory()->create(['email' => 'administrator@example.com']);
+        $withoutRights = User::factory()->create(['email' => 'without-rights@example.com']);
+
+        $this->attachRightsToUser($client, ['profile.view']);
+        $this->attachRightsToUser($administrator, ['profile.view', 'users.view']);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/administrators')
+            ->assertOk()
+            ->assertJsonMissing(['email' => 'client@example.com'])
+            ->assertJsonFragment(['email' => 'administrator@example.com'])
+            ->assertJsonFragment(['email' => 'without-rights@example.com']);
     }
 
     public function test_user_with_manage_right_can_create_user_with_groups(): void
@@ -124,6 +161,78 @@ class UserCrudTest extends TestCase
         }
     }
 
+    public function test_user_subscription_dates_are_stored_and_expiration_is_calculated(): void
+    {
+        Carbon::setTestNow('2026-05-18 10:00:00');
+
+        [, $token] = $this->authenticatedUserWithRights(['users.manage']);
+        $subscription = Subscription::query()->create($this->subscriptionData([
+            'name' => 'Monthly',
+            'duration_days' => 10,
+            'is_active' => true,
+        ]));
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/users', [
+                'first_name' => 'Subscribed',
+                'last_name' => 'History',
+                'email' => 'history@example.com',
+                'password' => 'password',
+                'subscriptions' => [
+                    [
+                        'id' => $subscription->id,
+                        'start_date' => '2026-05-15',
+                    ],
+                ],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.has_active_subscription', true)
+            ->assertJsonPath('data.subscription_history.0.start_date', '2026-05-15')
+            ->assertJsonPath('data.subscription_history.0.expires_at', '2026-05-25')
+            ->assertJsonPath('data.subscription_history.0.is_active', true);
+
+        $this->assertDatabaseHas('subscription_user', [
+            'subscription_id' => $subscription->id,
+            'user_id' => $response->json('data.id'),
+            'start_date' => '2026-05-15',
+            'expires_at' => '2026-05-25',
+        ]);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_expired_user_subscription_is_not_marked_active(): void
+    {
+        Carbon::setTestNow('2026-05-18 10:00:00');
+
+        [, $token] = $this->authenticatedUserWithRights(['users.manage']);
+        $subscription = Subscription::query()->create($this->subscriptionData([
+            'name' => 'Expired',
+            'duration_days' => 5,
+            'is_active' => true,
+        ]));
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/users', [
+                'first_name' => 'Expired',
+                'last_name' => 'User',
+                'email' => 'expired-subscription@example.com',
+                'password' => 'password',
+                'subscriptions' => [
+                    [
+                        'id' => $subscription->id,
+                        'start_date' => '2026-05-01',
+                    ],
+                ],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.has_active_subscription', false)
+            ->assertJsonCount(0, 'data.active_subscriptions')
+            ->assertJsonPath('data.subscription_history.0.is_active', false);
+
+        Carbon::setTestNow();
+    }
+
     public function test_user_with_manage_right_can_update_user(): void
     {
         [, $token] = $this->authenticatedUserWithRights(['users.manage']);
@@ -178,7 +287,7 @@ class UserCrudTest extends TestCase
         $user->subscriptions()->attach($oldSubscription);
 
         $this->withHeader('Authorization', "Bearer {$token}")
-            ->postJson("/api/users/subscription/{$user->id}", [
+            ->patchJson("/api/users/subscription/{$user->id}", [
                 'subscription_ids' => [$newSubscription->id],
             ])
             ->assertOk()
@@ -229,20 +338,7 @@ class UserCrudTest extends TestCase
             'password' => 'password',
         ]);
 
-        $group = Group::query()->create([
-            'name' => fake()->unique()->slug(),
-            'label' => 'Test Group',
-        ]);
-
-        foreach ($rightNames as $rightName) {
-            $right = Right::query()->create([
-                'name' => $rightName,
-                'label' => $rightName,
-            ]);
-            $group->rights()->attach($right);
-        }
-
-        $user->groups()->attach($group);
+        $this->attachRightsToUser($user, $rightNames);
 
         $token = $this->postJson('/api/login', [
             'email' => $user->email,
@@ -252,15 +348,32 @@ class UserCrudTest extends TestCase
         return [$user, $token];
     }
 
+    private function attachRightsToUser(User $user, array $rightNames): void
+    {
+        $group = Group::query()->create([
+            'name' => fake()->unique()->slug(),
+            'label' => 'Test Group',
+        ]);
+
+        foreach ($rightNames as $rightName) {
+            $right = Right::query()->firstOrCreate([
+                'name' => $rightName,
+            ], [
+                'label' => $rightName,
+            ]);
+            $group->rights()->attach($right);
+        }
+
+        $user->groups()->attach($group);
+    }
+
     private function subscriptionData(array $overrides = []): array
     {
         return array_merge([
             'description' => 'Test subscription',
             'price' => 99.99,
             'currency' => 'EUR',
-            'billing_interval' => 'monthly',
             'duration_days' => null,
-            'trial_days' => 14,
             'max_users' => 25,
             'is_active' => true,
         ], $overrides);

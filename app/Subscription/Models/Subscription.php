@@ -14,9 +14,7 @@ use App\Users\Models\User;
     'description',
     'price',
     'currency',
-    'billing_interval',
     'duration_days',
-    'trial_days',
     'max_users',
     'is_active',
 ])]
@@ -27,7 +25,9 @@ class Subscription extends Model
 
     public function users(): BelongsToMany
     {
-        return $this->belongsToMany(User::class)->withTimestamps();
+        return $this->belongsToMany(User::class)
+            ->withPivot(['id', 'start_date', 'expires_at'])
+            ->withTimestamps();
     }
 
     protected function casts(): array
@@ -35,7 +35,6 @@ class Subscription extends Model
         return [
             'price' => 'decimal:2',
             'duration_days' => 'integer',
-            'trial_days' => 'integer',
             'max_users' => 'integer',
             'is_active' => 'boolean',
         ];

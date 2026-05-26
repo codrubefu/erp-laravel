@@ -2,12 +2,14 @@
 
 namespace App\Users\Http\Controllers\Api;
 
+use App\Subscription\Models\Subscription;
 use App\Users\Http\Controllers\Controller;
 use App\Users\Http\Requests\SyncUserSubscriptionsRequest;
 use App\Users\Http\Requests\StoreUserRequest;
 use App\Users\Http\Requests\UpdateUserRequest;
 use App\Users\Http\Resources\UserResource;
 use App\Users\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,20 +24,35 @@ class UserController extends Controller
 
     public function administrators(Request $request): AnonymousResourceCollection
     {
-        return $this->userList($request, true);
+        return $this->userList($request, exceptOnlyRight: 'profile.view');
     }
 
     public function clients(Request $request): AnonymousResourceCollection
     {
-        return $this->userList($request, false);
+        return $this->userList($request, onlyRight: 'profile.view');
     }
 
-    private function userList(Request $request, ?bool $hasGroups = null): AnonymousResourceCollection
+    private function userList(
+        Request $request,
+        ?bool $hasGroups = null,
+        ?string $onlyRight = null,
+        ?string $exceptOnlyRight = null,
+    ): AnonymousResourceCollection
     {
         $users = User::query()
             ->with(['groups.rights', 'locations', 'activeSubscriptions'])
             ->when($hasGroups === true, fn ($query) => $query->has('groups'))
             ->when($hasGroups === false, fn ($query) => $query->doesntHave('groups'))
+            ->when($onlyRight !== null, function ($query) use ($onlyRight): void {
+                $query->whereHas('groups.rights', fn ($query) => $query->where('name', $onlyRight))
+                    ->whereDoesntHave('groups.rights', fn ($query) => $query->where('name', '!=', $onlyRight));
+            })
+            ->when($exceptOnlyRight !== null, function ($query) use ($exceptOnlyRight): void {
+                $query->where(function ($query) use ($exceptOnlyRight): void {
+                    $query->whereDoesntHave('groups.rights', fn ($query) => $query->where('name', $exceptOnlyRight))
+                        ->orWhereHas('groups.rights', fn ($query) => $query->where('name', '!=', $exceptOnlyRight));
+                });
+            })
             ->when($request->string('search')->isNotEmpty(), function ($query) use ($request): void {
                 $search = $request->string('search')->toString();
 
@@ -58,16 +75,17 @@ class UserController extends Controller
         $data = $request->validated();
         $groupIds = $data['group_ids'] ?? [];
         $locationIds = $data['location_ids'] ?? [];
-        $subscriptionIds = $data['subscription_ids'] ?? [];
+        $subscriptionAssignments = $this->subscriptionAssignments($data);
         unset($data['group_ids']);
         unset($data['location_ids']);
         unset($data['subscription_ids']);
+        unset($data['subscriptions']);
 
-        $user = DB::transaction(function () use ($data, $groupIds, $locationIds, $subscriptionIds): User {
+        $user = DB::transaction(function () use ($data, $groupIds, $locationIds, $subscriptionAssignments): User {
             $user = User::query()->create($data);
             $user->groups()->sync($groupIds);
             $user->locations()->sync($locationIds);
-            $user->subscriptions()->sync($subscriptionIds);
+            $this->attachSubscriptionAssignments($user, $subscriptionAssignments);
 
             return $user;
         });
@@ -87,16 +105,18 @@ class UserController extends Controller
         $data = $request->validated();
         $groupIds = $data['group_ids'] ?? null;
         $locationIds = $data['location_ids'] ?? null;
-        $subscriptionIds = $data['subscription_ids'] ?? null;
+        $hasSubscriptionAssignments = array_key_exists('subscription_ids', $data) || array_key_exists('subscriptions', $data);
+        $subscriptionAssignments = $this->subscriptionAssignments($data);
         unset($data['group_ids']);
         unset($data['location_ids']);
         unset($data['subscription_ids']);
+        unset($data['subscriptions']);
 
         if (array_key_exists('password', $data) && blank($data['password'])) {
             unset($data['password']);
         }
 
-        DB::transaction(function () use ($user, $data, $groupIds, $locationIds, $subscriptionIds): void {
+        DB::transaction(function () use ($user, $data, $groupIds, $locationIds, $hasSubscriptionAssignments, $subscriptionAssignments): void {
             $user->update($data);
 
             if ($groupIds !== null) {
@@ -107,8 +127,9 @@ class UserController extends Controller
                 $user->locations()->sync($locationIds);
             }
 
-            if ($subscriptionIds !== null) {
-                $user->subscriptions()->sync($subscriptionIds);
+            if ($hasSubscriptionAssignments) {
+                $user->subscriptions()->detach();
+                $this->attachSubscriptionAssignments($user, $subscriptionAssignments);
             }
         });
 
@@ -118,7 +139,8 @@ class UserController extends Controller
     public function syncSubscriptions(SyncUserSubscriptionsRequest $request, User $user): UserResource
     {
         DB::transaction(function () use ($request, $user): void {
-            $user->subscriptions()->sync($request->validated('subscription_ids'));
+            $user->subscriptions()->detach();
+            $this->attachSubscriptionAssignments($user, $this->subscriptionAssignments($request->validated()));
         });
 
         return new UserResource($user->load(['groups.rights', 'locations', 'subscriptions', 'activeSubscriptions']));
@@ -140,5 +162,46 @@ class UserController extends Controller
         });
 
         return response()->json(status: 204);
+    }
+
+    private function subscriptionAssignments(array $data): array
+    {
+        if (array_key_exists('subscriptions', $data)) {
+            return collect($data['subscriptions'])
+                ->map(fn (array $subscription): array => [
+                    'id' => $subscription['id'],
+                    'start_date' => $subscription['start_date'] ?? now()->toDateString(),
+                ])
+                ->all();
+        }
+
+        return collect($data['subscription_ids'] ?? [])
+            ->map(fn (int $subscriptionId): array => [
+                'id' => $subscriptionId,
+                'start_date' => now()->toDateString(),
+            ])
+            ->all();
+    }
+
+    private function attachSubscriptionAssignments(User $user, array $assignments): void
+    {
+        foreach ($assignments as $assignment) {
+            $subscription = Subscription::query()->findOrFail($assignment['id']);
+            $startDate = CarbonImmutable::parse($assignment['start_date'])->startOfDay();
+
+            $user->subscriptions()->attach($subscription->id, [
+                'start_date' => $startDate->toDateString(),
+                'expires_at' => $this->subscriptionExpiresAt($subscription, $startDate),
+            ]);
+        }
+    }
+
+    private function subscriptionExpiresAt(Subscription $subscription, CarbonImmutable $startDate): ?string
+    {
+        if ($subscription->duration_days !== null) {
+            return $startDate->addDays($subscription->duration_days)->toDateString();
+        }
+
+        return null;
     }
 }

@@ -29,7 +29,6 @@ class SubscriptionController extends Controller
                 });
             })
             ->when($request->filled('is_active'), fn ($query) => $query->where('is_active', $request->boolean('is_active')))
-            ->when($request->filled('billing_interval'), fn ($query) => $query->where('billing_interval', $request->string('billing_interval')->toString()))
             ->orderBy('name')
             ->paginate($request->integer('per_page', 15));
 

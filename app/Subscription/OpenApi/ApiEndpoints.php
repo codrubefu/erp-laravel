@@ -15,7 +15,6 @@ class ApiEndpoints
             new OA\QueryParameter(name: 'search', required: false, schema: new OA\Schema(type: 'string'), example: 'enterprise'),
             new OA\QueryParameter(name: 'per_page', required: false, schema: new OA\Schema(type: 'integer'), example: 15),
             new OA\QueryParameter(name: 'is_active', required: false, schema: new OA\Schema(type: 'boolean'), example: true),
-            new OA\QueryParameter(name: 'billing_interval', required: false, schema: new OA\Schema(type: 'string', enum: ['monthly', 'yearly']), example: 'monthly'),
             new OA\QueryParameter(name: 'with_trashed', required: false, schema: new OA\Schema(type: 'boolean'), example: false),
             new OA\QueryParameter(name: 'only_trashed', required: false, schema: new OA\Schema(type: 'boolean'), example: false),
         ],

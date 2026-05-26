@@ -35,6 +35,9 @@ class UpdateUserRequest extends FormRequest
             'location_ids.*' => ['integer', 'exists:locations,id'],
             'subscription_ids' => ['sometimes', 'array'],
             'subscription_ids.*' => ['integer', 'exists:subscriptions,id'],
+            'subscriptions' => ['sometimes', 'array'],
+            'subscriptions.*.id' => ['required_with:subscriptions', 'integer', 'exists:subscriptions,id'],
+            'subscriptions.*.start_date' => ['sometimes', 'date'],
         ];
     }
 }

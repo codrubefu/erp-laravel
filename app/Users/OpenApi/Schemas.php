@@ -123,6 +123,27 @@ use OpenApi\Attributes as OA;
     type: 'object',
 )]
 #[OA\Schema(
+    schema: 'UserSubscriptionAssignment',
+    required: ['id'],
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 1),
+        new OA\Property(property: 'start_date', type: 'string', format: 'date', example: '2026-05-18'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'UserSubscriptionHistory',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', nullable: true, example: 10),
+        new OA\Property(property: 'subscription_id', type: 'integer', example: 1),
+        new OA\Property(property: 'name', type: 'string', example: 'Enterprise'),
+        new OA\Property(property: 'start_date', type: 'string', format: 'date', nullable: true, example: '2026-05-18'),
+        new OA\Property(property: 'expires_at', type: 'string', format: 'date', nullable: true, example: '2026-06-18'),
+        new OA\Property(property: 'is_active', type: 'boolean', example: true),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
     schema: 'User',
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 35),
@@ -148,10 +169,16 @@ use OpenApi\Attributes as OA;
             items: new OA\Items(ref: '#/components/schemas/Subscription'),
         ),
         new OA\Property(
+            property: 'subscription_history',
+            type: 'array',
+            items: new OA\Items(ref: '#/components/schemas/UserSubscriptionHistory'),
+        ),
+        new OA\Property(
             property: 'active_subscriptions',
             type: 'array',
             items: new OA\Items(ref: '#/components/schemas/Subscription'),
         ),
+        new OA\Property(property: 'has_active_subscription', type: 'boolean', example: true),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true),
     ],
@@ -185,6 +212,12 @@ use OpenApi\Attributes as OA;
             items: new OA\Items(type: 'integer'),
             example: [1, 2],
         ),
+        new OA\Property(
+            property: 'subscriptions',
+            description: 'Subscription assignments with optional start date. Expires at is calculated automatically from the subscription period.',
+            type: 'array',
+            items: new OA\Items(ref: '#/components/schemas/UserSubscriptionAssignment'),
+        ),
     ],
     type: 'object',
 )]
@@ -215,18 +248,29 @@ use OpenApi\Attributes as OA;
             items: new OA\Items(type: 'integer'),
             example: [1, 2],
         ),
+        new OA\Property(
+            property: 'subscriptions',
+            description: 'Subscription assignments with optional start date. Replaces current user subscriptions when provided.',
+            type: 'array',
+            items: new OA\Items(ref: '#/components/schemas/UserSubscriptionAssignment'),
+        ),
     ],
     type: 'object',
 )]
 #[OA\Schema(
     schema: 'SyncUserSubscriptionsRequest',
-    required: ['subscription_ids'],
     properties: [
         new OA\Property(
             property: 'subscription_ids',
             type: 'array',
             items: new OA\Items(type: 'integer'),
             example: [1, 2],
+        ),
+        new OA\Property(
+            property: 'subscriptions',
+            description: 'Subscription assignments with optional start date. Replaces current user subscriptions when provided.',
+            type: 'array',
+            items: new OA\Items(ref: '#/components/schemas/UserSubscriptionAssignment'),
         ),
     ],
     type: 'object',

@@ -132,9 +132,7 @@ class SubscriptionCrudTest extends TestCase
                 'name' => '',
                 'price' => -1,
                 'currency' => 'EURO',
-                'billing_interval' => 'weekly',
                 'duration_days' => 0,
-                'trial_days' => -1,
                 'max_users' => 0,
             ])
             ->assertUnprocessable()
@@ -142,9 +140,7 @@ class SubscriptionCrudTest extends TestCase
                 'name',
                 'price',
                 'currency',
-                'billing_interval',
                 'duration_days',
-                'trial_days',
                 'max_users',
             ]);
     }
@@ -156,9 +152,7 @@ class SubscriptionCrudTest extends TestCase
             'description' => 'Enterprise subscription',
             'price' => 99.99,
             'currency' => 'EUR',
-            'billing_interval' => 'monthly',
             'duration_days' => null,
-            'trial_days' => 14,
             'max_users' => 25,
             'is_active' => true,
         ], $overrides);

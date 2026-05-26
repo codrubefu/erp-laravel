@@ -60,7 +60,7 @@ class ApiEndpoints
 
     #[OA\Get(
         path: '/administrators',
-        summary: 'List users assigned to at least one group',
+        summary: 'List administrator users',
         security: [['bearerAuth' => []]],
         tags: ['Users'],
         parameters: [
@@ -91,7 +91,7 @@ class ApiEndpoints
 
     #[OA\Get(
         path: '/clients',
-        summary: 'List users not assigned to any group',
+        summary: 'List client users',
         security: [['bearerAuth' => []]],
         tags: ['Users'],
         parameters: [
@@ -744,7 +744,7 @@ class ApiEndpoints
     {
     }
 
-    #[OA\Post(
+    #[OA\Patch(
         path: '/users/subscription/{user}',
         summary: 'Sync subscriptions for a user',
         security: [['bearerAuth' => []]],
