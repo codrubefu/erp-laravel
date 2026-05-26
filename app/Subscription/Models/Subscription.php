@@ -2,11 +2,14 @@
 
 namespace App\Subscription\Models;
 
+use App\Users\Models\Concerns\SetsOrganizationFromAuthenticatedUser;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Users\Models\Organization;
 use App\Users\Models\User;
 
 #[Fillable([
@@ -17,9 +20,17 @@ use App\Users\Models\User;
     'duration_days',
     'max_users',
     'is_active',
+    'organization_id',
 ])]
 class Subscription extends Model
 {
+    use SetsOrganizationFromAuthenticatedUser;
+
+
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class);
+    }
     /** @use HasFactory<\Database\Factories\Factory<static>> */
     use HasFactory, SoftDeletes;
 

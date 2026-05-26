@@ -12,6 +12,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Enterprise subscription'),
         new OA\Property(property: 'price', type: 'string', example: '99.99'),
         new OA\Property(property: 'currency', type: 'string', example: 'EUR'),
+        new OA\Property(property: 'organization_id', type: 'integer', nullable: true, example: 1),
         new OA\Property(property: 'duration_days', type: 'integer', nullable: true, example: 365),
         new OA\Property(property: 'max_users', type: 'integer', nullable: true, example: 25),
         new OA\Property(property: 'is_active', type: 'boolean', example: true),
