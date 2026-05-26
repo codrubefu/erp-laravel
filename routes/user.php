@@ -3,11 +3,13 @@
 use App\Users\Http\Controllers\Api\AuthController;
 use App\Users\Http\Controllers\Api\GroupController;
 use App\Users\Http\Controllers\Api\LocationController;
+use App\Users\Http\Controllers\Api\OrganizationController;
 use App\Users\Http\Controllers\Api\RightController;
 use App\Users\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('/organizations/slug/{slug}', [OrganizationController::class, 'showBySlug']);
 
 Route::middleware('auth.bearer')->group(function (): void {
     Route::get('/me', [AuthController::class, 'me']);

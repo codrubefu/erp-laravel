@@ -32,6 +32,44 @@ class ApiEndpoints
     }
 
     #[OA\Get(
+        path: '/organizations/slug/{slug}',
+        summary: 'Find organization by slug',
+        tags: ['Auth'],
+        parameters: [
+            new OA\PathParameter(
+                name: 'slug',
+                required: true,
+                schema: new OA\Schema(type: 'string'),
+                example: 'acme',
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Organization found.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            properties: [
+                                new OA\Property(property: 'id', type: 'integer', example: 1),
+                                new OA\Property(property: 'slug', type: 'string', example: 'acme'),
+                                new OA\Property(property: 'name', type: 'string', example: 'Acme SRL'),
+                            ],
+                            type: 'object',
+                        ),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 404, description: 'Organization not found.'),
+        ],
+    )]
+    public function organizationBySlug(): void
+    {
+    }
+
+    #[OA\Get(
         path: '/me',
         summary: 'Get the authenticated user',
         security: [['bearerAuth' => []]],
