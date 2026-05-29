@@ -1,0 +1,226 @@
+<?php
+
+namespace App\CustomFields\OpenApi;
+
+use OpenApi\Attributes as OA;
+
+class ApiEndpoints
+{
+    #[OA\Get(
+        path: '/custom-fields',
+        summary: 'List custom fields',
+        description: 'Lists custom field definitions for the authenticated organization. Pass entity_type to return cached definitions for a specific entity type sorted by sort_order and name.',
+        security: [['bearerAuth' => []]],
+        tags: ['Custom Fields'],
+        parameters: [
+            new OA\QueryParameter(
+                name: 'entity_type',
+                description: 'Optional entity type filter, such as contacts, companies, deals, or any future CRM entity type.',
+                required: false,
+                schema: new OA\Schema(type: 'string'),
+                example: 'contacts',
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Custom field definitions.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/CustomField'),
+                        ),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated.'),
+        ],
+    )]
+    public function index(): void
+    {
+    }
+
+    #[OA\Post(
+        path: '/custom-fields',
+        summary: 'Create a custom field',
+        description: 'Creates a reusable custom field definition for the authenticated organization and clears the custom field definition cache for that entity type.',
+        security: [['bearerAuth' => []]],
+        tags: ['Custom Fields'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/StoreCustomFieldRequest'),
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'Custom field created.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/CustomField'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated.'),
+            new OA\Response(response: 422, description: 'Validation failed.'),
+        ],
+    )]
+    public function store(): void
+    {
+    }
+
+    #[OA\Put(
+        path: '/custom-fields/{customField}',
+        summary: 'Replace a custom field',
+        security: [['bearerAuth' => []]],
+        tags: ['Custom Fields'],
+        parameters: [
+            new OA\PathParameter(name: 'customField', required: true, schema: new OA\Schema(type: 'integer'), example: 1),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/UpdateCustomFieldRequest'),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Custom field updated.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/CustomField'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated.'),
+            new OA\Response(response: 404, description: 'Custom field not found.'),
+            new OA\Response(response: 422, description: 'Validation failed.'),
+        ],
+    )]
+    public function replace(): void
+    {
+    }
+
+    #[OA\Patch(
+        path: '/custom-fields/{customField}',
+        summary: 'Update a custom field',
+        security: [['bearerAuth' => []]],
+        tags: ['Custom Fields'],
+        parameters: [
+            new OA\PathParameter(name: 'customField', required: true, schema: new OA\Schema(type: 'integer'), example: 1),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/UpdateCustomFieldRequest'),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Custom field updated.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/CustomField'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated.'),
+            new OA\Response(response: 404, description: 'Custom field not found.'),
+            new OA\Response(response: 422, description: 'Validation failed.'),
+        ],
+    )]
+    public function update(): void
+    {
+    }
+
+    #[OA\Delete(
+        path: '/custom-fields/{customField}',
+        summary: 'Delete a custom field',
+        description: 'Deletes the custom field definition for the authenticated organization and clears cached definitions for the field entity type.',
+        security: [['bearerAuth' => []]],
+        tags: ['Custom Fields'],
+        parameters: [
+            new OA\PathParameter(name: 'customField', required: true, schema: new OA\Schema(type: 'integer'), example: 1),
+        ],
+        responses: [
+            new OA\Response(response: 204, description: 'Custom field deleted.'),
+            new OA\Response(response: 401, description: 'Unauthenticated.'),
+            new OA\Response(response: 404, description: 'Custom field not found.'),
+        ],
+    )]
+    public function destroy(): void
+    {
+    }
+
+    #[OA\Get(
+        path: '/{entityType}/{entityId}/custom-field-values',
+        summary: 'Retrieve entity custom field values',
+        description: 'Returns every custom field definition for the entity type along with the stored value for the requested entity, avoiding N+1 queries by loading values in bulk.',
+        security: [['bearerAuth' => []]],
+        tags: ['Custom Fields'],
+        parameters: [
+            new OA\PathParameter(name: 'entityType', required: true, schema: new OA\Schema(type: 'string'), example: 'contacts'),
+            new OA\PathParameter(name: 'entityId', required: true, schema: new OA\Schema(type: 'integer'), example: 123),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Custom field values for the entity.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/CustomFieldValue'),
+                        ),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated.'),
+        ],
+    )]
+    public function showValues(): void
+    {
+    }
+
+    #[OA\Post(
+        path: '/{entityType}/{entityId}/custom-field-values',
+        summary: 'Save entity custom field values',
+        description: 'Saves custom field values by slug. Values are validated dynamically from the organization/entity field definitions and persisted into the typed EAV value column for each field type.',
+        security: [['bearerAuth' => []]],
+        tags: ['Custom Fields'],
+        parameters: [
+            new OA\PathParameter(name: 'entityType', required: true, schema: new OA\Schema(type: 'string'), example: 'contacts'),
+            new OA\PathParameter(name: 'entityId', required: true, schema: new OA\Schema(type: 'integer'), example: 123),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/SaveCustomFieldValuesRequest'),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Saved custom field values for the entity.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/CustomFieldValue'),
+                        ),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated.'),
+            new OA\Response(response: 422, description: 'Validation failed.'),
+        ],
+    )]
+    public function storeValues(): void
+    {
+    }
+}
