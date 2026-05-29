@@ -2,6 +2,8 @@
 
 namespace App\Users\Models;
 
+use App\CustomFields\Models\CustomField;
+use App\CustomFields\Models\CustomFieldValue;
 use App\Users\Models\Concerns\LogsModelChanges;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,5 +19,15 @@ class Organization extends Model
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    public function customFields(): HasMany
+    {
+        return $this->hasMany(CustomField::class);
+    }
+
+    public function customFieldValues(): HasMany
+    {
+        return $this->hasMany(CustomFieldValue::class);
     }
 }
