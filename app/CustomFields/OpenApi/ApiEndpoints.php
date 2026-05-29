@@ -25,18 +25,13 @@ class ApiEndpoints
             new OA\Response(
                 response: 200,
                 description: 'Custom field definitions.',
-                content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(
-                            property: 'data',
-                            type: 'array',
-                            items: new OA\Items(ref: '#/components/schemas/CustomField'),
-                        ),
-                    ],
-                    type: 'object',
-                ),
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldListResponse'),
             ),
-            new OA\Response(response: 401, description: 'Unauthenticated.'),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthenticated.',
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsErrorResponse'),
+            ),
         ],
     )]
     public function index(): void
@@ -57,15 +52,18 @@ class ApiEndpoints
             new OA\Response(
                 response: 201,
                 description: 'Custom field created.',
-                content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: 'data', ref: '#/components/schemas/CustomField'),
-                    ],
-                    type: 'object',
-                ),
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldResponse'),
             ),
-            new OA\Response(response: 401, description: 'Unauthenticated.'),
-            new OA\Response(response: 422, description: 'Validation failed.'),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthenticated.',
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsErrorResponse'),
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation failed.',
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsValidationErrorResponse'),
+            ),
         ],
     )]
     public function store(): void
@@ -75,6 +73,7 @@ class ApiEndpoints
     #[OA\Put(
         path: '/custom-fields/{customField}',
         summary: 'Replace a custom field',
+        description: 'Replaces an existing custom field definition for the authenticated organization and refreshes cached definitions for affected entity types.',
         security: [['bearerAuth' => []]],
         tags: ['Custom Fields'],
         parameters: [
@@ -88,16 +87,23 @@ class ApiEndpoints
             new OA\Response(
                 response: 200,
                 description: 'Custom field updated.',
-                content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: 'data', ref: '#/components/schemas/CustomField'),
-                    ],
-                    type: 'object',
-                ),
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldResponse'),
             ),
-            new OA\Response(response: 401, description: 'Unauthenticated.'),
-            new OA\Response(response: 404, description: 'Custom field not found.'),
-            new OA\Response(response: 422, description: 'Validation failed.'),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthenticated.',
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsErrorResponse'),
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Custom field not found.',
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsErrorResponse'),
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation failed.',
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsValidationErrorResponse'),
+            ),
         ],
     )]
     public function replace(): void
@@ -107,6 +113,7 @@ class ApiEndpoints
     #[OA\Patch(
         path: '/custom-fields/{customField}',
         summary: 'Update a custom field',
+        description: 'Partially updates an existing custom field definition for the authenticated organization and refreshes cached definitions for affected entity types.',
         security: [['bearerAuth' => []]],
         tags: ['Custom Fields'],
         parameters: [
@@ -120,16 +127,23 @@ class ApiEndpoints
             new OA\Response(
                 response: 200,
                 description: 'Custom field updated.',
-                content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: 'data', ref: '#/components/schemas/CustomField'),
-                    ],
-                    type: 'object',
-                ),
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldResponse'),
             ),
-            new OA\Response(response: 401, description: 'Unauthenticated.'),
-            new OA\Response(response: 404, description: 'Custom field not found.'),
-            new OA\Response(response: 422, description: 'Validation failed.'),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthenticated.',
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsErrorResponse'),
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Custom field not found.',
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsErrorResponse'),
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation failed.',
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsValidationErrorResponse'),
+            ),
         ],
     )]
     public function update(): void
@@ -147,8 +161,16 @@ class ApiEndpoints
         ],
         responses: [
             new OA\Response(response: 204, description: 'Custom field deleted.'),
-            new OA\Response(response: 401, description: 'Unauthenticated.'),
-            new OA\Response(response: 404, description: 'Custom field not found.'),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthenticated.',
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsErrorResponse'),
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Custom field not found.',
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsErrorResponse'),
+            ),
         ],
     )]
     public function destroy(): void
@@ -169,18 +191,13 @@ class ApiEndpoints
             new OA\Response(
                 response: 200,
                 description: 'Custom field values for the entity.',
-                content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(
-                            property: 'data',
-                            type: 'array',
-                            items: new OA\Items(ref: '#/components/schemas/CustomFieldValue'),
-                        ),
-                    ],
-                    type: 'object',
-                ),
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldValueListResponse'),
             ),
-            new OA\Response(response: 401, description: 'Unauthenticated.'),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthenticated.',
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsErrorResponse'),
+            ),
         ],
     )]
     public function showValues(): void
@@ -205,19 +222,18 @@ class ApiEndpoints
             new OA\Response(
                 response: 200,
                 description: 'Saved custom field values for the entity.',
-                content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(
-                            property: 'data',
-                            type: 'array',
-                            items: new OA\Items(ref: '#/components/schemas/CustomFieldValue'),
-                        ),
-                    ],
-                    type: 'object',
-                ),
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldValueListResponse'),
             ),
-            new OA\Response(response: 401, description: 'Unauthenticated.'),
-            new OA\Response(response: 422, description: 'Validation failed.'),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthenticated.',
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsErrorResponse'),
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation failed.',
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsValidationErrorResponse'),
+            ),
         ],
     )]
     public function storeValues(): void

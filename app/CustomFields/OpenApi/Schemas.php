@@ -26,8 +26,8 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(
     schema: 'CustomFieldOption',
     properties: [
-        new OA\Property(property: 'label', type: 'string', example: 'Lead source'),
-        new OA\Property(property: 'value', type: 'string', example: 'lead_source'),
+        new OA\Property(property: 'label', type: 'string', example: 'Website'),
+        new OA\Property(property: 'value', type: 'string', example: 'website'),
     ],
     type: 'object',
 )]
@@ -69,6 +69,24 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'sort_order', type: 'integer', example: 10),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'CustomFieldResponse',
+    properties: [
+        new OA\Property(property: 'data', ref: '#/components/schemas/CustomField'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'CustomFieldListResponse',
+    properties: [
+        new OA\Property(
+            property: 'data',
+            type: 'array',
+            items: new OA\Items(ref: '#/components/schemas/CustomField'),
+        ),
     ],
     type: 'object',
 )]
@@ -121,7 +139,6 @@ use OpenApi\Attributes as OA;
             property: 'values',
             description: 'Map of custom field slug to value. Values are validated according to field type and field-specific rules.',
             type: 'object',
-            additionalProperties: true,
             example: [
                 'lead_source' => 'website',
                 'score' => 42,
@@ -144,10 +161,43 @@ use OpenApi\Attributes as OA;
                 new OA\Schema(type: 'string'),
                 new OA\Schema(type: 'number'),
                 new OA\Schema(type: 'boolean'),
-                new OA\Schema(type: 'array', items: new OA\Items()),
+                new OA\Schema(type: 'array', items: new OA\Items(type: 'string')),
             ],
             example: 'website',
         ),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'CustomFieldValueListResponse',
+    properties: [
+        new OA\Property(
+            property: 'data',
+            type: 'array',
+            items: new OA\Items(ref: '#/components/schemas/CustomFieldValue'),
+        ),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'CustomFieldsValidationErrorResponse',
+    properties: [
+        new OA\Property(property: 'message', type: 'string', example: 'The values.lead_source field is required.'),
+        new OA\Property(
+            property: 'errors',
+            description: 'Laravel validation error bag keyed by request field path.',
+            type: 'object',
+            example: [
+                'values.lead_source' => ['The values.lead_source field is required.'],
+            ],
+        ),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'CustomFieldsErrorResponse',
+    properties: [
+        new OA\Property(property: 'message', type: 'string', example: 'Unauthenticated.'),
     ],
     type: 'object',
 )]
