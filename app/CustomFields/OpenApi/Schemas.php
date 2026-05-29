@@ -6,6 +6,7 @@ use OpenApi\Attributes as OA;
 
 #[OA\Schema(
     schema: 'CustomFieldType',
+    description: 'Supported custom field input types and corresponding validation/storage behavior.',
     type: 'string',
     enum: [
         'text',
@@ -50,6 +51,7 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Schema(
     schema: 'CustomField',
+    description: 'A tenant-scoped reusable custom field definition for one CRM entity type.',
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 1),
         new OA\Property(property: 'organization_id', type: 'integer', example: 1),
@@ -92,6 +94,7 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Schema(
     schema: 'StoreCustomFieldRequest',
+    description: 'Payload used to create a custom field definition for the authenticated organization. The organization_id is inferred from the bearer token.',
     required: ['entity_type', 'name', 'slug', 'type'],
     properties: [
         new OA\Property(property: 'entity_type', type: 'string', maxLength: 255, example: 'contacts'),
@@ -113,6 +116,7 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Schema(
     schema: 'UpdateCustomFieldRequest',
+    description: 'Payload used to update an existing custom field definition. All attributes are optional for PATCH requests.',
     properties: [
         new OA\Property(property: 'entity_type', type: 'string', maxLength: 255, example: 'contacts'),
         new OA\Property(property: 'name', type: 'string', maxLength: 255, example: 'Lead Source'),
@@ -133,6 +137,7 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Schema(
     schema: 'SaveCustomFieldValuesRequest',
+    description: 'Payload used to persist values for an entity. Keys must match custom field slugs configured for the path entityType.',
     required: ['values'],
     properties: [
         new OA\Property(
@@ -151,6 +156,7 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Schema(
     schema: 'CustomFieldValue',
+    description: 'A resolved custom field/value pair returned for an entity. Values are stored internally in typed EAV columns according to field type.',
     properties: [
         new OA\Property(property: 'custom_field', ref: '#/components/schemas/CustomField'),
         new OA\Property(

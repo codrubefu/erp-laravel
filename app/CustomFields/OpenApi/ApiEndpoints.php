@@ -9,6 +9,7 @@ class ApiEndpoints
     #[OA\Get(
         path: '/custom-fields',
         summary: 'List custom fields',
+        operationId: 'listCustomFields',
         description: 'Lists custom field definitions for the authenticated organization. Pass entity_type to return cached definitions for a specific entity type sorted by sort_order and name.',
         security: [['bearerAuth' => []]],
         tags: ['Custom Fields'],
@@ -41,6 +42,7 @@ class ApiEndpoints
     #[OA\Post(
         path: '/custom-fields',
         summary: 'Create a custom field',
+        operationId: 'createCustomField',
         description: 'Creates a reusable custom field definition for the authenticated organization and clears the custom field definition cache for that entity type.',
         security: [['bearerAuth' => []]],
         tags: ['Custom Fields'],
@@ -73,6 +75,7 @@ class ApiEndpoints
     #[OA\Put(
         path: '/custom-fields/{customField}',
         summary: 'Replace a custom field',
+        operationId: 'replaceCustomField',
         description: 'Replaces an existing custom field definition for the authenticated organization and refreshes cached definitions for affected entity types.',
         security: [['bearerAuth' => []]],
         tags: ['Custom Fields'],
@@ -113,6 +116,7 @@ class ApiEndpoints
     #[OA\Patch(
         path: '/custom-fields/{customField}',
         summary: 'Update a custom field',
+        operationId: 'updateCustomField',
         description: 'Partially updates an existing custom field definition for the authenticated organization and refreshes cached definitions for affected entity types.',
         security: [['bearerAuth' => []]],
         tags: ['Custom Fields'],
@@ -153,6 +157,7 @@ class ApiEndpoints
     #[OA\Delete(
         path: '/custom-fields/{customField}',
         summary: 'Delete a custom field',
+        operationId: 'deleteCustomField',
         description: 'Deletes the custom field definition for the authenticated organization and clears cached definitions for the field entity type.',
         security: [['bearerAuth' => []]],
         tags: ['Custom Fields'],
@@ -180,6 +185,7 @@ class ApiEndpoints
     #[OA\Get(
         path: '/{entityType}/{entityId}/custom-field-values',
         summary: 'Retrieve entity custom field values',
+        operationId: 'getEntityCustomFieldValues',
         description: 'Returns every custom field definition for the entity type along with the stored value for the requested entity, avoiding N+1 queries by loading values in bulk.',
         security: [['bearerAuth' => []]],
         tags: ['Custom Fields'],
@@ -207,6 +213,7 @@ class ApiEndpoints
     #[OA\Post(
         path: '/{entityType}/{entityId}/custom-field-values',
         summary: 'Save entity custom field values',
+        operationId: 'saveEntityCustomFieldValues',
         description: 'Saves custom field values by slug. Values are validated dynamically from the organization/entity field definitions and persisted into the typed EAV value column for each field type.',
         security: [['bearerAuth' => []]],
         tags: ['Custom Fields'],
