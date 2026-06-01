@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    'smsportal' => [
+        'endpoint' => env('SMSPORTAL_ENDPOINT', 'https://mtws.smsportal.ro/main.aspx'),
+        'user' => env('SMSPORTAL_USER'),
+        'password' => env('SMSPORTAL_PASSWORD'),
+        'encoding' => (int) env('SMSPORTAL_ENCODING', 0),
+        'language' => (int) env('SMSPORTAL_LANGUAGE', 1733),
+        'timeout' => (int) env('SMSPORTAL_TIMEOUT', 10),
+    ],
+
 ];
