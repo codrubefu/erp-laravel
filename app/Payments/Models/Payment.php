@@ -1,0 +1,63 @@
+<?php
+
+namespace App\Payments\Models;
+
+use App\Subscription\Models\Subscription;
+use App\Users\Models\Concerns\LogsModelChanges;
+use App\Users\Models\User;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+#[Fillable([
+    'first_name',
+    'last_name',
+    'payment_type_id',
+    'model_type',
+    'subscription_id',
+    'amount',
+    'paid_at',
+    'admin_id',
+])]
+class Payment extends Model
+{
+    use HasFactory;
+    use LogsModelChanges;
+
+    public const TYPE_CASH = 1;
+    public const TYPE_CARD = 2;
+    public const TYPE_BANK_TRANSFER = 3;
+
+    public const MODEL_TYPE_SUBSCRIPTION = 'subscription';
+
+    public const PAYMENT_TYPES = [
+        self::TYPE_CASH => 'cash',
+        self::TYPE_CARD => 'card',
+        self::TYPE_BANK_TRANSFER => 'bank_transfer',
+    ];
+
+    public function subscription(): BelongsTo
+    {
+        return $this->belongsTo(Subscription::class);
+    }
+
+    public function admin(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'admin_id');
+    }
+
+    public function paymentTypeName(): ?string
+    {
+        return self::PAYMENT_TYPES[$this->payment_type_id] ?? null;
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'payment_type_id' => 'integer',
+            'amount' => 'decimal:2',
+            'paid_at' => 'datetime',
+        ];
+    }
+}
