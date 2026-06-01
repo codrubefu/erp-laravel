@@ -2,6 +2,7 @@
 
 namespace App\Subscription\Models;
 
+use App\Payments\Models\Payment;
 use App\Users\Models\Concerns\BelongsToAuthenticatedOrganization;
 use App\Users\Models\Concerns\LogsModelChanges;
 use App\Users\Models\Concerns\SetsOrganizationFromAuthenticatedUser;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Users\Models\Organization;
 use App\Users\Models\User;
@@ -37,6 +39,11 @@ class Subscription extends Model
     }
     /** @use HasFactory<\Database\Factories\Factory<static>> */
     use HasFactory, SoftDeletes;
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
 
     public function users(): BelongsToMany
     {
