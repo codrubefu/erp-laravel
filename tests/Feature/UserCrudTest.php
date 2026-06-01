@@ -137,7 +137,7 @@ class UserCrudTest extends TestCase
             ]);
     }
 
-    public function test_clients_endpoint_only_lists_users_with_profile_view_right(): void
+    public function test_clients_endpoint_lists_users_with_only_profile_view_or_no_rights(): void
     {
         [, $token] = $this->authenticatedUserWithRights(['users.view']);
         $client = User::factory()->create(['email' => 'client@example.com']);
@@ -151,11 +151,11 @@ class UserCrudTest extends TestCase
             ->getJson('/api/clients')
             ->assertOk()
             ->assertJsonFragment(['email' => 'client@example.com'])
-            ->assertJsonMissing(['email' => 'administrator@example.com'])
-            ->assertJsonMissing(['email' => 'without-rights@example.com']);
+            ->assertJsonFragment(['email' => 'without-rights@example.com'])
+            ->assertJsonMissing(['email' => 'administrator@example.com']);
     }
 
-    public function test_administrators_endpoint_excludes_users_with_only_profile_view_right(): void
+    public function test_administrators_endpoint_excludes_users_with_only_profile_view_right_and_without_groups(): void
     {
         [, $token] = $this->authenticatedUserWithRights(['users.view']);
         $client = User::factory()->create(['email' => 'client@example.com']);
@@ -170,7 +170,7 @@ class UserCrudTest extends TestCase
             ->assertOk()
             ->assertJsonMissing(['email' => 'client@example.com'])
             ->assertJsonFragment(['email' => 'administrator@example.com'])
-            ->assertJsonFragment(['email' => 'without-rights@example.com']);
+            ->assertJsonMissing(['email' => 'without-rights@example.com']);
     }
 
     public function test_user_with_manage_right_can_create_user_with_groups(): void

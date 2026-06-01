@@ -25,7 +25,7 @@ class UserController extends Controller
 
     public function administrators(Request $request): AnonymousResourceCollection
     {
-        return $this->userList($request, exceptOnlyRight: 'profile.view');
+        return $this->userList($request, hasGroups: true, exceptOnlyRight: 'profile.view');
     }
 
     public function clients(Request $request): AnonymousResourceCollection
@@ -61,8 +61,13 @@ class UserController extends Controller
             ->when($hasGroups === true, fn ($query) => $query->has('groups'))
             ->when($hasGroups === false, fn ($query) => $query->doesntHave('groups'))
             ->when($onlyRight !== null, function ($query) use ($onlyRight): void {
-                $query->whereHas('groups.rights', fn ($query) => $query->where('name', $onlyRight))
-                    ->whereDoesntHave('groups.rights', fn ($query) => $query->where('name', '!=', $onlyRight));
+                $query->where(function ($query) use ($onlyRight): void {
+                    $query->whereDoesntHave('groups.rights')
+                        ->orWhere(function ($query) use ($onlyRight): void {
+                            $query->whereHas('groups.rights', fn ($query) => $query->where('name', $onlyRight))
+                                ->whereDoesntHave('groups.rights', fn ($query) => $query->where('name', '!=', $onlyRight));
+                        });
+                });
             })
             ->when($exceptOnlyRight !== null, function ($query) use ($exceptOnlyRight): void {
                 $query->where(function ($query) use ($exceptOnlyRight): void {

@@ -24,6 +24,9 @@ class LocationAccessScope implements Scope
             return;
         }
 
-        $builder->whereHas('locations', fn (Builder $query) => $query->whereIn('locations.id', $locationIds));
+        $builder->where(function (Builder $query) use ($locationIds): void {
+            $query->whereDoesntHave('locations')
+                ->orWhereHas('locations', fn (Builder $locationQuery) => $locationQuery->whereIn('locations.id', $locationIds));
+        });
     }
 }
