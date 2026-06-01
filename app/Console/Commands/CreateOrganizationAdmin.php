@@ -6,6 +6,7 @@ use App\Users\Models\Group;
 use App\Users\Models\Organization;
 use App\Users\Models\Right;
 use App\Users\Models\User;
+use Database\Seeders\CustomFieldRightsSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -166,6 +167,6 @@ class CreateOrganizationAdmin extends Command
             ['name' => 'events.manage', 'label' => 'Manage events', 'description' => 'Create, update, and delete events.'],
             ['name' => 'event_participants.view', 'label' => 'View event participants', 'description' => 'Read event occurrence participants.'],
             ['name' => 'event_participants.manage', 'label' => 'Manage event participants', 'description' => 'Add and remove event occurrence participants.'],
-        ]);
+        ])->merge(CustomFieldRightsSeeder::rights());
     }
 }

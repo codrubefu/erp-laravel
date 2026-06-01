@@ -33,6 +33,7 @@ class ApiEndpoints
                 description: 'Unauthenticated.',
                 content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsErrorResponse'),
             ),
+            new OA\Response(response: 403, description: 'Missing custom-fields.view right.'),
         ],
     )]
     public function index(): void
@@ -61,6 +62,7 @@ class ApiEndpoints
                 description: 'Unauthenticated.',
                 content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsErrorResponse'),
             ),
+            new OA\Response(response: 403, description: 'Missing custom-fields.manage right.'),
             new OA\Response(
                 response: 422,
                 description: 'Validation failed.',
@@ -97,6 +99,7 @@ class ApiEndpoints
                 description: 'Unauthenticated.',
                 content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsErrorResponse'),
             ),
+            new OA\Response(response: 403, description: 'Missing custom-fields.manage right.'),
             new OA\Response(
                 response: 404,
                 description: 'Custom field not found.',
@@ -138,6 +141,7 @@ class ApiEndpoints
                 description: 'Unauthenticated.',
                 content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsErrorResponse'),
             ),
+            new OA\Response(response: 403, description: 'Missing custom-fields.manage right.'),
             new OA\Response(
                 response: 404,
                 description: 'Custom field not found.',
@@ -171,6 +175,7 @@ class ApiEndpoints
                 description: 'Unauthenticated.',
                 content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsErrorResponse'),
             ),
+            new OA\Response(response: 403, description: 'Missing custom-fields.manage right.'),
             new OA\Response(
                 response: 404,
                 description: 'Custom field not found.',
@@ -204,6 +209,7 @@ class ApiEndpoints
                 description: 'Unauthenticated.',
                 content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsErrorResponse'),
             ),
+            new OA\Response(response: 403, description: 'Missing custom-fields.view right.'),
         ],
     )]
     public function showValues(): void
@@ -236,6 +242,7 @@ class ApiEndpoints
                 description: 'Unauthenticated.',
                 content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsErrorResponse'),
             ),
+            new OA\Response(response: 403, description: 'Missing custom-fields.manage right.'),
             new OA\Response(
                 response: 422,
                 description: 'Validation failed.',

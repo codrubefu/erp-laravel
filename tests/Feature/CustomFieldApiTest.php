@@ -136,7 +136,42 @@ class CustomFieldApiTest extends TestCase
             ->assertJsonValidationErrors('values.stage');
     }
 
+    public function test_custom_field_routes_require_custom_field_rights(): void
+    {
+        [$user, $token] = $this->authenticatedUserWithRights([]);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/custom-fields')
+            ->assertForbidden();
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/custom-fields', [
+                'entity_type' => 'contacts',
+                'name' => 'Lifecycle Stage',
+                'slug' => 'lifecycle_stage',
+                'type' => 'text',
+            ])
+            ->assertForbidden();
+
+        CustomField::query()->create([
+            'organization_id' => $user->organization_id,
+            'entity_type' => 'contacts',
+            'name' => 'Lifecycle Stage',
+            'slug' => 'lifecycle_stage',
+            'type' => 'text',
+        ]);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/contacts/100/custom-field-values')
+            ->assertForbidden();
+    }
+
     private function authenticatedUser(): array
+    {
+        return $this->authenticatedUserWithRights(['custom-fields.view', 'custom-fields.manage']);
+    }
+
+    private function authenticatedUserWithRights(array $rightNames): array
     {
         $user = User::factory()->create([
             'email' => fake()->unique()->safeEmail(),
@@ -149,7 +184,7 @@ class CustomFieldApiTest extends TestCase
             'organization_id' => $user->organization_id,
         ]);
 
-        foreach (['custom-fields.view', 'custom-fields.manage'] as $rightName) {
+        foreach ($rightNames as $rightName) {
             $right = Right::query()->create([
                 'name' => $rightName,
                 'label' => $rightName,

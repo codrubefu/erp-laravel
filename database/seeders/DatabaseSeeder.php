@@ -42,7 +42,7 @@ class DatabaseSeeder extends Seeder
             ['name' => 'events.manage', 'label' => 'Manage events', 'description' => 'Create, update, and delete events.'],
             ['name' => 'event_participants.view', 'label' => 'View event participants', 'description' => 'Read event occurrence participants.'],
             ['name' => 'event_participants.manage', 'label' => 'Manage event participants', 'description' => 'Add and remove event occurrence participants.'],
-        ])->mapWithKeys(fn (array $right) => [
+        ])->merge(CustomFieldRightsSeeder::rights())->mapWithKeys(fn (array $right) => [
             $right['name'] => Right::query()->updateOrCreate(
                 ['name' => $right['name']],
                 ['label' => $right['label'], 'description' => $right['description']],
@@ -69,6 +69,7 @@ class DatabaseSeeder extends Seeder
             'articles.view',
             'events.view',
             'event_participants.view',
+            'custom-fields.view',
         ])->pluck('id'));
 
         $staff = Group::query()->updateOrCreate(
