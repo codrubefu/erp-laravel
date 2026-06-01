@@ -5,6 +5,7 @@ namespace App\Users\Models;
 use App\Users\Models\Organization;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Payments\Models\Payment;
 use App\Articles\Models\Article;
 use App\Subscription\Models\Subscription;
 use App\Events\Models\EventOccurrence;
@@ -48,6 +49,11 @@ class User extends Authenticatable
     public function accessTokens(): HasMany
     {
         return $this->hasMany(PersonalAccessToken::class);
+    }
+
+    public function registeredPayments(): HasMany
+    {
+        return $this->hasMany(Payment::class, 'admin_id');
     }
 
     public function articles(): HasMany
