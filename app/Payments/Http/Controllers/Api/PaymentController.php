@@ -21,7 +21,7 @@ class PaymentController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $payments = Payment::query()
-            ->with(['admin', 'subscription'])
+            ->with(['admin'])
             ->latest('paid_at')
             ->paginate($request->integer('per_page', 15));
 
@@ -32,7 +32,7 @@ class PaymentController extends Controller
     {
         $payment = $this->payments->create($request->validated(), $request->user());
 
-        return (new PaymentResource($payment->load(['admin', 'subscription'])))
+        return (new PaymentResource($payment->load(['admin'])))
             ->response()
             ->setStatusCode(201);
     }
@@ -47,6 +47,6 @@ class PaymentController extends Controller
             $data['model_id'],
         );
 
-        return new PaymentResource($payment->load(['admin', 'subscription']));
+        return new PaymentResource($payment->load(['admin']));
     }
 }

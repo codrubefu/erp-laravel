@@ -2,7 +2,6 @@
 
 namespace App\Payments\Http\Resources;
 
-use App\Subscription\Http\Resources\SubscriptionResource;
 use App\Users\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -23,7 +22,6 @@ class PaymentResource extends JsonResource
             'paid_at' => $this->paid_at,
             'admin_id' => $this->admin_id,
             'admin' => new UserResource($this->whenLoaded('admin')),
-            'subscription' => new SubscriptionResource($this->whenLoaded('subscription')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

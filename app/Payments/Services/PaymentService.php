@@ -3,7 +3,6 @@
 namespace App\Payments\Services;
 
 use App\Payments\Models\Payment;
-use App\Subscription\Models\Subscription;
 use App\Users\Models\User;
 use InvalidArgumentException;
 
@@ -11,32 +10,30 @@ class PaymentService
 {
     public function create(array $data, User $admin): Payment
     {
-        $data['model_type'] = $data['model_type'] ?? Payment::MODEL_TYPE_SUBSCRIPTION;
+        $data['model_type'] = $data['model_type'] ?? Payment::MODEL_TYPE_SUBSCRIPTION_USER;
         $data['admin_id'] = $admin->id;
 
-        $this->ensureSupportedModelLink($data['model_type'], $data['subscription_id'] ?? null);
+        $this->ensureSupportedModelType($data['model_type']);
 
         return Payment::query()->create($data);
     }
 
     public function attachModel(Payment $payment, string $modelType, int $modelId): Payment
     {
-        $this->ensureSupportedModelLink($modelType, $modelId);
+        $this->ensureSupportedModelType($modelType);
 
         $payment->update([
             'model_type' => $modelType,
-            'subscription_id' => $modelType === Payment::MODEL_TYPE_SUBSCRIPTION ? $modelId : null,
+            'model_id' => $modelId,
         ]);
 
         return $payment;
     }
 
-    private function ensureSupportedModelLink(string $modelType, ?int $modelId): void
+    private function ensureSupportedModelType(string $modelType): void
     {
-        if ($modelType !== Payment::MODEL_TYPE_SUBSCRIPTION) {
+        if ($modelType !== Payment::MODEL_TYPE_SUBSCRIPTION_USER) {
             throw new InvalidArgumentException('Unsupported payable model type.');
         }
-
-        Subscription::query()->findOrFail($modelId);
     }
 }

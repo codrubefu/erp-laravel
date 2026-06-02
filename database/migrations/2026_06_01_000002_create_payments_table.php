@@ -13,8 +13,8 @@ return new class extends Migration
             $table->string('first_name');
             $table->string('last_name');
             $table->unsignedTinyInteger('payment_type_id');
-            $table->string('model_type')->default('subscription');
-            $table->foreignId('model_id')->nullable()->constrained('subscriptions')->nullOnDelete();
+            $table->string('model_type')->default('subscription_user');
+            $table->unsignedBigInteger('model_id')->nullable();
             $table->decimal('amount', 10, 2);
             $table->dateTime('paid_at');
             $table->foreignId('admin_id')->constrained('users');
@@ -22,6 +22,7 @@ return new class extends Migration
 
             $table->index('payment_type_id');
             $table->index('model_type');
+            $table->index('model_id');
             $table->index('paid_at');
         });
     }

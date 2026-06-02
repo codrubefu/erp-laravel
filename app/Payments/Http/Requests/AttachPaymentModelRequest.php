@@ -16,15 +16,15 @@ class AttachPaymentModelRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'model_type' => $this->input('model_type', Payment::MODEL_TYPE_SUBSCRIPTION),
+            'model_type' => $this->input('model_type', Payment::MODEL_TYPE_SUBSCRIPTION_USER),
         ]);
     }
 
     public function rules(): array
     {
         return [
-            'model_type' => ['required', 'string', Rule::in([Payment::MODEL_TYPE_SUBSCRIPTION])],
-            'model_id' => ['required', 'integer', 'exists:subscriptions,id'],
+            'model_type' => ['required', 'string', Rule::in([Payment::MODEL_TYPE_SUBSCRIPTION_USER])],
+            'model_id' => ['required', 'integer', 'min:1'],
         ];
     }
 }

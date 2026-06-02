@@ -2,7 +2,6 @@
 
 namespace App\Payments\Models;
 
-use App\Subscription\Models\Subscription;
 use App\Users\Models\Concerns\LogsModelChanges;
 use App\Users\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -29,18 +28,13 @@ class Payment extends Model
     public const TYPE_CARD = 2;
     public const TYPE_BANK_TRANSFER = 3;
 
-    public const MODEL_TYPE_SUBSCRIPTION = 'subscription';
+    public const MODEL_TYPE_SUBSCRIPTION_USER = 'subscription_user';
 
     public const PAYMENT_TYPES = [
         self::TYPE_CASH => 'cash',
         self::TYPE_CARD => 'card',
         self::TYPE_BANK_TRANSFER => 'bank_transfer',
     ];
-
-    public function subscription(): BelongsTo
-    {
-        return $this->belongsTo(Subscription::class, 'model_id');
-    }
 
     public function admin(): BelongsTo
     {
@@ -56,6 +50,7 @@ class Payment extends Model
     {
         return [
             'payment_type_id' => 'integer',
+            'model_id' => 'integer',
             'amount' => 'decimal:2',
             'paid_at' => 'datetime',
         ];

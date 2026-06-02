@@ -16,7 +16,7 @@ class StorePaymentRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'model_type' => $this->input('model_type', Payment::MODEL_TYPE_SUBSCRIPTION),
+            'model_type' => $this->input('model_type', Payment::MODEL_TYPE_SUBSCRIPTION_USER),
         ]);
     }
 
@@ -26,8 +26,8 @@ class StorePaymentRequest extends FormRequest
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'payment_type_id' => ['required', 'integer', Rule::in(array_keys(Payment::PAYMENT_TYPES))],
-            'model_type' => ['required', 'string', Rule::in([Payment::MODEL_TYPE_SUBSCRIPTION])],
-            'subscription_id' => ['required_if:model_type,'.Payment::MODEL_TYPE_SUBSCRIPTION, 'integer', 'exists:subscriptions,id'],
+            'model_type' => ['required', 'string', Rule::in([Payment::MODEL_TYPE_SUBSCRIPTION_USER])],
+            'model_id' => ['required_if:model_type,'.Payment::MODEL_TYPE_SUBSCRIPTION_USER, 'integer', 'min:1'],
             'amount' => ['required', 'numeric', 'min:0'],
             'paid_at' => ['required', 'date'],
         ];
