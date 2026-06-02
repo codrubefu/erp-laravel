@@ -19,7 +19,7 @@ class PaymentApiTest extends TestCase
         [$admin, $token] = $this->authenticatedUserWithRights(['payments.view']);
         $subscription = Subscription::query()->create($this->subscriptionData(['name' => 'Gold']));
         Payment::query()->create($this->paymentData([
-            'subscription_id' => $subscription->id,
+            'model_id' => $subscription->id,
             'admin_id' => $admin->id,
         ]));
 
@@ -42,7 +42,7 @@ class PaymentApiTest extends TestCase
                 'first_name' => 'Jane',
                 'last_name' => 'Client',
                 'payment_type_id' => Payment::TYPE_CASH,
-                'subscription_id' => $subscription->id,
+                'model_id' => $subscription->id,
                 'amount' => 99.99,
                 'paid_at' => '2026-06-01 10:15:00',
             ])
@@ -57,7 +57,7 @@ class PaymentApiTest extends TestCase
             'last_name' => 'Client',
             'payment_type_id' => Payment::TYPE_CASH,
             'model_type' => Payment::MODEL_TYPE_SUBSCRIPTION,
-            'subscription_id' => $subscription->id,
+            'model_id' => $subscription->id,
             'admin_id' => $admin->id,
         ]);
     }
@@ -78,7 +78,7 @@ class PaymentApiTest extends TestCase
                 'first_name',
                 'last_name',
                 'payment_type_id',
-                'subscription_id',
+                'model_id',
                 'amount',
                 'paid_at',
             ]);
@@ -90,7 +90,7 @@ class PaymentApiTest extends TestCase
         $originalSubscription = Subscription::query()->create($this->subscriptionData(['name' => 'Original']));
         $selectedSubscription = Subscription::query()->create($this->subscriptionData(['name' => 'Selected']));
         $payment = Payment::query()->create($this->paymentData([
-            'subscription_id' => $originalSubscription->id,
+            'model_id' => $originalSubscription->id,
             'admin_id' => $admin->id,
         ]));
 
@@ -101,13 +101,13 @@ class PaymentApiTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonPath('data.model_type', Payment::MODEL_TYPE_SUBSCRIPTION)
-            ->assertJsonPath('data.subscription_id', $selectedSubscription->id)
+            ->assertJsonPath('data.model_id', $selectedSubscription->id)
             ->assertJsonPath('data.subscription.name', 'Selected');
 
         $this->assertDatabaseHas('payments', [
             'id' => $payment->id,
             'model_type' => Payment::MODEL_TYPE_SUBSCRIPTION,
-            'subscription_id' => $selectedSubscription->id,
+            'model_id' => $selectedSubscription->id,
         ]);
     }
 
@@ -118,7 +118,7 @@ class PaymentApiTest extends TestCase
 
         $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/payments', $this->paymentData([
-                'subscription_id' => $subscription->id,
+                'model_id' => $subscription->id,
             ]))
             ->assertForbidden();
     }
@@ -143,7 +143,7 @@ class PaymentApiTest extends TestCase
             'last_name' => 'Member',
             'payment_type_id' => Payment::TYPE_CARD,
             'model_type' => Payment::MODEL_TYPE_SUBSCRIPTION,
-            'subscription_id' => null,
+            'model_id' => null,
             'amount' => 25.50,
             'paid_at' => '2026-06-01 12:00:00',
             'admin_id' => null,

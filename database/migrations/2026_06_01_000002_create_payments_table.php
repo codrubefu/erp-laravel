@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('last_name');
             $table->unsignedTinyInteger('payment_type_id');
             $table->string('model_type')->default('subscription');
-            $table->foreignId('subscription_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('model_id')->nullable()->constrained('subscriptions')->nullOnDelete();
             $table->decimal('amount', 10, 2);
             $table->dateTime('paid_at');
             $table->foreignId('admin_id')->constrained('users');

@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'last_name',
     'payment_type_id',
     'model_type',
-    'subscription_id',
+    'model_id',
     'amount',
     'paid_at',
     'admin_id',
@@ -39,7 +39,7 @@ class Payment extends Model
 
     public function subscription(): BelongsTo
     {
-        return $this->belongsTo(Subscription::class);
+        return $this->belongsTo(Subscription::class, 'model_id');
     }
 
     public function admin(): BelongsTo

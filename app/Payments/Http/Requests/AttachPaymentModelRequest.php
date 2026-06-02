@@ -17,7 +17,6 @@ class AttachPaymentModelRequest extends FormRequest
     {
         $this->merge([
             'model_type' => $this->input('model_type', Payment::MODEL_TYPE_SUBSCRIPTION),
-            'model_id' => $this->input('model_id', $this->input('subscription_id')),
         ]);
     }
 

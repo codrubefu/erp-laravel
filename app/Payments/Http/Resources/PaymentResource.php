@@ -18,7 +18,7 @@ class PaymentResource extends JsonResource
             'payment_type_id' => $this->payment_type_id,
             'payment_type' => $this->paymentTypeName(),
             'model_type' => $this->model_type,
-            'subscription_id' => $this->subscription_id,
+            'model_id' => $this->model_id,
             'amount' => $this->amount,
             'paid_at' => $this->paid_at,
             'admin_id' => $this->admin_id,
