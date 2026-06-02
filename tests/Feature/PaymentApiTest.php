@@ -106,6 +106,36 @@ class PaymentApiTest extends TestCase
         ]);
     }
 
+    public function test_user_with_create_right_can_create_payment_for_event_occurrence_participant(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['payments.create']);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/payments', [
+                'first_name' => 'Jane',
+                'last_name' => 'Client',
+                'payment_type_id' => Payment::TYPE_CARD,
+                'model_type' => Payment::MODEL_TYPE_EVENT_OCCURRENCE_USER,
+                'model_id' => 41,
+                'amount' => 49.99,
+                'paid_at' => '2026-06-01 10:15:00',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.model_type', Payment::MODEL_TYPE_EVENT_OCCURRENCE_USER)
+            ->assertJsonPath('data.payment_type', 'card')
+            ->assertJsonPath('data.model_id', 41)
+            ->assertJsonPath('data.admin_id', $admin->id);
+
+        $this->assertDatabaseHas('payments', [
+            'first_name' => 'Jane',
+            'last_name' => 'Client',
+            'payment_type_id' => Payment::TYPE_CARD,
+            'model_type' => Payment::MODEL_TYPE_EVENT_OCCURRENCE_USER,
+            'model_id' => 41,
+            'admin_id' => $admin->id,
+        ]);
+    }
+
     public function test_user_without_payment_right_cannot_create_payment(): void
     {
         [, $token] = $this->authenticatedUserWithRights(['payments.view']);

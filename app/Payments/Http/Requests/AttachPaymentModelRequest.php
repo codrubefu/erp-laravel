@@ -23,7 +23,7 @@ class AttachPaymentModelRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'model_type' => ['required', 'string', Rule::in([Payment::MODEL_TYPE_SUBSCRIPTION_USER])],
+            'model_type' => ['required', 'string', Rule::in(Payment::MODEL_TYPES)],
             'model_id' => ['required', 'integer', 'min:1'],
         ];
     }

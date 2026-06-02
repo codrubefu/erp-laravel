@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
-    'title','description','location','start_time','end_time','recurrence_type','recurrence_days','monthly_day','start_date','end_date','requires_active_subscription','required_subscription_id','max_participants','status','organization_id',
+    'title','description','location','start_time','end_time','recurrence_type','recurrence_days','monthly_day','start_date','end_date','requires_active_subscription','required_subscription_id','requires_payment','payment_amount','payment_type','max_participants','status','organization_id',
 ])]
 class Event extends Model
 {
@@ -42,6 +42,6 @@ class Event extends Model
 
     protected function casts(): array
     {
-        return ['recurrence_days' => 'array','monthly_day' => 'integer','start_date' => 'date:Y-m-d','end_date' => 'date:Y-m-d','requires_active_subscription' => 'boolean','max_participants' => 'integer'];
+        return ['recurrence_days' => 'array','monthly_day' => 'integer','start_date' => 'date:Y-m-d','end_date' => 'date:Y-m-d','requires_active_subscription' => 'boolean','requires_payment' => 'boolean','payment_amount' => 'decimal:2','max_participants' => 'integer'];
     }
 }

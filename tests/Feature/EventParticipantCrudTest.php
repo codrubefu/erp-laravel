@@ -14,6 +14,58 @@ class EventParticipantCrudTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_user_with_manage_right_can_create_paid_event(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['events.manage']);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/events', [
+                'title' => 'Eveniment platit',
+                'description' => 'Descriere eveniment',
+                'location' => 'Sala 2',
+                'start_time' => '10:00',
+                'end_time' => '11:00',
+                'recurrence_type' => 'once',
+                'start_date' => '2026-06-10',
+                'status' => 'active',
+                'requires_payment' => true,
+                'payment_amount' => 49.99,
+                'payment_type' => 'card',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.requires_payment', true)
+            ->assertJsonPath('data.payment_amount', '49.99')
+            ->assertJsonPath('data.payment_type', 'card');
+
+        $this->assertDatabaseHas('events', [
+            'title' => 'Eveniment platit',
+            'requires_payment' => true,
+            'payment_amount' => 49.99,
+            'payment_type' => 'card',
+        ]);
+    }
+
+    public function test_paid_event_requires_amount_and_type(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['events.manage']);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/events', [
+                'title' => 'Eveniment platit',
+                'start_time' => '10:00',
+                'end_time' => '11:00',
+                'recurrence_type' => 'once',
+                'start_date' => '2026-06-10',
+                'status' => 'active',
+                'requires_payment' => true,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors([
+                'payment_amount',
+                'payment_type',
+            ]);
+    }
+
     public function test_user_with_manage_right_can_update_occurrence_participant(): void
     {
         [, $token] = $this->authenticatedUserWithRights(['event_participants.manage']);
@@ -67,6 +119,9 @@ class EventParticipantCrudTest extends TestCase
             'end_date' => null,
             'requires_active_subscription' => false,
             'required_subscription_id' => null,
+            'requires_payment' => false,
+            'payment_amount' => null,
+            'payment_type' => null,
             'max_participants' => null,
             'status' => 'active',
         ], $overrides);

@@ -2,6 +2,7 @@
 
 namespace App\Events\Http\Requests;
 
+use App\Payments\Models\Payment;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,6 +11,16 @@ class UpdateEventRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('requires_payment') && ! $this->boolean('requires_payment')) {
+            $this->merge([
+                'payment_amount' => null,
+                'payment_type' => null,
+            ]);
+        }
     }
 
     public function rules(): array
@@ -28,6 +39,9 @@ class UpdateEventRequest extends FormRequest
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'requires_active_subscription' => ['sometimes', 'boolean'],
             'required_subscription_id' => ['nullable', 'exists:subscriptions,id'],
+            'requires_payment' => ['sometimes', 'boolean'],
+            'payment_amount' => ['nullable', 'required_if:requires_payment,true', 'numeric', 'min:0'],
+            'payment_type' => ['nullable', 'required_if:requires_payment,true', 'string', Rule::in(array_values(Payment::PAYMENT_TYPES))],
             'max_participants' => ['nullable', 'integer', 'min:1'],
             'status' => ['sometimes', 'required', Rule::in(['active', 'inactive', 'cancelled'])],
         ];

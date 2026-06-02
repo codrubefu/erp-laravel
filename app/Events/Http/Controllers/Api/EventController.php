@@ -30,6 +30,7 @@ class EventController extends Controller
             new OA\QueryParameter(name: 'status', required: false, schema: new OA\Schema(type: 'string', enum: ['active', 'inactive', 'cancelled'])),
             new OA\QueryParameter(name: 'recurrence_type', required: false, schema: new OA\Schema(type: 'string', enum: ['once', 'weekly', 'monthly'])),
             new OA\QueryParameter(name: 'requires_active_subscription', required: false, schema: new OA\Schema(type: 'boolean')),
+            new OA\QueryParameter(name: 'requires_payment', required: false, schema: new OA\Schema(type: 'boolean')),
             new OA\QueryParameter(name: 'search', required: false, schema: new OA\Schema(type: 'string')),
             new OA\QueryParameter(name: 'sort', required: false, schema: new OA\Schema(type: 'string', enum: ['created_at', 'start_date', 'title'])),
             new OA\QueryParameter(name: 'direction', required: false, schema: new OA\Schema(type: 'string', enum: ['asc', 'desc'])),
@@ -58,6 +59,7 @@ class EventController extends Controller
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')->toString()))
             ->when($request->filled('recurrence_type'), fn ($query) => $query->where('recurrence_type', $request->string('recurrence_type')->toString()))
             ->when($request->filled('requires_active_subscription'), fn ($query) => $query->where('requires_active_subscription', $request->boolean('requires_active_subscription')))
+            ->when($request->filled('requires_payment'), fn ($query) => $query->where('requires_payment', $request->boolean('requires_payment')))
             ->when($request->string('search')->isNotEmpty(), fn ($query) => $query->where('title', 'like', '%'.$request->string('search')->toString().'%'))
             ->orderBy($sort, $direction)
             ->paginate($request->integer('per_page', 15));

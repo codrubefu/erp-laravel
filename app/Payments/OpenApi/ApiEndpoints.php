@@ -9,6 +9,7 @@ class ApiEndpoints
     #[OA\Get(
         path: '/payments',
         summary: 'List payments',
+        description: 'Returns payments for supported payable models, including subscription_user and event_occurrence_user.',
         security: [['bearerAuth' => []]],
         tags: ['Payment'],
         parameters: [
@@ -40,6 +41,7 @@ class ApiEndpoints
     #[OA\Post(
         path: '/payments',
         summary: 'Create a payment',
+        description: 'Creates a payment linked to either a subscription assignment or an event participation assignment.',
         security: [['bearerAuth' => []]],
         tags: ['Payment'],
         requestBody: new OA\RequestBody(
@@ -68,6 +70,7 @@ class ApiEndpoints
     #[OA\Patch(
         path: '/payments/{payment}/attach-model',
         summary: 'Attach or update payment model metadata',
+        description: 'Reassigns the payment to one of the supported payable model types: subscription_user or event_occurrence_user.',
         security: [['bearerAuth' => []]],
         tags: ['Payment'],
         parameters: [

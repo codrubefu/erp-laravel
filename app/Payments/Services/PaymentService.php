@@ -32,7 +32,7 @@ class PaymentService
 
     private function ensureSupportedModelType(string $modelType): void
     {
-        if ($modelType !== Payment::MODEL_TYPE_SUBSCRIPTION_USER) {
+        if (! in_array($modelType, Payment::MODEL_TYPES, true)) {
             throw new InvalidArgumentException('Unsupported payable model type.');
         }
     }
