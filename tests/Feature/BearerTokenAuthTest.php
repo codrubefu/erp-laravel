@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Events\Models\Event;
+use App\Events\Models\EventOccurrence;
+use App\Subscription\Models\Subscription;
 use App\Users\Models\Organization;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -43,6 +46,18 @@ class BearerTokenAuthTest extends TestCase
         $this->getJson('/api/me')
             ->assertUnauthorized()
             ->assertJsonPath('message', 'Unauthenticated.');
+
+        $this->patchJson('/api/me/password')
+            ->assertUnauthorized()
+            ->assertJsonPath('message', 'Unauthenticated.');
+
+        $this->getJson('/api/me/events')
+            ->assertUnauthorized()
+            ->assertJsonPath('message', 'Unauthenticated.');
+
+        $this->getJson('/api/me/subscriptions')
+            ->assertUnauthorized()
+            ->assertJsonPath('message', 'Unauthenticated.');
     }
 
     public function test_user_can_access_profile_with_bearer_token(): void
@@ -63,8 +78,187 @@ class BearerTokenAuthTest extends TestCase
         $this->withHeader('Authorization', "Bearer {$token}")
             ->getJson('/api/me')
             ->assertOk()
-            ->assertJsonPath('user.id', $user->id)
-            ->assertJsonPath('user.email', 'user@example.com');
+            ->assertJsonPath('data.id', $user->id)
+            ->assertJsonPath('data.email', 'user@example.com');
+    }
+
+    public function test_user_can_update_own_password(): void
+    {
+        $organization = Organization::query()->create(['name' => 'Password Org', 'slug' => 'password-org']);
+        $user = User::factory()->create([
+            'organization_id' => $organization->id,
+            'email' => 'password@example.com',
+            'password' => 'password',
+        ]);
+
+        $token = $this->postJson('/api/login', [
+            'email' => 'password@example.com',
+            'organization_id' => $organization->id,
+            'password' => 'password',
+        ])->json('token');
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->patchJson('/api/me/password', [
+                'current_password' => 'password',
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Password updated successfully.');
+
+        $this->postJson('/api/login', [
+            'email' => $user->email,
+            'organization_id' => $organization->id,
+            'password' => 'password',
+        ])->assertUnauthorized();
+
+        $this->postJson('/api/login', [
+            'email' => $user->email,
+            'organization_id' => $organization->id,
+            'password' => 'new-password',
+        ])->assertOk();
+    }
+
+    public function test_user_password_update_requires_current_password_and_confirmation(): void
+    {
+        $organization = Organization::query()->create(['name' => 'Password Validation Org', 'slug' => 'password-validation-org']);
+        User::factory()->create([
+            'organization_id' => $organization->id,
+            'email' => 'password-validation@example.com',
+            'password' => 'password',
+        ]);
+
+        $token = $this->postJson('/api/login', [
+            'email' => 'password-validation@example.com',
+            'organization_id' => $organization->id,
+            'password' => 'password',
+        ])->json('token');
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->patchJson('/api/me/password', [
+                'current_password' => 'wrong-password',
+                'password' => 'new-password',
+                'password_confirmation' => 'different-password',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['current_password', 'password']);
+    }
+
+    public function test_user_can_list_own_subscriptions(): void
+    {
+        $organization = Organization::query()->create(['name' => 'Subscription Me Org', 'slug' => 'subscription-me-org']);
+        $user = User::factory()->create([
+            'organization_id' => $organization->id,
+            'email' => 'subscriptions@example.com',
+            'password' => 'password',
+        ]);
+        $otherUser = User::factory()->create(['organization_id' => $organization->id]);
+        $subscription = Subscription::query()->create([
+            'organization_id' => $organization->id,
+            'name' => 'Own Subscription',
+            'description' => 'Visible subscription',
+            'price' => 49.99,
+            'currency' => 'EUR',
+            'duration_days' => 30,
+            'max_users' => 10,
+            'is_active' => true,
+        ]);
+        $otherSubscription = Subscription::query()->create([
+            'organization_id' => $organization->id,
+            'name' => 'Other Subscription',
+            'description' => 'Hidden subscription',
+            'price' => 99.99,
+            'currency' => 'EUR',
+            'duration_days' => 30,
+            'max_users' => 10,
+            'is_active' => true,
+        ]);
+
+        $user->subscriptions()->attach($subscription->id, [
+            'start_date' => '2026-06-01',
+            'expires_at' => '2026-07-01',
+        ]);
+        $otherUser->subscriptions()->attach($otherSubscription->id, [
+            'start_date' => '2026-06-01',
+            'expires_at' => '2026-07-01',
+        ]);
+
+        $token = $this->postJson('/api/login', [
+            'email' => 'subscriptions@example.com',
+            'organization_id' => $organization->id,
+            'password' => 'password',
+        ])->json('token');
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/me/subscriptions')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Own Subscription')
+            ->assertJsonPath('data.0.start_date', '2026-06-01')
+            ->assertJsonPath('data.0.expires_at', '2026-07-01')
+            ->assertJsonMissing(['name' => 'Other Subscription']);
+    }
+
+    public function test_user_can_list_own_event_occurrences(): void
+    {
+        $organization = Organization::query()->create(['name' => 'Event Me Org', 'slug' => 'event-me-org']);
+        $user = User::factory()->create([
+            'organization_id' => $organization->id,
+            'email' => 'events@example.com',
+            'password' => 'password',
+        ]);
+        $otherUser = User::factory()->create(['organization_id' => $organization->id]);
+        $event = Event::query()->create($this->eventData([
+            'organization_id' => $organization->id,
+            'title' => 'Own Event',
+        ]));
+        $otherEvent = Event::query()->create($this->eventData([
+            'organization_id' => $organization->id,
+            'title' => 'Other Event',
+        ]));
+        $occurrence = EventOccurrence::query()->create([
+            'organization_id' => $organization->id,
+            'event_id' => $event->id,
+            'occurrence_date' => '2026-06-10',
+            'start_datetime' => '2026-06-10 10:00:00',
+            'end_datetime' => '2026-06-10 11:00:00',
+            'status' => 'scheduled',
+        ]);
+        $otherOccurrence = EventOccurrence::query()->create([
+            'organization_id' => $organization->id,
+            'event_id' => $otherEvent->id,
+            'occurrence_date' => '2026-06-11',
+            'start_datetime' => '2026-06-11 10:00:00',
+            'end_datetime' => '2026-06-11 11:00:00',
+            'status' => 'scheduled',
+        ]);
+
+        $occurrence->participants()->attach($user->id, [
+            'status' => 'registered',
+            'registered_at' => '2026-06-01 09:00:00',
+            'notes' => 'Own note',
+        ]);
+        $otherOccurrence->participants()->attach($otherUser->id, [
+            'status' => 'registered',
+            'registered_at' => '2026-06-01 09:00:00',
+            'notes' => 'Other note',
+        ]);
+
+        $token = $this->postJson('/api/login', [
+            'email' => 'events@example.com',
+            'organization_id' => $organization->id,
+            'password' => 'password',
+        ])->json('token');
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/me/events')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $occurrence->id)
+            ->assertJsonPath('data.0.event.title', 'Own Event')
+            ->assertJsonPath('data.0.participant_status', 'registered')
+            ->assertJsonPath('data.0.registered_at', '2026-06-01 09:00:00')
+            ->assertJsonPath('data.0.notes', 'Own note')
+            ->assertJsonMissing(['title' => 'Other Event']);
     }
 
     public function test_logout_revokes_the_current_bearer_token(): void
@@ -121,5 +315,28 @@ class BearerTokenAuthTest extends TestCase
             'password' => 'second-password',
         ])
             ->assertUnauthorized();
+    }
+
+    private function eventData(array $overrides = []): array
+    {
+        return array_merge([
+            'title' => 'Event test',
+            'description' => 'Event description',
+            'location' => 'Room 1',
+            'start_time' => '10:00',
+            'end_time' => '11:00',
+            'recurrence_type' => 'once',
+            'recurrence_days' => null,
+            'monthly_day' => null,
+            'start_date' => '2026-06-10',
+            'end_date' => null,
+            'requires_active_subscription' => false,
+            'required_subscription_id' => null,
+            'requires_payment' => false,
+            'payment_amount' => null,
+            'payment_type' => null,
+            'max_participants' => null,
+            'status' => 'active',
+        ], $overrides);
     }
 }

@@ -3,6 +3,7 @@
 use App\Users\Http\Controllers\Api\AuthController;
 use App\Users\Http\Controllers\Api\GroupController;
 use App\Users\Http\Controllers\Api\LocationController;
+use App\Users\Http\Controllers\Api\MeController;
 use App\Users\Http\Controllers\Api\OrganizationController;
 use App\Users\Http\Controllers\Api\RightController;
 use App\Users\Http\Controllers\Api\UserController;
@@ -12,7 +13,10 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/organizations/slug/{slug}', [OrganizationController::class, 'showBySlug']);
 
 Route::middleware('auth.bearer')->group(function (): void {
-    Route::get('/me', [AuthController::class, 'me']);
+    Route::get('/me', [MeController::class, 'show']);
+    Route::patch('/me/password', [MeController::class, 'updatePassword']);
+    Route::get('/me/events', [MeController::class, 'events']);
+    Route::get('/me/subscriptions', [MeController::class, 'subscriptions']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::get('/rights', [RightController::class, 'index'])->middleware('right:rights.view');

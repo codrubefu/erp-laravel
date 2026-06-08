@@ -189,6 +189,16 @@ use OpenApi\Attributes as OA;
     type: 'object',
 )]
 #[OA\Schema(
+    schema: 'UpdateMePasswordRequest',
+    required: ['current_password', 'password', 'password_confirmation'],
+    properties: [
+        new OA\Property(property: 'current_password', type: 'string', format: 'password', example: 'current-password'),
+        new OA\Property(property: 'password', type: 'string', format: 'password', minLength: 8, example: 'new-password'),
+        new OA\Property(property: 'password_confirmation', type: 'string', format: 'password', example: 'new-password'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
     schema: 'StoreUserRequest',
     required: ['first_name', 'last_name', 'email'],
     properties: [

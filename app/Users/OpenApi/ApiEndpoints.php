@@ -75,11 +75,101 @@ class ApiEndpoints
         security: [['bearerAuth' => []]],
         tags: ['Auth'],
         responses: [
-            new OA\Response(response: 200, description: 'Authenticated user.'),
+            new OA\Response(
+                response: 200,
+                description: 'Authenticated user.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/User'),
+                    ],
+                    type: 'object',
+                ),
+            ),
             new OA\Response(response: 401, description: 'Unauthenticated.'),
         ],
     )]
     public function me(): void
+    {
+    }
+
+    #[OA\Patch(
+        path: '/me/password',
+        summary: 'Update the authenticated user password',
+        security: [['bearerAuth' => []]],
+        tags: ['Auth'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/UpdateMePasswordRequest'),
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Password updated.', content: new OA\JsonContent(ref: '#/components/schemas/StandardSuccessResponse')),
+            new OA\Response(response: 401, description: 'Unauthenticated.'),
+            new OA\Response(response: 422, description: 'Validation failed.', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
+        ],
+    )]
+    public function mePassword(): void
+    {
+    }
+
+    #[OA\Get(
+        path: '/me/events',
+        summary: 'List authenticated user event occurrences',
+        security: [['bearerAuth' => []]],
+        tags: ['Auth'],
+        parameters: [
+            new OA\QueryParameter(name: 'per_page', required: false, schema: new OA\Schema(type: 'integer'), example: 15),
+            new OA\QueryParameter(name: 'page', required: false, schema: new OA\Schema(type: 'integer'), example: 1),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Paginated event occurrences attached to the authenticated user.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/EventOccurrence'),
+                        ),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated.'),
+        ],
+    )]
+    public function meEvents(): void
+    {
+    }
+
+    #[OA\Get(
+        path: '/me/subscriptions',
+        summary: 'List authenticated user subscriptions',
+        security: [['bearerAuth' => []]],
+        tags: ['Auth'],
+        parameters: [
+            new OA\QueryParameter(name: 'per_page', required: false, schema: new OA\Schema(type: 'integer'), example: 15),
+            new OA\QueryParameter(name: 'page', required: false, schema: new OA\Schema(type: 'integer'), example: 1),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Paginated subscriptions attached to the authenticated user.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/Subscription'),
+                        ),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated.'),
+        ],
+    )]
+    public function meSubscriptions(): void
     {
     }
 

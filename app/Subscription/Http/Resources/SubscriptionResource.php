@@ -9,6 +9,10 @@ class SubscriptionResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $startDate = $this->pivot?->start_date;
+        $expiresAt = $this->pivot?->expires_at;
+        $today = now()->toDateString();
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -18,6 +22,15 @@ class SubscriptionResource extends JsonResource
             'duration_days' => $this->duration_days,
             'max_users' => $this->max_users,
             'is_active' => $this->is_active,
+            'assignment_id' => $this->when($this->pivot !== null, $this->pivot?->id),
+            'start_date' => $this->when($this->pivot !== null, $startDate),
+            'expires_at' => $this->when($this->pivot !== null, $expiresAt),
+            'is_currently_active' => $this->when(
+                $this->pivot !== null,
+                $this->is_active
+                    && ($startDate === null || $startDate <= $today)
+                    && ($expiresAt === null || $expiresAt >= $today)
+            ),
             'users_count' => $this->whenCounted('users'),
             'users' => $this->whenLoaded('users'),
             'created_at' => $this->created_at,
