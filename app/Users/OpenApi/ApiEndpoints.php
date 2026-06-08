@@ -112,6 +112,25 @@ class ApiEndpoints
     }
 
     #[OA\Get(
+        path: '/me/custom-fields',
+        summary: 'List authenticated user custom fields',
+        description: 'Returns every custom field definition for the users entity type along with the stored value for the authenticated user.',
+        security: [['bearerAuth' => []]],
+        tags: ['Auth'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Custom field values for the authenticated user.',
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldValueListResponse'),
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated.'),
+        ],
+    )]
+    public function meCustomFields(): void
+    {
+    }
+
+    #[OA\Get(
         path: '/me/events',
         summary: 'List authenticated user event occurrences',
         security: [['bearerAuth' => []]],

@@ -9,6 +9,8 @@ Route::middleware('auth.bearer')->group(function (): void {
         ->middleware('right:custom-fields.view,custom-fields.manage');
     Route::post('/custom-fields', [CustomFieldController::class, 'store'])
         ->middleware('right:custom-fields.manage');
+    Route::get('/custom-fields/{customField}', [CustomFieldController::class, 'show'])
+        ->middleware('right:custom-fields.view,custom-fields.manage');
     Route::put('/custom-fields/{customField}', [CustomFieldController::class, 'update'])
         ->middleware('right:custom-fields.manage');
     Route::patch('/custom-fields/{customField}', [CustomFieldController::class, 'update'])

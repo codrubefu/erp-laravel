@@ -48,6 +48,11 @@ class CustomFieldController extends Controller
             ->setStatusCode(201);
     }
 
+    public function show(CustomField $customField): CustomFieldResource
+    {
+        return new CustomFieldResource($customField);
+    }
+
     public function update(UpdateCustomFieldRequest $request, CustomField $customField): CustomFieldResource
     {
         $previousEntityType = $customField->entity_type;

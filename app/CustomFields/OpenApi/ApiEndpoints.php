@@ -74,6 +74,39 @@ class ApiEndpoints
     {
     }
 
+    #[OA\Get(
+        path: '/custom-fields/{customField}',
+        summary: 'Retrieve a custom field',
+        operationId: 'getCustomField',
+        description: 'Returns one custom field definition for the authenticated organization.',
+        security: [['bearerAuth' => []]],
+        tags: ['Custom Fields'],
+        parameters: [
+            new OA\PathParameter(name: 'customField', required: true, schema: new OA\Schema(type: 'integer'), example: 1),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Custom field definition.',
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldResponse'),
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthenticated.',
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsErrorResponse'),
+            ),
+            new OA\Response(response: 403, description: 'Missing custom-fields.view right.'),
+            new OA\Response(
+                response: 404,
+                description: 'Custom field not found.',
+                content: new OA\JsonContent(ref: '#/components/schemas/CustomFieldsErrorResponse'),
+            ),
+        ],
+    )]
+    public function show(): void
+    {
+    }
+
     #[OA\Put(
         path: '/custom-fields/{customField}',
         summary: 'Replace a custom field',

@@ -15,6 +15,7 @@ Route::get('/organizations/slug/{slug}', [OrganizationController::class, 'showBy
 Route::middleware('auth.bearer')->group(function (): void {
     Route::get('/me', [MeController::class, 'show']);
     Route::patch('/me/password', [MeController::class, 'updatePassword']);
+    Route::get('/me/custom-fields', [MeController::class, 'customFields']);
     Route::get('/me/events', [MeController::class, 'events']);
     Route::get('/me/subscriptions', [MeController::class, 'subscriptions']);
     Route::post('/logout', [AuthController::class, 'logout']);
