@@ -8,7 +8,6 @@ use App\Users\Http\Requests\UpdateGroupRequest;
 use App\Users\Http\Resources\GroupResource;
 use App\Users\Models\Group;
 use App\Users\Services\OrganizationAccessService;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
