@@ -13,6 +13,7 @@ use App\Users\Models\Concerns\BelongsToAuthenticatedOrganization;
 use App\Users\Models\Concerns\LogsModelChanges;
 use App\Users\Models\Concerns\SetsOrganizationFromAuthenticatedUser;
 use App\Users\Models\Scopes\LocationAccessScope;
+use App\Users\Services\OrganizationAccessService;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -101,6 +102,10 @@ class User extends Authenticatable
 
     public function hasRight(string $right): bool
     {
+        if (app(OrganizationAccessService::class)->isRightDisabledForOrganization($right, $this->organization_id)) {
+            return false;
+        }
+
         return $this->groups()
             ->whereHas('rights', fn ($query) => $query->where('name', $right))
             ->exists();
@@ -108,6 +113,12 @@ class User extends Authenticatable
 
     public function hasAnyRight(array $rights): bool
     {
+        $rights = app(OrganizationAccessService::class)->availableRightNames($rights, $this->organization_id);
+
+        if ($rights === []) {
+            return false;
+        }
+
         return $this->groups()
             ->whereHas('rights', fn ($query) => $query->whereIn('name', $rights))
             ->exists();

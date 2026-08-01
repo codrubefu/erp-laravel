@@ -10,7 +10,9 @@ use App\Users\Http\Requests\UpdateUserRequest;
 use App\Users\Http\Resources\UserResource;
 use App\Users\Models\User;
 use App\Users\Models\Scopes\LocationAccessScope;
+use App\Users\Services\OrganizationAccessService;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +20,10 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class UserController extends Controller
 {
+    public function __construct(private readonly OrganizationAccessService $organizationAccess)
+    {
+    }
+
     public function index(Request $request): AnonymousResourceCollection
     {
         return $this->userList($request);
@@ -37,7 +43,7 @@ class UserController extends Controller
     {
         $users = User::query()
             ->withoutGlobalScope(LocationAccessScope::class)
-            ->with(['groups.rights', 'locations', 'activeSubscriptions'])
+            ->with($this->userRelationsForResponse($request->user()?->organization_id))
             ->when($request->string('search')->isNotEmpty(), function ($query) use ($request): void {
                 $search = $request->string('search')->toString();
 
@@ -57,7 +63,7 @@ class UserController extends Controller
     ): AnonymousResourceCollection
     {
         $users = User::query()
-            ->with(['groups.rights', 'locations', 'activeSubscriptions'])
+            ->with($this->userRelationsForResponse($request->user()?->organization_id))
             ->when($hasGroups === true, fn ($query) => $query->has('groups'))
             ->when($hasGroups === false, fn ($query) => $query->doesntHave('groups'))
             ->when($onlyRight !== null, function ($query) use ($onlyRight): void {
@@ -117,14 +123,14 @@ class UserController extends Controller
             return $user;
         });
 
-        return (new UserResource($user->load(['groups.rights', 'locations', 'subscriptions', 'activeSubscriptions'])))
+        return (new UserResource($this->loadUserForResponse($user, $request->user()?->organization_id, true)))
             ->response()
             ->setStatusCode(201);
     }
 
     public function show(User $user): UserResource
     {
-        return new UserResource($user->load(['groups.rights', 'locations', 'subscriptions', 'activeSubscriptions']));
+        return new UserResource($this->loadUserForResponse($user, request()->user()?->organization_id, true));
     }
 
     public function update(UpdateUserRequest $request, User $user): UserResource
@@ -160,7 +166,7 @@ class UserController extends Controller
             }
         });
 
-        return new UserResource($user->load(['groups.rights', 'locations', 'subscriptions', 'activeSubscriptions']));
+        return new UserResource($this->loadUserForResponse($user, $request->user()?->organization_id, true));
     }
 
     public function syncSubscriptions(SyncUserSubscriptionsRequest $request, User $user): UserResource
@@ -170,7 +176,7 @@ class UserController extends Controller
             $this->attachSubscriptionAssignments($user, $this->subscriptionAssignments($request->validated()));
         });
 
-        return new UserResource($user->load(['groups.rights', 'locations', 'subscriptions', 'activeSubscriptions']));
+        return new UserResource($this->loadUserForResponse($user, request()->user()?->organization_id, true));
     }
 
     public function destroy(Request $request, User $user): JsonResponse
@@ -208,6 +214,26 @@ class UserController extends Controller
                 'start_date' => now()->toDateString(),
             ])
             ->all();
+    }
+
+    private function userRelationsForResponse(?int $organizationId, bool $includeSubscriptions = false): array
+    {
+        $relations = [
+            'groups.rights' => fn ($query) => $this->organizationAccess->applyAvailableRightsFilter($query, $organizationId),
+            'locations',
+            'activeSubscriptions',
+        ];
+
+        if ($includeSubscriptions) {
+            $relations[] = 'subscriptions';
+        }
+
+        return $relations;
+    }
+
+    private function loadUserForResponse(User $user, ?int $organizationId, bool $includeSubscriptions = false): User
+    {
+        return $user->load($this->userRelationsForResponse($organizationId, $includeSubscriptions));
     }
 
     private function attachSubscriptionAssignments(User $user, array $assignments): void

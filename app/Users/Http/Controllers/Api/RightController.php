@@ -7,6 +7,7 @@ use App\Users\Http\Requests\StoreRightRequest;
 use App\Users\Http\Requests\UpdateRightRequest;
 use App\Users\Http\Resources\RightResource;
 use App\Users\Models\Right;
+use App\Users\Services\OrganizationAccessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -14,10 +15,16 @@ use Illuminate\Support\Facades\DB;
 
 class RightController extends Controller
 {
+    public function __construct(private readonly OrganizationAccessService $organizationAccess)
+    {
+    }
+
     public function index(Request $request): AnonymousResourceCollection
     {
-        $rights = Right::query()
-            ->withCount('groups')
+        $query = Right::query()->withCount('groups');
+        $this->organizationAccess->applyAvailableRightsFilter($query, $request->user()?->organization_id);
+
+        $rights = $query
             ->when($request->string('search')->isNotEmpty(), function ($query) use ($request): void {
                 $search = $request->string('search')->toString();
 
@@ -44,6 +51,11 @@ class RightController extends Controller
 
     public function show(Right $right): RightResource
     {
+        abort_if(
+            $this->organizationAccess->isRightDisabledForOrganization($right->name, request()->user()?->organization_id),
+            404
+        );
+
         return new RightResource($right->loadCount('groups'));
     }
 

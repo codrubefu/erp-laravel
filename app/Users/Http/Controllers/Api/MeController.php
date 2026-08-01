@@ -10,6 +10,7 @@ use App\Subscription\Http\Resources\SubscriptionResource;
 use App\Users\Http\Controllers\Controller;
 use App\Users\Http\Requests\UpdateMePasswordRequest;
 use App\Users\Http\Resources\UserResource;
+use App\Users\Services\OrganizationAccessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -21,13 +22,14 @@ class MeController extends Controller
     public function __construct(
         private readonly CustomFieldDefinitionService $customFieldDefinitions,
         private readonly CustomFieldValueService $customFieldValues,
+        private readonly OrganizationAccessService $organizationAccess,
     ) {
     }
 
     public function show(Request $request): UserResource
     {
         return new UserResource(
-            $request->user()->load(['groups.rights', 'locations', 'activeSubscriptions'])
+            $this->organizationAccess->loadUserAccessRelations($request->user())
         );
     }
 

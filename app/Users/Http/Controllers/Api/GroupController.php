@@ -7,6 +7,8 @@ use App\Users\Http\Requests\StoreGroupRequest;
 use App\Users\Http\Requests\UpdateGroupRequest;
 use App\Users\Http\Resources\GroupResource;
 use App\Users\Models\Group;
+use App\Users\Services\OrganizationAccessService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -14,10 +16,18 @@ use Illuminate\Support\Facades\DB;
 
 class GroupController extends Controller
 {
+    public function __construct(private readonly OrganizationAccessService $organizationAccess)
+    {
+    }
+
     public function index(Request $request): AnonymousResourceCollection
     {
+        $organizationId = $request->user()?->organization_id;
+
         $groups = Group::query()
-            ->with('rights')
+            ->with([
+                'rights' => fn ($query) => $this->organizationAccess->applyAvailableRightsFilter($query, $organizationId),
+            ])
             ->withCount('users')
             ->when($request->string('search')->isNotEmpty(), function ($query) use ($request): void {
                 $search = $request->string('search')->toString();
@@ -47,14 +57,14 @@ class GroupController extends Controller
             return $group;
         });
 
-        return (new GroupResource($group->load('rights')->loadCount('users')))
+        return (new GroupResource($this->loadGroupForResponse($group, $request->user()?->organization_id)))
             ->response()
             ->setStatusCode(201);
     }
 
     public function show(Group $group): GroupResource
     {
-        return new GroupResource($group->load('rights')->loadCount('users'));
+        return new GroupResource($this->loadGroupForResponse($group, request()->user()?->organization_id));
     }
 
     public function update(UpdateGroupRequest $request, Group $group): GroupResource
@@ -71,7 +81,7 @@ class GroupController extends Controller
             }
         });
 
-        return new GroupResource($group->load('rights')->loadCount('users'));
+        return new GroupResource($this->loadGroupForResponse($group, $request->user()?->organization_id));
     }
 
     public function destroy(Group $group): JsonResponse
@@ -88,5 +98,12 @@ class GroupController extends Controller
         });
 
         return response()->json(status: 204);
+    }
+
+    private function loadGroupForResponse(Group $group, ?int $organizationId): Group
+    {
+        return $group->load([
+            'rights' => fn ($query) => $this->organizationAccess->applyAvailableRightsFilter($query, $organizationId),
+        ])->loadCount('users');
     }
 }
