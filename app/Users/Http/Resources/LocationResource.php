@@ -13,6 +13,8 @@ class LocationResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
+            'location_group_id' => $this->location_group_id,
+            'location_group' => $this->whenLoaded('locationGroup'),
             'users_count' => $this->whenCounted('users'),
             'users' => $this->whenLoaded('users'),
             'created_at' => $this->created_at,

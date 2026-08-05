@@ -17,6 +17,7 @@ class LocationController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $locations = Location::query()
+            ->with('locationGroup')
             ->withCount('users')
             ->when($request->string('search')->isNotEmpty(), function ($query) use ($request): void {
                 $search = $request->string('search')->toString();
@@ -45,14 +46,14 @@ class LocationController extends Controller
             return $location;
         });
 
-        return (new LocationResource($location->load('users')->loadCount('users')))
+        return (new LocationResource($location->load(['users', 'locationGroup'])->loadCount('users')))
             ->response()
             ->setStatusCode(201);
     }
 
     public function show(Location $location): LocationResource
     {
-        return new LocationResource($location->load('users')->loadCount('users'));
+        return new LocationResource($location->load(['users', 'locationGroup'])->loadCount('users'));
     }
 
     public function update(UpdateLocationRequest $request, Location $location): LocationResource
@@ -69,7 +70,7 @@ class LocationController extends Controller
             }
         });
 
-        return new LocationResource($location->load('users')->loadCount('users'));
+        return new LocationResource($location->load(['users', 'locationGroup'])->loadCount('users'));
     }
 
     public function destroy(Location $location): JsonResponse
