@@ -68,6 +68,24 @@ use OpenApi\Attributes as OA;
     ],
     type: 'object',
 )]
+
+#[OA\Schema(
+    schema: 'StoreLocationGroupRequest',
+    required: ['name'],
+    properties: [
+        new OA\Property(property: 'name', type: 'string', example: 'North Region'),
+        new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Locations in the north region.'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'UpdateLocationGroupRequest',
+    properties: [
+        new OA\Property(property: 'name', type: 'string', example: 'North Region'),
+        new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Locations in the north region.'),
+    ],
+    type: 'object',
+)]
 #[OA\Schema(
     schema: 'Group',
     properties: [
