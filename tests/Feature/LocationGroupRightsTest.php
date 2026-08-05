@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Users\Models\Group;
+use App\Users\Models\Location;
 use App\Users\Models\LocationGroup;
 use App\Users\Models\Right;
 use App\Users\Models\User;
@@ -44,6 +45,40 @@ class LocationGroupRightsTest extends TestCase
             ->getJson('/api/location-groups')
             ->assertOk()
             ->assertJsonFragment(['name' => 'Downtown']);
+    }
+
+    public function test_location_groups_are_listed_alphabetically_by_default(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['location_groups.view']);
+
+        LocationGroup::query()->create(['name' => 'West']);
+        LocationGroup::query()->create(['name' => 'Central']);
+        LocationGroup::query()->create(['name' => 'East']);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/location-groups')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Central')
+            ->assertJsonPath('data.1.name', 'East')
+            ->assertJsonPath('data.2.name', 'West');
+    }
+
+    public function test_location_group_locations_are_listed_alphabetically_by_default(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['location_groups.view']);
+
+        $locationGroup = LocationGroup::query()->create(['name' => 'Central']);
+
+        Location::query()->create(['name' => 'Warehouse', 'location_group_id' => $locationGroup->id]);
+        Location::query()->create(['name' => 'Annex', 'location_group_id' => $locationGroup->id]);
+        Location::query()->create(['name' => 'Main Office', 'location_group_id' => $locationGroup->id]);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson("/api/location-groups/{$locationGroup->id}")
+            ->assertOk()
+            ->assertJsonPath('data.locations.0.name', 'Annex')
+            ->assertJsonPath('data.locations.1.name', 'Main Office')
+            ->assertJsonPath('data.locations.2.name', 'Warehouse');
     }
 
     public function test_location_view_right_does_not_allow_listing_location_groups(): void

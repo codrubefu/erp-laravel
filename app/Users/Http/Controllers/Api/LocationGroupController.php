@@ -25,7 +25,7 @@ class LocationGroupController extends Controller
                         ->orWhere('description', 'like', "%{$search}%");
                 });
             })
-            ->orderBy('name')
+            ->orderBy('name', 'asc')
             ->paginate($request->integer('per_page', 15));
 
         return LocationGroupResource::collection($locationGroups);

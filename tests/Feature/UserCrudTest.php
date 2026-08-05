@@ -33,6 +33,34 @@ class UserCrudTest extends TestCase
             ->assertJsonFragment(['email' => 'jane@example.com']);
     }
 
+    public function test_users_are_listed_alphabetically_by_default(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['users.view']);
+
+        User::factory()->create([
+            'first_name' => 'Zoe',
+            'last_name' => 'Alpha',
+            'email' => 'sort-user-alpha-zoe@example.com',
+        ]);
+        User::factory()->create([
+            'first_name' => 'Adam',
+            'last_name' => 'Bravo',
+            'email' => 'sort-user-bravo-adam@example.com',
+        ]);
+        User::factory()->create([
+            'first_name' => 'Adam',
+            'last_name' => 'Alpha',
+            'email' => 'sort-user-alpha-adam@example.com',
+        ]);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/users?search=sort-user')
+            ->assertOk()
+            ->assertJsonPath('data.0.email', 'sort-user-alpha-adam@example.com')
+            ->assertJsonPath('data.1.email', 'sort-user-alpha-zoe@example.com')
+            ->assertJsonPath('data.2.email', 'sort-user-bravo-adam@example.com');
+    }
+
     public function test_user_with_locations_only_sees_users_from_shared_locations(): void
     {
         [$admin, $token] = $this->authenticatedUserWithRights(['users.view']);

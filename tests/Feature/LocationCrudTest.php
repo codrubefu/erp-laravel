@@ -28,6 +28,22 @@ class LocationCrudTest extends TestCase
             ->assertJsonFragment(['name' => 'Main Office']);
     }
 
+    public function test_locations_are_listed_alphabetically_by_default(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['locations.view']);
+
+        Location::query()->create(['name' => 'Warehouse']);
+        Location::query()->create(['name' => 'Annex']);
+        Location::query()->create(['name' => 'Main Office']);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/locations')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Annex')
+            ->assertJsonPath('data.1.name', 'Main Office')
+            ->assertJsonPath('data.2.name', 'Warehouse');
+    }
+
     public function test_user_with_manage_right_can_create_location_with_users(): void
     {
         [, $token] = $this->authenticatedUserWithRights(['locations.manage']);

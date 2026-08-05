@@ -49,7 +49,7 @@ class UserController extends Controller
 
                 $query->where('user_code', 'like', "%{$search}%");
             })
-            ->orderBy('user_code')
+            ->orderBy('user_code', 'asc')
             ->paginate($request->integer('per_page', 15));
 
         return UserResource::collection($users);
@@ -92,8 +92,8 @@ class UserController extends Controller
                         ->orWhere('user_code', 'like', "%{$search}%");
                 });
             })
-            ->orderBy('last_name')
-            ->orderBy('first_name')
+            ->orderBy('last_name', 'asc')
+            ->orderBy('first_name', 'asc')
             ->paginate($request->integer('per_page', 15));
 
         return UserResource::collection($users);

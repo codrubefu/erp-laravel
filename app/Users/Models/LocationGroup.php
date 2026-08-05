@@ -28,6 +28,6 @@ class LocationGroup extends Model
 
     public function locations(): HasMany
     {
-        return $this->hasMany(Location::class);
+        return $this->hasMany(Location::class)->orderBy('name', 'asc');
     }
 }
