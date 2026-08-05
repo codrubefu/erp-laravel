@@ -33,4 +33,9 @@ class Organization extends Model
     {
         return $this->hasMany(CustomFieldValue::class);
     }
+
+    public function locationGroups(): HasMany
+    {
+        return $this->hasMany(LocationGroup::class);
+    }
 }

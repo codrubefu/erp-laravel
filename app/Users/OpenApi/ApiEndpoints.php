@@ -620,6 +620,175 @@ class ApiEndpoints
     {
     }
 
+
+    #[OA\Get(
+        path: '/location-groups',
+        summary: 'List location groups',
+        security: [['bearerAuth' => []]],
+        tags: ['Location Groups'],
+        parameters: [
+            new OA\QueryParameter(name: 'search', required: false, schema: new OA\Schema(type: 'string'), example: 'north'),
+            new OA\QueryParameter(name: 'per_page', required: false, schema: new OA\Schema(type: 'integer'), example: 15),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Paginated location group list.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/LocationGroup'),
+                        ),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing locations.view right.'),
+        ],
+    )]
+    public function locationGroupsIndex(): void
+    {
+    }
+
+    #[OA\Post(
+        path: '/location-groups',
+        summary: 'Create a location group',
+        security: [['bearerAuth' => []]],
+        tags: ['Location Groups'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/StoreLocationGroupRequest'),
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'Location group created.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/LocationGroup'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing locations.manage right.'),
+            new OA\Response(response: 422, description: 'Validation failed.'),
+        ],
+    )]
+    public function locationGroupsStore(): void
+    {
+    }
+
+    #[OA\Get(
+        path: '/location-groups/{locationGroup}',
+        summary: 'Show a location group',
+        security: [['bearerAuth' => []]],
+        tags: ['Location Groups'],
+        parameters: [
+            new OA\PathParameter(name: 'locationGroup', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Location group details.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/LocationGroup'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing locations.view right.'),
+            new OA\Response(response: 404, description: 'Location group not found.'),
+        ],
+    )]
+    public function locationGroupsShow(): void
+    {
+    }
+
+    #[OA\Patch(
+        path: '/location-groups/{locationGroup}',
+        summary: 'Update a location group',
+        security: [['bearerAuth' => []]],
+        tags: ['Location Groups'],
+        parameters: [
+            new OA\PathParameter(name: 'locationGroup', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/UpdateLocationGroupRequest'),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Location group updated.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/LocationGroup'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing locations.manage right.'),
+            new OA\Response(response: 404, description: 'Location group not found.'),
+            new OA\Response(response: 422, description: 'Validation failed.'),
+        ],
+    )]
+    public function locationGroupsUpdate(): void
+    {
+    }
+
+    #[OA\Put(
+        path: '/location-groups/{locationGroup}',
+        summary: 'Replace a location group',
+        security: [['bearerAuth' => []]],
+        tags: ['Location Groups'],
+        parameters: [
+            new OA\PathParameter(name: 'locationGroup', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/UpdateLocationGroupRequest'),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Location group updated.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/LocationGroup'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing locations.manage right.'),
+            new OA\Response(response: 404, description: 'Location group not found.'),
+            new OA\Response(response: 422, description: 'Validation failed.'),
+        ],
+    )]
+    public function locationGroupsReplace(): void
+    {
+    }
+
+    #[OA\Delete(
+        path: '/location-groups/{locationGroup}',
+        summary: 'Delete a location group',
+        security: [['bearerAuth' => []]],
+        tags: ['Location Groups'],
+        parameters: [
+            new OA\PathParameter(name: 'locationGroup', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 204, description: 'Location group deleted.'),
+            new OA\Response(response: 403, description: 'Missing locations.manage right.'),
+            new OA\Response(response: 404, description: 'Location group not found.'),
+        ],
+    )]
+    public function locationGroupsDestroy(): void
+    {
+    }
+
     #[OA\Get(
         path: '/locations',
         summary: 'List locations',

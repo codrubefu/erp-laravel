@@ -3,6 +3,7 @@
 use App\Users\Http\Controllers\Api\AuthController;
 use App\Users\Http\Controllers\Api\GroupController;
 use App\Users\Http\Controllers\Api\LocationController;
+use App\Users\Http\Controllers\Api\LocationGroupController;
 use App\Users\Http\Controllers\Api\MeController;
 use App\Users\Http\Controllers\Api\OrganizationController;
 use App\Users\Http\Controllers\Api\RightController;
@@ -33,6 +34,13 @@ Route::middleware('auth.bearer')->group(function (): void {
     Route::put('/groups/{group}', [GroupController::class, 'update'])->middleware('right:groups.manage');
     Route::patch('/groups/{group}', [GroupController::class, 'update'])->middleware('right:groups.manage');
     Route::delete('/groups/{group}', [GroupController::class, 'destroy'])->middleware('right:groups.manage');
+
+    Route::get('/location-groups', [LocationGroupController::class, 'index'])->middleware('right:locations.view');
+    Route::post('/location-groups', [LocationGroupController::class, 'store'])->middleware('right:locations.manage');
+    Route::get('/location-groups/{locationGroup}', [LocationGroupController::class, 'show'])->middleware('right:locations.view');
+    Route::put('/location-groups/{locationGroup}', [LocationGroupController::class, 'update'])->middleware('right:locations.manage');
+    Route::patch('/location-groups/{locationGroup}', [LocationGroupController::class, 'update'])->middleware('right:locations.manage');
+    Route::delete('/location-groups/{locationGroup}', [LocationGroupController::class, 'destroy'])->middleware('right:locations.manage');
 
     Route::get('/locations', [LocationController::class, 'index'])->middleware('right:locations.view');
     Route::post('/locations', [LocationController::class, 'store'])->middleware('right:locations.manage');
