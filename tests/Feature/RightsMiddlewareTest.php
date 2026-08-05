@@ -38,7 +38,7 @@ class RightsMiddlewareTest extends TestCase
         $this->withHeader('Authorization', "Bearer {$token}")
             ->getJson('/api/groups')
             ->assertOk()
-            ->assertJsonPath('groups.0.name', 'admin');
+            ->assertJsonPath('data.0.name', 'admin');
     }
 
     public function test_user_without_required_right_is_forbidden(): void

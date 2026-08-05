@@ -36,6 +36,7 @@ class DeleteOrganisationCommandTest extends TestCase
             'organization_id' => $organization->id,
         ]);
         $user->locations()->attach($location);
+        $rightsCount = Right::query()->count();
 
         $exitCode = Artisan::call('delete:organisation', [
             'id' => $organization->id,
@@ -50,7 +51,7 @@ class DeleteOrganisationCommandTest extends TestCase
         $this->assertDatabaseMissing('group_user', ['user_id' => $user->id]);
         $this->assertDatabaseMissing('group_right', ['group_id' => $group->id]);
         $this->assertDatabaseMissing('location_user', ['user_id' => $user->id]);
-        $this->assertSame(24, Right::query()->count());
+        $this->assertSame($rightsCount, Right::query()->count());
         $this->assertSame(0, DB::table('audit_logs')->where('changed_by', $user->id)->count());
     }
 }

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Scope;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class LocationAccessScope implements Scope
 {
@@ -18,15 +19,27 @@ class LocationAccessScope implements Scope
             return;
         }
 
-        $locationIds = $authenticatedUser->locations()->pluck('locations.id');
+        $locationIds = DB::table('location_user')
+            ->where('user_id', $authenticatedUser->id)
+            ->pluck('location_id');
 
         if ($locationIds->isEmpty()) {
             return;
         }
 
-        $builder->where(function (Builder $query) use ($locationIds): void {
-            $query->whereDoesntHave('locations')
-                ->orWhereHas('locations', fn (Builder $locationQuery) => $locationQuery->whereIn('locations.id', $locationIds));
+        $userIdColumn = $model->qualifyColumn('id');
+
+        $builder->where(function (Builder $query) use ($locationIds, $userIdColumn): void {
+            $query->whereNotExists(function ($query) use ($userIdColumn): void {
+                $query->selectRaw('1')
+                    ->from('location_user')
+                    ->whereColumn('location_user.user_id', $userIdColumn);
+            })->orWhereExists(function ($query) use ($locationIds, $userIdColumn): void {
+                $query->selectRaw('1')
+                    ->from('location_user')
+                    ->whereColumn('location_user.user_id', $userIdColumn)
+                    ->whereIn('location_user.location_id', $locationIds);
+            });
         });
     }
 }

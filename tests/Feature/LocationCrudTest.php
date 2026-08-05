@@ -46,8 +46,8 @@ class LocationCrudTest extends TestCase
 
     public function test_user_with_manage_right_can_create_location_with_users(): void
     {
-        [, $token] = $this->authenticatedUserWithRights(['locations.manage']);
-        $user = User::factory()->create();
+        [$admin, $token] = $this->authenticatedUserWithRights(['locations.manage']);
+        $user = User::factory()->create(['organization_id' => $admin->organization_id]);
 
         $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/locations', [

@@ -85,7 +85,7 @@ class GroupController extends Controller
 
     public function destroy(Group $group): JsonResponse
     {
-        if ($group->users()->exists()) {
+        if ($group->users()->withoutGlobalScopes()->exists()) {
             return response()->json([
                 'message' => 'Cannot delete a group that still has users.',
             ], 422);

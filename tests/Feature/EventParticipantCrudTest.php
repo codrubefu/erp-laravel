@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Events\Models\Event;
 use App\Events\Models\EventOccurrence;
 use App\Users\Models\Group;
+use App\Users\Models\Organization;
 use App\Users\Models\Right;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -68,8 +69,8 @@ class EventParticipantCrudTest extends TestCase
 
     public function test_user_with_manage_right_can_update_occurrence_participant(): void
     {
-        [, $token] = $this->authenticatedUserWithRights(['event_participants.manage']);
-        $participant = User::factory()->create();
+        [$admin, $token] = $this->authenticatedUserWithRights(['event_participants.manage']);
+        $participant = User::factory()->create(['organization_id' => $admin->organization_id]);
         $event = Event::query()->create($this->eventData([
             'max_participants' => 10,
         ]));
@@ -129,6 +130,8 @@ class EventParticipantCrudTest extends TestCase
 
     private function authenticatedUserWithRights(array $rightNames): array
     {
+        Organization::factory()->create();
+
         $user = User::factory()->create([
             'email' => fake()->unique()->safeEmail(),
             'password' => 'password',

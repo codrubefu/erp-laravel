@@ -24,7 +24,10 @@ trait BelongsToAuthenticatedOrganization
                 return;
             }
 
-            $builder->where($model->qualifyColumn('organization_id'), $authenticatedUser->organization_id);
+            $builder->where(function (Builder $query) use ($model, $authenticatedUser): void {
+                $query->where($model->qualifyColumn('organization_id'), $authenticatedUser->organization_id)
+                    ->orWhereNull($model->qualifyColumn('organization_id'));
+            });
         });
     }
 }

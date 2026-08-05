@@ -130,11 +130,15 @@ class UserController extends Controller
 
     public function show(User $user): UserResource
     {
+        $this->abortIfUserIsNotVisible($user);
+
         return new UserResource($this->loadUserForResponse($user, request()->user()?->organization_id, true));
     }
 
     public function update(UpdateUserRequest $request, User $user): UserResource
     {
+        $this->abortIfUserIsNotVisible($user);
+
         $data = $request->validated();
         $groupIds = $data['group_ids'] ?? null;
         $locationIds = $data['location_ids'] ?? null;
@@ -171,6 +175,8 @@ class UserController extends Controller
 
     public function syncSubscriptions(SyncUserSubscriptionsRequest $request, User $user): UserResource
     {
+        $this->abortIfUserIsNotVisible($user);
+
         DB::transaction(function () use ($request, $user): void {
             $user->subscriptions()->detach();
             $this->attachSubscriptionAssignments($user, $this->subscriptionAssignments($request->validated()));
@@ -181,6 +187,8 @@ class UserController extends Controller
 
     public function destroy(Request $request, User $user): JsonResponse
     {
+        $this->abortIfUserIsNotVisible($user);
+
         if ($request->user()?->is($user)) {
             return response()->json([
                 'message' => 'You cannot delete your own user account.',
@@ -234,6 +242,11 @@ class UserController extends Controller
     private function loadUserForResponse(User $user, ?int $organizationId, bool $includeSubscriptions = false): User
     {
         return $user->load($this->userRelationsForResponse($organizationId, $includeSubscriptions));
+    }
+
+    private function abortIfUserIsNotVisible(User $user): void
+    {
+        abort_unless(User::query()->whereKey($user->getKey())->exists(), 404);
     }
 
     private function attachSubscriptionAssignments(User $user, array $assignments): void

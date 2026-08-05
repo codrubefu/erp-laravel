@@ -21,6 +21,7 @@ class UserCrudTest extends TestCase
         [$admin, $token] = $this->authenticatedUserWithRights(['users.view']);
 
         User::factory()->create([
+            'organization_id' => $admin->organization_id,
             'first_name' => 'Jane',
             'last_name' => 'Doe',
             'email' => 'jane@example.com',
@@ -35,19 +36,22 @@ class UserCrudTest extends TestCase
 
     public function test_users_are_listed_alphabetically_by_default(): void
     {
-        [, $token] = $this->authenticatedUserWithRights(['users.view']);
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.view']);
 
         User::factory()->create([
+            'organization_id' => $admin->organization_id,
             'first_name' => 'Zoe',
             'last_name' => 'Alpha',
             'email' => 'sort-user-alpha-zoe@example.com',
         ]);
         User::factory()->create([
+            'organization_id' => $admin->organization_id,
             'first_name' => 'Adam',
             'last_name' => 'Bravo',
             'email' => 'sort-user-bravo-adam@example.com',
         ]);
         User::factory()->create([
+            'organization_id' => $admin->organization_id,
             'first_name' => 'Adam',
             'last_name' => 'Alpha',
             'email' => 'sort-user-alpha-adam@example.com',
@@ -73,10 +77,12 @@ class UserCrudTest extends TestCase
             'description' => 'Remote office',
         ]);
         $visibleUser = User::factory()->create([
+            'organization_id' => $admin->organization_id,
             'first_name' => 'Visible',
             'email' => 'visible@example.com',
         ]);
         $hiddenUser = User::factory()->create([
+            'organization_id' => $admin->organization_id,
             'first_name' => 'Hidden',
             'email' => 'hidden@example.com',
         ]);
@@ -94,14 +100,16 @@ class UserCrudTest extends TestCase
 
     public function test_user_can_search_users_by_partial_user_code(): void
     {
-        [, $token] = $this->authenticatedUserWithRights(['users.view']);
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.view']);
 
         User::factory()->create([
+            'organization_id' => $admin->organization_id,
             'user_code' => 'USR11100000000000000000000000001',
             'first_name' => 'Matching',
             'email' => 'matching-code@example.com',
         ]);
         User::factory()->create([
+            'organization_id' => $admin->organization_id,
             'user_code' => 'USR22200000000000000000000000002',
             'first_name' => 'Other',
             'email' => 'other-code@example.com',
@@ -116,14 +124,16 @@ class UserCrudTest extends TestCase
 
     public function test_user_code_search_endpoint_only_searches_user_code(): void
     {
-        [, $token] = $this->authenticatedUserWithRights(['users.view']);
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.view']);
 
         User::factory()->create([
+            'organization_id' => $admin->organization_id,
             'user_code' => 'USR11100000000000000000000000001',
             'first_name' => 'Matching',
             'email' => 'matching-code@example.com',
         ]);
         User::factory()->create([
+            'organization_id' => $admin->organization_id,
             'user_code' => 'USR22200000000000000000000000002',
             'first_name' => '111',
             'email' => '111@example.com',
@@ -148,6 +158,7 @@ class UserCrudTest extends TestCase
             'description' => 'Other location',
         ]);
         $targetUser = User::factory()->create([
+            'organization_id' => $admin->organization_id,
             'user_code' => '323',
             'first_name' => 'Mathias',
             'email' => 'mathias323@example.com',
@@ -167,10 +178,10 @@ class UserCrudTest extends TestCase
 
     public function test_clients_endpoint_lists_users_with_only_profile_view_or_no_rights(): void
     {
-        [, $token] = $this->authenticatedUserWithRights(['users.view']);
-        $client = User::factory()->create(['email' => 'client@example.com']);
-        $administrator = User::factory()->create(['email' => 'administrator@example.com']);
-        $withoutRights = User::factory()->create(['email' => 'without-rights@example.com']);
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.view']);
+        $client = User::factory()->create(['organization_id' => $admin->organization_id, 'email' => 'client@example.com']);
+        $administrator = User::factory()->create(['organization_id' => $admin->organization_id, 'email' => 'administrator@example.com']);
+        $withoutRights = User::factory()->create(['organization_id' => $admin->organization_id, 'email' => 'without-rights@example.com']);
 
         $this->attachRightsToUser($client, ['profile.view']);
         $this->attachRightsToUser($administrator, ['profile.view', 'users.view']);
@@ -185,10 +196,10 @@ class UserCrudTest extends TestCase
 
     public function test_administrators_endpoint_excludes_users_with_only_profile_view_right_and_without_groups(): void
     {
-        [, $token] = $this->authenticatedUserWithRights(['users.view']);
-        $client = User::factory()->create(['email' => 'client@example.com']);
-        $administrator = User::factory()->create(['email' => 'administrator@example.com']);
-        $withoutRights = User::factory()->create(['email' => 'without-rights@example.com']);
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.view']);
+        $client = User::factory()->create(['organization_id' => $admin->organization_id, 'email' => 'client@example.com']);
+        $administrator = User::factory()->create(['organization_id' => $admin->organization_id, 'email' => 'administrator@example.com']);
+        $withoutRights = User::factory()->create(['organization_id' => $admin->organization_id, 'email' => 'without-rights@example.com']);
 
         $this->attachRightsToUser($client, ['profile.view']);
         $this->attachRightsToUser($administrator, ['profile.view', 'users.view']);
@@ -411,8 +422,11 @@ class UserCrudTest extends TestCase
 
     public function test_user_with_manage_right_can_update_user(): void
     {
-        [, $token] = $this->authenticatedUserWithRights(['users.manage']);
-        $user = User::factory()->create(['email' => 'old@example.com']);
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.manage']);
+        $user = User::factory()->create([
+            'organization_id' => $admin->organization_id,
+            'email' => 'old@example.com',
+        ]);
 
         $this->withHeader('Authorization', "Bearer {$token}")
             ->patchJson("/api/users/{$user->id}", [
@@ -437,7 +451,10 @@ class UserCrudTest extends TestCase
             'name' => 'Blocked',
             'description' => 'Blocked location',
         ]);
-        $user = User::factory()->create(['email' => 'blocked-update@example.com']);
+        $user = User::factory()->create([
+            'organization_id' => $admin->organization_id,
+            'email' => 'blocked-update@example.com',
+        ]);
 
         $admin->locations()->attach($allowedLocation);
         $user->locations()->attach($blockedLocation);
@@ -451,8 +468,8 @@ class UserCrudTest extends TestCase
 
     public function test_user_with_manage_right_can_sync_subscriptions_through_dedicated_route(): void
     {
-        [, $token] = $this->authenticatedUserWithRights(['users.manage']);
-        $user = User::factory()->create();
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.manage']);
+        $user = User::factory()->create(['organization_id' => $admin->organization_id]);
         $oldSubscription = Subscription::query()->create($this->subscriptionData([
             'name' => 'Legacy',
             'is_active' => true,
@@ -485,8 +502,8 @@ class UserCrudTest extends TestCase
 
     public function test_user_with_manage_right_can_delete_user(): void
     {
-        [, $token] = $this->authenticatedUserWithRights(['users.manage']);
-        $user = User::factory()->create();
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.manage']);
+        $user = User::factory()->create(['organization_id' => $admin->organization_id]);
 
         $this->withHeader('Authorization', "Bearer {$token}")
             ->deleteJson("/api/users/{$user->id}")

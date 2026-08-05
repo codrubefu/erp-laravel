@@ -16,9 +16,10 @@ class SmsMessageIndexTest extends TestCase
 
     public function test_user_with_sms_view_right_can_list_sms_messages_with_search_filters_and_pagination(): void
     {
-        [, $token] = $this->authenticatedUserWithRights(['sms.view']);
+        [$admin, $token] = $this->authenticatedUserWithRights(['sms.view']);
 
         $user = User::factory()->create([
+            'organization_id' => $admin->organization_id,
             'first_name' => 'Ion',
             'last_name' => 'Popescu',
             'phone' => '0722000001',
@@ -34,11 +35,17 @@ class SmsMessageIndexTest extends TestCase
             'max_users' => 10,
             'is_active' => true,
         ]);
+        $user->subscriptions()->attach($subscription->id);
+        $firstSubscriptionUserId = $user->subscriptions()
+            ->where('subscriptions.id', $subscription->id)
+            ->firstOrFail()
+            ->pivot
+            ->id;
 
         $firstMatch = SmsMessage::query()->create([
             'user_id' => $user->id,
             'subscription_id' => $subscription->id,
-            'subscription_user_id' => 101,
+            'subscription_user_id' => $firstSubscriptionUserId,
             'type' => SmsMessage::TYPE_SUBSCRIPTION_EXPIRING,
             'destination' => '0722000001',
             'message' => 'Gold expires soon',
@@ -46,10 +53,18 @@ class SmsMessageIndexTest extends TestCase
             'sent_at' => '2026-06-01 10:00:00',
         ]);
 
+        $secondUser = User::factory()->create(['organization_id' => $admin->organization_id]);
+        $secondUser->subscriptions()->attach($subscription->id);
+        $secondSubscriptionUserId = $secondUser->subscriptions()
+            ->where('subscriptions.id', $subscription->id)
+            ->firstOrFail()
+            ->pivot
+            ->id;
+
         SmsMessage::query()->create([
             'user_id' => $user->id,
             'subscription_id' => $subscription->id,
-            'subscription_user_id' => 102,
+            'subscription_user_id' => $secondSubscriptionUserId,
             'type' => SmsMessage::TYPE_SUBSCRIPTION_EXPIRING,
             'destination' => '0722000001',
             'message' => 'Another Gold reminder',
@@ -57,10 +72,18 @@ class SmsMessageIndexTest extends TestCase
             'sent_at' => '2026-06-01 11:00:00',
         ]);
 
+        $thirdUser = User::factory()->create(['organization_id' => $admin->organization_id]);
+        $thirdUser->subscriptions()->attach($subscription->id);
+        $thirdSubscriptionUserId = $thirdUser->subscriptions()
+            ->where('subscriptions.id', $subscription->id)
+            ->firstOrFail()
+            ->pivot
+            ->id;
+
         SmsMessage::query()->create([
             'user_id' => $user->id,
             'subscription_id' => $subscription->id,
-            'subscription_user_id' => 103,
+            'subscription_user_id' => $thirdSubscriptionUserId,
             'type' => 'manual',
             'destination' => '0733000000',
             'message' => 'Other message',
@@ -115,7 +138,11 @@ class SmsMessageIndexTest extends TestCase
         }
 
         $user->groups()->attach($group);
-        $token = $user->createToken('test-token')->plainTextToken;
+        $token = $this->postJson('/api/login', [
+            'email' => $user->email,
+            'organization_id' => $user->organization_id,
+            'password' => 'password',
+        ])->json('token');
 
         return [$user, $token];
     }
