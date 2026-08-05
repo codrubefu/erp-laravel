@@ -35,12 +35,12 @@ Route::middleware('auth.bearer')->group(function (): void {
     Route::patch('/groups/{group}', [GroupController::class, 'update'])->middleware('right:groups.manage');
     Route::delete('/groups/{group}', [GroupController::class, 'destroy'])->middleware('right:groups.manage');
 
-    Route::get('/location-groups', [LocationGroupController::class, 'index'])->middleware('right:locations.view');
-    Route::post('/location-groups', [LocationGroupController::class, 'store'])->middleware('right:locations.manage');
-    Route::get('/location-groups/{locationGroup}', [LocationGroupController::class, 'show'])->middleware('right:locations.view');
-    Route::put('/location-groups/{locationGroup}', [LocationGroupController::class, 'update'])->middleware('right:locations.manage');
-    Route::patch('/location-groups/{locationGroup}', [LocationGroupController::class, 'update'])->middleware('right:locations.manage');
-    Route::delete('/location-groups/{locationGroup}', [LocationGroupController::class, 'destroy'])->middleware('right:locations.manage');
+    Route::get('/location-groups', [LocationGroupController::class, 'index'])->middleware('right:location_groups.view');
+    Route::post('/location-groups', [LocationGroupController::class, 'store'])->middleware('right:location_groups.manage');
+    Route::get('/location-groups/{locationGroup}', [LocationGroupController::class, 'show'])->middleware('right:location_groups.view');
+    Route::put('/location-groups/{locationGroup}', [LocationGroupController::class, 'update'])->middleware('right:location_groups.manage');
+    Route::patch('/location-groups/{locationGroup}', [LocationGroupController::class, 'update'])->middleware('right:location_groups.manage');
+    Route::delete('/location-groups/{locationGroup}', [LocationGroupController::class, 'destroy'])->middleware('right:location_groups.manage');
 
     Route::get('/locations', [LocationController::class, 'index'])->middleware('right:locations.view');
     Route::post('/locations', [LocationController::class, 'store'])->middleware('right:locations.manage');
