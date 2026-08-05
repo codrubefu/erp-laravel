@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-#[Fillable(['name', 'description', 'organization_id'])]
+#[Fillable(['name', 'description', 'organization_id', 'location_group_id'])]
 class Location extends Model
 {
     use LogsModelChanges;
@@ -37,5 +37,10 @@ class Location extends Model
     public function articles(): BelongsToMany
     {
         return $this->belongsToMany(Article::class)->withTimestamps();
+    }
+
+    public function locationGroup(): BelongsTo
+    {
+        return $this->belongsTo(LocationGroup::class);
     }
 }

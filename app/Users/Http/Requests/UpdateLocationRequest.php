@@ -25,6 +25,7 @@ class UpdateLocationRequest extends FormRequest
                 Rule::unique('locations', 'name')->ignore($location?->id),
             ],
             'description' => ['nullable', 'string'],
+            'location_group_id' => ['nullable', 'integer', 'exists:location_groups,id'],
             'user_ids' => ['sometimes', 'array'],
             'user_ids.*' => ['integer', 'exists:users,id'],
         ];

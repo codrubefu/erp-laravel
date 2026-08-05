@@ -11,6 +11,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'name', type: 'string', example: 'Main Office'),
         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Headquarters'),
         new OA\Property(property: 'organization_id', type: 'integer', nullable: true, example: 1),
+        new OA\Property(property: 'location_group_id', type: 'integer', nullable: true, example: 1),
+        new OA\Property(property: 'location_group', ref: '#/components/schemas/LocationGroup', nullable: true),
         new OA\Property(property: 'users_count', type: 'integer', example: 5),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true),
@@ -23,6 +25,7 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'name', type: 'string', example: 'Main Office'),
         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Headquarters'),
+        new OA\Property(property: 'location_group_id', type: 'integer', nullable: true, example: 1),
         new OA\Property(
             property: 'user_ids',
             type: 'array',
@@ -37,12 +40,31 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'name', type: 'string', example: 'Main Office'),
         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Headquarters'),
+        new OA\Property(property: 'location_group_id', type: 'integer', nullable: true, example: 1),
         new OA\Property(
             property: 'user_ids',
             type: 'array',
             items: new OA\Items(type: 'integer'),
             example: [1, 2],
         ),
+    ],
+    type: 'object',
+)]
+
+#[OA\Schema(
+    schema: 'LocationGroup',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 1),
+        new OA\Property(property: 'name', type: 'string', example: 'North Region'),
+        new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Locations in the north region.'),
+        new OA\Property(property: 'organization_id', type: 'integer', nullable: true, example: 1),
+        new OA\Property(
+            property: 'locations',
+            type: 'array',
+            items: new OA\Items(ref: '#/components/schemas/Location'),
+        ),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true),
     ],
     type: 'object',
 )]
