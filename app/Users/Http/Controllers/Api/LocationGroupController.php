@@ -42,14 +42,18 @@ class LocationGroupController extends Controller
 
     public function show(LocationGroup $locationGroup): LocationGroupResource
     {
-        return new LocationGroupResource($locationGroup->load('locations')->loadCount('locations'));
+        return new LocationGroupResource($locationGroup->load([
+            'locations' => fn ($query) => $query->orderBy('name', 'asc'),
+        ])->loadCount('locations'));
     }
 
     public function update(UpdateLocationGroupRequest $request, LocationGroup $locationGroup): LocationGroupResource
     {
         $locationGroup->update($request->validated());
 
-        return new LocationGroupResource($locationGroup->load('locations')->loadCount('locations'));
+        return new LocationGroupResource($locationGroup->load([
+            'locations' => fn ($query) => $query->orderBy('name', 'asc'),
+        ])->loadCount('locations'));
     }
 
     public function destroy(LocationGroup $locationGroup): JsonResponse
