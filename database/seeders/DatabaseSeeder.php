@@ -25,8 +25,6 @@ class DatabaseSeeder extends Seeder
             ['name' => 'groups.manage', 'label' => 'Manage groups', 'description' => 'Create, update, and delete user groups.'],
             ['name' => 'rights.view', 'label' => 'View rights', 'description' => 'Read available application rights.'],
             ['name' => 'rights.manage', 'label' => 'Manage rights', 'description' => 'Create, update, and delete application rights.'],
-            ['name' => 'location_groups.view', 'label' => 'View location groups', 'description' => 'Read location groups and their locations.'],
-            ['name' => 'location_groups.manage', 'label' => 'Manage location groups', 'description' => 'Create, update, and delete location groups.'],
             ['name' => 'locations.view', 'label' => 'View locations', 'description' => 'Read locations and assigned users.'],
             ['name' => 'locations.manage', 'label' => 'Manage locations', 'description' => 'Create, update, and delete locations.'],
             ['name' => 'subscriptions.view', 'label' => 'View subscriptions', 'description' => 'Read subscriptions.'],
@@ -49,12 +47,15 @@ class DatabaseSeeder extends Seeder
             ['name' => 'payments.create', 'label' => 'Create payments', 'description' => 'Register payments.'],
             ['name' => 'payments.update', 'label' => 'Update payments', 'description' => 'Update payment payable model links.'],
             ['name' => 'payments.manage', 'label' => 'Manage payments', 'description' => 'Manage all payment actions.'],
-        ])->merge(CustomFieldRightsSeeder::rights())->mapWithKeys(fn (array $right) => [
-            $right['name'] => Right::query()->updateOrCreate(
-                ['name' => $right['name']],
-                ['label' => $right['label'], 'description' => $right['description']],
-            ),
-        ]);
+        ])
+            ->merge(LocationGroupRightsSeeder::rights())
+            ->merge(CustomFieldRightsSeeder::rights())
+            ->mapWithKeys(fn (array $right) => [
+                $right['name'] => Right::query()->updateOrCreate(
+                    ['name' => $right['name']],
+                    ['label' => $right['label'], 'description' => $right['description']],
+                ),
+            ]);
 
         $admin = Group::query()->updateOrCreate(
             ['name' => 'admin'],
