@@ -9,7 +9,7 @@ class ApiEndpoints
     #[OA\Get(
         path: '/payments',
         summary: 'List payments',
-        description: 'Returns payments for supported payable models, including subscription_user and event_occurrence_user.',
+        description: 'Returns only payments belonging to the authenticated organization, including their lifecycle and traceability fields.',
         security: [['bearerAuth' => []]],
         tags: ['Payment'],
         parameters: [
@@ -41,7 +41,7 @@ class ApiEndpoints
     #[OA\Post(
         path: '/payments',
         summary: 'Create a payment',
-        description: 'Creates a payment linked to either a subscription assignment or an event participation assignment.',
+        description: 'Creates a payment linked to a payable object from the authenticated organization. Organization, branch and operator are inferred from authentication. Cash is confirmed immediately; card and bank payments start as initiated.',
         security: [['bearerAuth' => []]],
         tags: ['Payment'],
         requestBody: new OA\RequestBody(
@@ -97,6 +97,69 @@ class ApiEndpoints
         ],
     )]
     public function attachModel(): void
+    {
+    }
+
+    #[OA\Post(
+        path: '/payments/callback',
+        summary: 'Process a payment provider callback',
+        description: 'Processes an idempotent card or bank callback. The X-Payment-Signature value must be the lowercase hexadecimal HMAC-SHA256 of the exact raw request body, calculated with PAYMENT_CALLBACK_SECRET.',
+        tags: ['Payment'],
+        parameters: [
+            new OA\HeaderParameter(
+                name: 'X-Payment-Signature',
+                required: true,
+                description: 'Hexadecimal HMAC-SHA256 signature of the raw JSON request body.',
+                schema: new OA\Schema(type: 'string', example: 'f77d7a45a507d93688c8c6ae93f9c8f74e0acff810f2e98a8cc63fcb23c81a48'),
+            ),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/PaymentCallbackRequest'),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Callback accepted. Repeated callbacks return the existing payment without repeating side effects.',
+                content: new OA\JsonContent(
+                    properties: [new OA\Property(property: 'data', ref: '#/components/schemas/Payment')],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 401, description: 'Missing or invalid provider signature.'),
+            new OA\Response(response: 404, description: 'External payment reference not found.'),
+            new OA\Response(response: 422, description: 'Invalid callback payload or status.'),
+            new OA\Response(response: 429, description: 'Callback rate limit exceeded.'),
+        ],
+    )]
+    public function callback(): void
+    {
+    }
+
+    #[OA\Get(
+        path: '/payments/{payment}/receipt',
+        summary: 'Download a payment receipt',
+        description: 'Downloads the receipt for a confirmed payment belonging to the authenticated organization.',
+        security: [['bearerAuth' => []]],
+        tags: ['Payment'],
+        parameters: [
+            new OA\PathParameter(name: 'payment', required: true, schema: new OA\Schema(type: 'integer'), example: 8),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Receipt text file.',
+                content: new OA\MediaType(
+                    mediaType: 'text/plain',
+                    schema: new OA\Schema(type: 'string', format: 'binary'),
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing payments.view or payments.manage right.'),
+            new OA\Response(response: 404, description: 'Payment not found in the authenticated organization.'),
+            new OA\Response(response: 409, description: 'Payment is not confirmed or has no receipt.'),
+        ],
+    )]
+    public function receipt(): void
     {
     }
 }

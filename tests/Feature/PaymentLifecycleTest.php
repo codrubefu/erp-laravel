@@ -1,0 +1,104 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Payments\Models\Payment;
+use App\Payments\Services\PaymentService;
+use App\Users\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
+
+class PaymentLifecycleTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_cash_confirmation_activates_subscription_and_issues_receipt(): void
+    {
+        [$operator, $assignmentId] = $this->subscriptionAssignment();
+
+        $payment = app(PaymentService::class)->create($this->paymentData($assignmentId, Payment::TYPE_CASH), $operator);
+
+        $this->assertSame(Payment::STATUS_CONFIRMED, $payment->status);
+        $this->assertNotNull($payment->receipt_number);
+        $this->assertDatabaseHas('subscription_user', [
+            'id' => $assignmentId,
+            'start_date' => now()->toDateString(),
+        ]);
+    }
+
+    public function test_confirmed_callback_is_idempotent(): void
+    {
+        config(['services.payments.callback_secret' => 'callback-secret']);
+        [$operator, $assignmentId] = $this->subscriptionAssignment();
+        $payment = app(PaymentService::class)->create($this->paymentData($assignmentId, Payment::TYPE_CARD), $operator);
+        $payload = ['external_reference' => $payment->external_reference, 'transaction_id' => 'provider-123', 'status' => Payment::STATUS_CONFIRMED];
+        $json = json_encode($payload, JSON_THROW_ON_ERROR);
+        $signature = hash_hmac('sha256', $json, 'callback-secret');
+
+        foreach ([1, 2] as $attempt) {
+            $this->call('POST', '/api/payments/callback', [], [], [], [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X_PAYMENT_SIGNATURE' => $signature,
+            ], $json)->assertOk()->assertJsonPath('data.status', Payment::STATUS_CONFIRMED);
+        }
+
+        $this->assertSame(1, Payment::query()->where('external_reference', $payment->external_reference)->count());
+        $this->assertNotNull($payment->refresh()->receipt_number);
+    }
+
+    public function test_failed_payment_does_not_activate_subscription(): void
+    {
+        [$operator, $assignmentId] = $this->subscriptionAssignment();
+        $payment = app(PaymentService::class)->create($this->paymentData($assignmentId, Payment::TYPE_BANK_TRANSFER), $operator);
+
+        app(PaymentService::class)->processCallback([
+            'external_reference' => $payment->external_reference,
+            'status' => Payment::STATUS_FAILED,
+            'failure_reason' => 'declined',
+        ]);
+
+        $this->assertDatabaseHas('payments', ['id' => $payment->id, 'status' => Payment::STATUS_FAILED, 'failure_reason' => 'declined']);
+        $this->assertDatabaseHas('subscription_user', ['id' => $assignmentId, 'start_date' => null, 'expires_at' => null]);
+    }
+
+    private function subscriptionAssignment(): array
+    {
+        $operator = User::factory()->create();
+        $member = User::factory()->create(['organization_id' => $operator->organization_id]);
+        $subscriptionId = DB::table('subscriptions')->insertGetId([
+            'organization_id' => $operator->organization_id,
+            'name' => 'Annual membership',
+            'description' => 'Test',
+            'price' => 100,
+            'currency' => 'RON',
+            'billing_interval' => 'yearly',
+            'duration_days' => 365,
+            'trial_days' => 0,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $assignmentId = DB::table('subscription_user')->insertGetId([
+            'subscription_id' => $subscriptionId,
+            'user_id' => $member->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return [$operator, $assignmentId];
+    }
+
+    private function paymentData(int $assignmentId, int $type): array
+    {
+        return [
+            'first_name' => 'Ana',
+            'last_name' => 'Popescu',
+            'payment_type_id' => $type,
+            'model_type' => Payment::MODEL_TYPE_SUBSCRIPTION_USER,
+            'model_id' => $assignmentId,
+            'amount' => 100,
+            'paid_at' => now(),
+        ];
+    }
+}
