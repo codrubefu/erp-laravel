@@ -25,7 +25,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['user_code', 'first_name', 'last_name', 'phone', 'active', 'email', 'password', 'organization_id'])]
+#[Fillable(['user_code', 'first_name', 'last_name', 'phone', 'active', 'email', 'password', 'organization_id', 'notification_consents', 'push_token'])]
 #[Hidden(['password', 'remember_token'])]
 #[UseFactory(UserFactory::class)]
 class User extends Authenticatable
@@ -124,6 +124,17 @@ class User extends Authenticatable
             ->exists();
     }
 
+    public function consentsTo(string $channel): bool
+    {
+        return (bool) ($this->notification_consents[$channel] ?? false)
+            && match ($channel) {
+                'sms' => filled($this->phone),
+                'mail' => filled($this->email),
+                'push' => filled($this->push_token),
+                default => false,
+            };
+    }
+
     /**
      * Get the attributes that should be cast.
      *
@@ -135,6 +146,7 @@ class User extends Authenticatable
             'active' => 'boolean',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'notification_consents' => 'array',
         ];
     }
 }
