@@ -2,12 +2,14 @@
 
 namespace App\Events\Http\Controllers\Api;
 
+use App\Notifications\Events\NotificationRequested;
 use App\Events\Http\Requests\StoreEventRequest;
 use App\Events\Http\Requests\UpdateEventRequest;
 use App\Events\Http\Resources\EventResource;
 use App\Events\Models\Event;
 use App\Events\Services\EventOccurrenceGeneratorService;
 use App\Users\Http\Controllers\Controller;
+use App\Users\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -165,8 +167,29 @@ class EventController extends Controller
     public function update(UpdateEventRequest $request, Event $event): JsonResponse
     {
         DB::transaction(function () use ($request, $event): void {
+            $oldStatus = $event->status;
             $event->update($request->validated());
+            $scheduleChanged = array_intersect(
+                ['start_time', 'end_time', 'start_date', 'end_date', 'recurrence_type', 'recurrence_days', 'monthly_day', 'location'],
+                array_keys($event->getChanges()),
+            ) !== [];
             $this->occurrences->regenerateFutureOpenOccurrences($event->refresh());
+
+            $type = $oldStatus !== 'active' && $event->status === 'active'
+                ? NotificationRequested::RESUMED
+                : ($scheduleChanged ? NotificationRequested::SCHEDULE_CHANGED : null);
+
+            if ($type) {
+                $eventId = $event->id;
+                $version = $event->updated_at->getTimestamp();
+                DB::afterCommit(function () use ($eventId, $version, $type): void {
+                    $event = Event::withoutGlobalScopes()->find($eventId);
+                    User::withoutGlobalScopes()->whereHas('eventOccurrences', fn ($query) => $query->where('event_occurrences.event_id', $eventId))
+                        ->each(fn (User $user) => NotificationRequested::dispatch(
+                            $user, $type, "{$type}:{$eventId}:{$version}", ['event' => $event?->title ?? (string) $eventId]
+                        ));
+                });
+            }
         });
 
         return response()->json([

@@ -186,6 +186,17 @@ use OpenApi\Attributes as OA;
     type: 'object',
 )]
 #[OA\Schema(
+    schema: 'NotificationConsents',
+    description: 'Explicit opt-in preferences used to select notification channels. Missing or false values disable that channel.',
+    properties: [
+        new OA\Property(property: 'sms', description: 'Allow SMS notifications when the user has a phone number.', type: 'boolean', example: true),
+        new OA\Property(property: 'mail', description: 'Allow e-mail notifications when the user has an e-mail address.', type: 'boolean', example: true),
+        new OA\Property(property: 'push', description: 'Allow push notifications when the user has a push token.', type: 'boolean', example: false),
+    ],
+    type: 'object',
+    additionalProperties: false,
+)]
+#[OA\Schema(
     schema: 'User',
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 35),
@@ -193,6 +204,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'first_name', type: 'string', example: 'John'),
         new OA\Property(property: 'last_name', type: 'string', example: 'Doe'),
         new OA\Property(property: 'phone', type: 'string', nullable: true, example: '+15550001111'),
+        new OA\Property(property: 'notification_consents', ref: '#/components/schemas/NotificationConsents'),
+        new OA\Property(property: 'push_token', description: 'Device token used for consented push notifications.', type: 'string', nullable: true, maxLength: 2048, example: 'device-token-abc123'),
         new OA\Property(property: 'active', type: 'boolean', example: true),
         new OA\Property(property: 'email', type: 'string', format: 'email', example: 'john@example.com'),
         new OA\Property(property: 'organization_id', type: 'integer', nullable: true, example: 1),
@@ -246,6 +259,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'first_name', type: 'string', example: 'John'),
         new OA\Property(property: 'last_name', type: 'string', example: 'Doe'),
         new OA\Property(property: 'phone', type: 'string', nullable: true, example: '+15550001111'),
+        new OA\Property(property: 'notification_consents', ref: '#/components/schemas/NotificationConsents'),
+        new OA\Property(property: 'push_token', description: 'Device token used for push notifications.', type: 'string', nullable: true, maxLength: 2048, example: 'device-token-abc123'),
         new OA\Property(property: 'active', type: 'boolean', example: true),
         new OA\Property(property: 'email', type: 'string', format: 'email', example: 'john@example.com'),
         new OA\Property(property: 'password', type: 'string', format: 'password', nullable: true, example: 'password'),
@@ -283,6 +298,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'first_name', type: 'string', example: 'John'),
         new OA\Property(property: 'last_name', type: 'string', example: 'Doe'),
         new OA\Property(property: 'phone', type: 'string', nullable: true, example: '+15550001111'),
+        new OA\Property(property: 'notification_consents', ref: '#/components/schemas/NotificationConsents'),
+        new OA\Property(property: 'push_token', description: 'Device token used for push notifications; send null to remove it.', type: 'string', nullable: true, maxLength: 2048, example: 'device-token-abc123'),
         new OA\Property(property: 'active', type: 'boolean', example: true),
         new OA\Property(property: 'email', type: 'string', format: 'email', example: 'john@example.com'),
         new OA\Property(property: 'password', type: 'string', format: 'password', nullable: true, example: 'new-password'),

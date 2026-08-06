@@ -2,6 +2,7 @@
 
 namespace App\Users\Http\Controllers\Api;
 
+use App\Notifications\Events\NotificationRequested;
 use App\Subscription\Models\Subscription;
 use App\Users\Http\Controllers\Controller;
 use App\Users\Http\Requests\SyncUserSubscriptionsRequest;
@@ -259,6 +260,15 @@ class UserController extends Controller
                 'start_date' => $startDate->toDateString(),
                 'expires_at' => $this->subscriptionExpiresAt($subscription, $startDate),
             ]);
+
+            DB::afterCommit(function () use ($user, $subscription, $startDate): void {
+                NotificationRequested::dispatch(
+                    $user->fresh(),
+                    NotificationRequested::SUBSCRIPTION_ACTIVATED,
+                    "subscription.activated:{$user->id}:{$subscription->id}:{$startDate->toDateString()}",
+                    ['subscription' => $subscription->name],
+                );
+            });
         }
     }
 

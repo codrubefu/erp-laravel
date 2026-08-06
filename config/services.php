@@ -44,4 +44,9 @@ return [
         'timeout' => (int) env('SMSPORTAL_TIMEOUT', 10),
     ],
 
+    'push' => [
+        'endpoint' => env('PUSH_ENDPOINT'),
+        'token' => env('PUSH_TOKEN'),
+    ],
+
 ];
