@@ -8,6 +8,8 @@ use App\Users\Models\Organization;
 use App\Payments\Models\Payment;
 use App\Articles\Models\Article;
 use App\Subscription\Models\Subscription;
+use App\Subscription\Models\SubscriptionUser;
+use App\Subscription\Services\SubscriptionLifecycleService;
 use App\Events\Models\EventOccurrence;
 use App\Users\Models\Concerns\BelongsToAuthenticatedOrganization;
 use App\Users\Models\Concerns\LogsModelChanges;
@@ -75,22 +77,24 @@ class User extends Authenticatable
     public function subscriptions(): BelongsToMany
     {
         return $this->belongsToMany(Subscription::class)
-            ->withPivot(['id', 'start_date', 'expires_at'])
+            ->using(SubscriptionUser::class)
+            ->withPivot(['id', 'status', 'start_date', 'expires_at', 'accesses_used', 'activated_at', 'suspended_at', 'resume_at', 'status_reason', 'activation_payment_id'])
             ->withTimestamps();
     }
 
     public function activeSubscriptions(): BelongsToMany
     {
+        $this->subscriptionAssignments()->with('subscription')->get()
+            ->each(fn (SubscriptionUser $assignment) => app(SubscriptionLifecycleService::class)->refresh($assignment));
+
         return $this->subscriptions()
             ->where('subscriptions.is_active', true)
-            ->where(function ($query): void {
-                $query->where('subscription_user.start_date', '<=', now()->toDateString())
-                    ->orWhereNull('subscription_user.start_date');
-            })
-            ->where(function ($query): void {
-                $query->where('subscription_user.expires_at', '>=', now()->toDateString())
-                    ->orWhereNull('subscription_user.expires_at');
-            });
+            ->wherePivot('status', 'active');
+    }
+
+    public function subscriptionAssignments(): HasMany
+    {
+        return $this->hasMany(SubscriptionUser::class);
     }
 
     public function eventOccurrences(): BelongsToMany
