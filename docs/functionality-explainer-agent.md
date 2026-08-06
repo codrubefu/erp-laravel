@@ -516,3 +516,13 @@ Observații:
 - Tests currently run through PHP/Laravel, likely inside the Docker `app` service.
 - On Windows host sessions without `php` in PATH or Docker daemon access, tests cannot be run directly.
 - Keep explanations aligned with the current migrations, not older test fixtures or stale comments.
+
+## Raportare financiară și segmente dinamice
+
+API-ul oferă raportare tenant-safe peste plăți și cotizații. `GET /api/reports/financial` (drept `reports.view`) acceptă perioada (`from`, `to`), organizația curentă, filiala (`location_id`), operatorul (`admin_id`), metoda de plată, statusul, tipul cotizației și granularitatea zi/lună. Răspunsul include total confirmat/rambursat/net, venit pe perioadă, creanțe din cotizații, reînnoiri și sume de transfer bancar reconciliate/nereconciliate. `ReportController` coordonează validarea, iar `FinancialReportService` execută agregările exclusiv în organizația utilizatorului.
+
+`POST /api/reports/financial/exports`, `GET /api/reports/exports/{id}` și `GET /api/reports/exports/{id}/download` necesită dreptul distinct `reports.export`. Exportul CSV sau XLSX este procesat asincron de jobul `GenerateReportExport`; starea și filtrele sunt păstrate în `report_exports`, iar fișierul este scris pe discul local în directorul tenantului. Generarea nu produce plăți, chitanțe sau notificări.
+
+Segmentele salvate sunt administrate prin `GET/POST/PUT/DELETE /api/segments` și evaluate prin `GET /api/segments/{segment}/members`. Citirea cere `segments.view` sau `segments.manage`, iar modificarea cere `segments.manage`. `Segment` păstrează în tabela `segments` criterii JSON precum activ/inactiv, filială, tip de plan, expirat sau expirare în N zile. `SegmentService::members()` este interfața reutilizabilă de selecție a membrilor pentru rapoarte, anunțuri și campanii și aplică întotdeauna organizația segmentului. Nu sunt trimise automat anunțuri, campanii, SMS-uri sau notificări la evaluarea unui segment.
+
+Migrarea `2026_08_06_000003_create_reporting_layer.php` creează `segments` și `report_exports` și extinde `payments` cu `bank_reference` și `reconciled_at`. Drepturile noi sunt adăugate de `DatabaseSeeder`.

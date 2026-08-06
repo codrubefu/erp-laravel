@@ -47,6 +47,10 @@ class DatabaseSeeder extends Seeder
             ['name' => 'payments.create', 'label' => 'Create payments', 'description' => 'Register payments.'],
             ['name' => 'payments.update', 'label' => 'Update payments', 'description' => 'Update payment payable model links.'],
             ['name' => 'payments.manage', 'label' => 'Manage payments', 'description' => 'Manage all payment actions.'],
+            ['name' => 'reports.view', 'label' => 'View financial reports', 'description' => 'Read tenant financial aggregates.'],
+            ['name' => 'reports.export', 'label' => 'Export financial reports', 'description' => 'Generate and download financial exports.'],
+            ['name' => 'segments.view', 'label' => 'View segments', 'description' => 'Read and evaluate saved member segments.'],
+            ['name' => 'segments.manage', 'label' => 'Manage segments', 'description' => 'Create, update, and delete saved member segments.'],
         ])
             ->merge(LocationGroupRightsSeeder::rights())
             ->merge(CustomFieldRightsSeeder::rights())
@@ -80,6 +84,8 @@ class DatabaseSeeder extends Seeder
             'events.view',
             'event_participants.view',
             'payments.view',
+            'reports.view',
+            'segments.view',
             'custom-fields.view',
         ])->pluck('id'));
 
