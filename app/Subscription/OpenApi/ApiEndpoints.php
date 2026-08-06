@@ -203,4 +203,88 @@ class ApiEndpoints
     public function toggleActive(): void
     {
     }
+
+    #[OA\Post(
+        path: '/subscription-assignments/{assignment}/activate',
+        summary: 'Activate a subscription assignment after confirmed payment',
+        security: [['bearerAuth' => []]],
+        tags: ['Subscription'],
+        parameters: [
+            new OA\PathParameter(name: 'assignment', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/ActivateSubscriptionAssignmentRequest'),
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Assignment activated.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/SubscriptionAssignment')], type: 'object')),
+            new OA\Response(response: 403, description: 'Missing subscriptions.update or subscriptions.manage right.'),
+            new OA\Response(response: 404, description: 'Assignment or payment not found.'),
+            new OA\Response(response: 422, description: 'Payment is not confirmed, is linked to another assignment, or transition is invalid.'),
+        ],
+    )]
+    public function activateAssignment(): void
+    {
+    }
+
+    #[OA\Post(
+        path: '/subscription-assignments/{assignment}/suspend',
+        summary: 'Suspend a subscription assignment',
+        security: [['bearerAuth' => []]],
+        tags: ['Subscription'],
+        parameters: [
+            new OA\PathParameter(name: 'assignment', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/SuspendSubscriptionAssignmentRequest'),
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Assignment suspended.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/SubscriptionAssignment')], type: 'object')),
+            new OA\Response(response: 403, description: 'Missing subscriptions.update or subscriptions.manage right.'),
+            new OA\Response(response: 404, description: 'Assignment not found.'),
+            new OA\Response(response: 422, description: 'Validation failed or transition is invalid.'),
+        ],
+    )]
+    public function suspendAssignment(): void
+    {
+    }
+
+    #[OA\Post(
+        path: '/subscription-assignments/{assignment}/resume',
+        summary: 'Manually resume a suspended subscription assignment',
+        security: [['bearerAuth' => []]],
+        tags: ['Subscription'],
+        parameters: [
+            new OA\PathParameter(name: 'assignment', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Assignment resumed or moved to its derived terminal state.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/SubscriptionAssignment')], type: 'object')),
+            new OA\Response(response: 403, description: 'Missing subscriptions.update or subscriptions.manage right.'),
+            new OA\Response(response: 404, description: 'Assignment not found.'),
+            new OA\Response(response: 422, description: 'Assignment is not suspended.'),
+        ],
+    )]
+    public function resumeAssignment(): void
+    {
+    }
+
+    #[OA\Post(
+        path: '/subscription-assignments/{assignment}/consume',
+        summary: 'Consume one access from an active subscription assignment',
+        security: [['bearerAuth' => []]],
+        tags: ['Subscription'],
+        parameters: [
+            new OA\PathParameter(name: 'assignment', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Access consumed.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/SubscriptionAssignment')], type: 'object')),
+            new OA\Response(response: 403, description: 'Missing subscriptions.update or subscriptions.manage right.'),
+            new OA\Response(response: 404, description: 'Assignment not found.'),
+            new OA\Response(response: 422, description: 'Assignment is not active.'),
+        ],
+    )]
+    public function consumeAssignmentAccess(): void
+    {
+    }
 }

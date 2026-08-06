@@ -20,4 +20,12 @@ Route::middleware('auth.bearer')->group(function (): void {
         ->middleware('right:subscriptions.restore,subscriptions.manage');
     Route::patch('/subscriptions/{subscription}/toggle-active', [SubscriptionController::class, 'toggleActive'])
         ->middleware('right:subscriptions.update,subscriptions.manage');
+    Route::post('/subscription-assignments/{assignment}/activate', [SubscriptionController::class, 'activate'])
+        ->middleware('right:subscriptions.update,subscriptions.manage');
+    Route::post('/subscription-assignments/{assignment}/suspend', [SubscriptionController::class, 'suspend'])
+        ->middleware('right:subscriptions.update,subscriptions.manage');
+    Route::post('/subscription-assignments/{assignment}/resume', [SubscriptionController::class, 'resume'])
+        ->middleware('right:subscriptions.update,subscriptions.manage');
+    Route::post('/subscription-assignments/{assignment}/consume', [SubscriptionController::class, 'consume'])
+        ->middleware('right:subscriptions.update,subscriptions.manage');
 });

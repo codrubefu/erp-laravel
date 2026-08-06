@@ -19,9 +19,14 @@ use App\Users\Models\User;
 #[Fillable([
     'name',
     'description',
+    'type',
     'price',
     'currency',
     'duration_days',
+    'expiration_rule',
+    'fixed_expires_at',
+    'grace_period_days',
+    'max_accesses',
     'max_users',
     'is_active',
     'organization_id',
@@ -48,7 +53,8 @@ class Subscription extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class)
-            ->withPivot(['id', 'start_date', 'expires_at'])
+            ->using(SubscriptionUser::class)
+            ->withPivot(['id', 'status', 'start_date', 'expires_at', 'accesses_used', 'activated_at', 'suspended_at', 'resume_at', 'status_reason', 'activation_payment_id'])
             ->withTimestamps();
     }
 
@@ -57,6 +63,9 @@ class Subscription extends Model
         return [
             'price' => 'decimal:2',
             'duration_days' => 'integer',
+            'fixed_expires_at' => 'datetime',
+            'grace_period_days' => 'integer',
+            'max_accesses' => 'integer',
             'max_users' => 'integer',
             'is_active' => 'boolean',
         ];

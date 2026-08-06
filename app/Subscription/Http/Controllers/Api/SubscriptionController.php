@@ -6,6 +6,9 @@ use App\Subscription\Http\Requests\StoreSubscriptionRequest;
 use App\Subscription\Http\Requests\UpdateSubscriptionRequest;
 use App\Subscription\Http\Resources\SubscriptionResource;
 use App\Subscription\Models\Subscription;
+use App\Payments\Models\Payment;
+use App\Subscription\Models\SubscriptionUser;
+use App\Subscription\Services\SubscriptionLifecycleService;
 use App\Users\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,6 +17,10 @@ use Illuminate\Support\Facades\DB;
 
 class SubscriptionController extends Controller
 {
+    public function __construct(private readonly SubscriptionLifecycleService $lifecycle)
+    {
+    }
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $subscriptions = Subscription::query()
@@ -97,5 +104,38 @@ class SubscriptionController extends Controller
         ]);
 
         return new SubscriptionResource($subscription->load('users')->loadCount('users'));
+    }
+
+    public function activate(Request $request, SubscriptionUser $assignment): JsonResponse
+    {
+        $data = $request->validate(['payment_id' => ['required', 'integer', 'exists:payments,id']]);
+        $assignment = $this->lifecycle->activate($assignment, Payment::query()->findOrFail($data['payment_id']));
+
+        return response()->json(['data' => $assignment->load(['subscription', 'user', 'activationPayment'])]);
+    }
+
+    public function suspend(Request $request, SubscriptionUser $assignment): JsonResponse
+    {
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'max:2000'],
+            'resume_at' => ['nullable', 'date', 'after:now'],
+        ]);
+        $assignment = $this->lifecycle->suspend(
+            $assignment,
+            $data['reason'],
+            isset($data['resume_at']) ? now()->parse($data['resume_at']) : null,
+        );
+
+        return response()->json(['data' => $assignment]);
+    }
+
+    public function resume(SubscriptionUser $assignment): JsonResponse
+    {
+        return response()->json(['data' => $this->lifecycle->resume($assignment)]);
+    }
+
+    public function consume(SubscriptionUser $assignment): JsonResponse
+    {
+        return response()->json(['data' => $this->lifecycle->consumeAccess($assignment)]);
     }
 }
