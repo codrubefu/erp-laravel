@@ -55,6 +55,7 @@ Route::middleware('auth.bearer')->group(function (): void {
     Route::get('/users/search/user-code', [UserController::class, 'searchByUserCode'])->middleware('right:users.view');
     Route::post('/users', [UserController::class, 'store'])->middleware('right:users.manage');
     Route::patch('/users/subscription/{user}', [UserController::class, 'syncSubscriptions'])->middleware('right:users.manage');
+    Route::get('/users/{user}/activity', [UserController::class, 'activity'])->middleware('right:users.view');
     Route::get('/users/{user}', [UserController::class, 'show'])->middleware('right:users.view');
     Route::put('/users/{user}', [UserController::class, 'update'])->middleware('right:users.manage');
     Route::patch('/users/{user}', [UserController::class, 'update'])->middleware('right:users.manage');

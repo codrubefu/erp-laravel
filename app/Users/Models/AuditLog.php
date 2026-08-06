@@ -10,6 +10,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'model_type',
     'model_id',
+    'organization_id',
+    'subject_user_id',
+    'event_type',
     'action',
     'changed_by',
     'old_values',
@@ -19,9 +22,24 @@ class AuditLog extends Model
 {
     use HasFactory;
 
+    public const USER_CREATED = 'user.created';
+    public const USER_UPDATED = 'user.updated';
+    public const SUBSCRIPTION_ASSIGNED = 'subscription.assigned';
+    public const SUBSCRIPTION_RENEWED = 'subscription.renewed';
+    public const SUBSCRIPTION_SUSPENDED = 'subscription.suspended';
+    public const PAYMENT_RECORDED = 'payment.recorded';
+    public const APPROVAL_GRANTED = 'approval.granted';
+    public const CARD_ISSUED = 'card.issued';
+    public const SMS_SENT = 'sms.sent';
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'changed_by');
+    }
+
+    public function subjectUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'subject_user_id');
     }
 
     protected function casts(): array

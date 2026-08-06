@@ -16,4 +16,6 @@ Route::middleware('auth.bearer')->group(function (): void {
         ->middleware('right:articles.update,articles.manage');
     Route::delete('/articles/{article}', [ArticleController::class, 'destroy'])
         ->middleware('right:articles.delete,articles.manage');
+    Route::get('/articles-feed', [ArticleController::class, 'feed']);
+    Route::post('/articles/{article}/view', [ArticleController::class, 'markViewed']);
 });

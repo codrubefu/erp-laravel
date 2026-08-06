@@ -30,6 +30,8 @@ class StorePaymentRequest extends FormRequest
             'model_id' => ['required', 'integer', 'min:1'],
             'amount' => ['required', 'numeric', 'min:0'],
             'paid_at' => ['required', 'date'],
+            'external_reference' => ['sometimes', 'string', 'max:255'],
+            'provider' => ['sometimes', 'string', 'max:255'],
         ];
     }
 }

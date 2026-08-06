@@ -348,6 +348,86 @@ use OpenApi\Attributes as OA;
     ],
     type: 'object',
 )]
+#[OA\Schema(
+    schema: 'UserActivity',
+    required: ['id', 'type', 'subject_user_id', 'model_type', 'model_id', 'created_at'],
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 42),
+        new OA\Property(
+            property: 'type',
+            description: 'Stable business event identifier.',
+            type: 'string',
+            enum: [
+                'user.created',
+                'user.updated',
+                'subscription.assigned',
+                'subscription.renewed',
+                'subscription.suspended',
+                'payment.recorded',
+                'approval.granted',
+                'card.issued',
+                'sms.sent',
+            ],
+            example: 'subscription.renewed',
+        ),
+        new OA\Property(property: 'actor_id', description: 'User that performed the activity, when available.', type: 'integer', nullable: true, example: 7),
+        new OA\Property(property: 'subject_user_id', description: 'Member affected by the activity.', type: 'integer', example: 35),
+        new OA\Property(property: 'model_type', type: 'string', example: 'App\\Subscription\\Models\\Subscription'),
+        new OA\Property(property: 'model_id', type: 'integer', nullable: true, example: 3),
+        new OA\Property(
+            property: 'old_values',
+            description: 'Sanitized values before the change. Passwords, tokens, CNP and other secrets are never returned.',
+            type: 'object',
+            nullable: true,
+            additionalProperties: new OA\AdditionalProperties(),
+            example: ['active' => false],
+        ),
+        new OA\Property(
+            property: 'new_values',
+            description: 'Sanitized values after the change. Passwords, tokens, CNP and other secrets are never returned.',
+            type: 'object',
+            nullable: true,
+            additionalProperties: new OA\AdditionalProperties(),
+            example: ['active' => true],
+        ),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', example: '2026-08-06T12:30:00.000000Z'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'UserActivityPage',
+    properties: [
+        new OA\Property(
+            property: 'data',
+            type: 'array',
+            items: new OA\Items(ref: '#/components/schemas/UserActivity'),
+        ),
+        new OA\Property(
+            property: 'links',
+            properties: [
+                new OA\Property(property: 'first', type: 'string', nullable: true),
+                new OA\Property(property: 'last', type: 'string', nullable: true),
+                new OA\Property(property: 'prev', type: 'string', nullable: true),
+                new OA\Property(property: 'next', type: 'string', nullable: true),
+            ],
+            type: 'object',
+        ),
+        new OA\Property(
+            property: 'meta',
+            properties: [
+                new OA\Property(property: 'current_page', type: 'integer', example: 1),
+                new OA\Property(property: 'from', type: 'integer', nullable: true, example: 1),
+                new OA\Property(property: 'last_page', type: 'integer', example: 4),
+                new OA\Property(property: 'path', type: 'string', example: '/api/users/35/activity'),
+                new OA\Property(property: 'per_page', type: 'integer', example: 15),
+                new OA\Property(property: 'to', type: 'integer', nullable: true, example: 15),
+                new OA\Property(property: 'total', type: 'integer', example: 53),
+            ],
+            type: 'object',
+        ),
+    ],
+    type: 'object',
+)]
 class Schemas
 {
 }

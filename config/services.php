@@ -49,4 +49,9 @@ return [
         'token' => env('PUSH_TOKEN'),
     ],
 
+    'payments' => [
+        'callback_secret' => env('PAYMENT_CALLBACK_SECRET'),
+        'provider' => env('PAYMENT_PROVIDER', 'default'),
+    ],
+
 ];
