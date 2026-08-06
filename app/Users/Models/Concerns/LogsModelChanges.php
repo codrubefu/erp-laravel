@@ -3,6 +3,8 @@
 namespace App\Users\Models\Concerns;
 
 use App\Users\Models\AuditLog;
+use App\Users\Models\User;
+use App\Users\Services\BusinessActivityLogger;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 
@@ -29,6 +31,14 @@ trait LogsModelChanges
             }
 
             static::writeAuditLog($model, 'updated', $oldValues, $newValues);
+
+            if ($model instanceof User && array_key_exists('active', $newValues) && $newValues['active'] === true) {
+                app(BusinessActivityLogger::class)->record(AuditLog::APPROVAL_GRANTED, $model, $model, $oldValues, ['active' => true]);
+            }
+
+            if ($model instanceof User && array_key_exists('user_code', $newValues) && filled($newValues['user_code'])) {
+                app(BusinessActivityLogger::class)->record(AuditLog::CARD_ISSUED, $model, $model, [], ['user_code' => $newValues['user_code']]);
+            }
         });
 
         static::deleted(function (Model $model): void {
@@ -38,14 +48,17 @@ trait LogsModelChanges
 
     protected static function writeAuditLog(Model $model, string $action, ?array $oldValues, ?array $newValues): void
     {
-        AuditLog::query()->create([
-            'model_type' => $model::class,
-            'model_id' => $model->getKey(),
-            'action' => $action,
-            'changed_by' => auth()->id(),
-            'old_values' => $oldValues,
-            'new_values' => $newValues,
-        ]);
+        $eventType = $model instanceof User
+            ? ($action === 'created' ? AuditLog::USER_CREATED : ($action === 'updated' ? AuditLog::USER_UPDATED : "user.{$action}"))
+            : class_basename($model).".{$action}";
+
+        app(BusinessActivityLogger::class)->record(
+            strtolower($eventType),
+            $model instanceof User ? $model : null,
+            $model,
+            $oldValues ?? [],
+            $newValues ?? [],
+        );
     }
 
     protected static function visibleAttributes(Model $model): array
