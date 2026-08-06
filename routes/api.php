@@ -7,3 +7,4 @@ require __DIR__.'/article.php';
 require __DIR__.'/custom-fields.php';
 require __DIR__.'/sms.php';
 require __DIR__.'/payment.php';
+require __DIR__.'/reporting.php';
