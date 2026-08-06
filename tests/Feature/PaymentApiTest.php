@@ -204,7 +204,7 @@ class PaymentApiTest extends TestCase
         $subscriptionId = DB::table('subscriptions')->insertGetId([
             'organization_id' => $operator->organization_id,
             'name' => 'Membership', 'description' => 'Test', 'price' => 100, 'currency' => 'RON',
-            'billing_interval' => 'yearly', 'duration_days' => 365, 'trial_days' => 0, 'is_active' => true,
+            'duration_days' => 365, 'is_active' => true,
             'created_at' => now(), 'updated_at' => now(),
         ]);
 

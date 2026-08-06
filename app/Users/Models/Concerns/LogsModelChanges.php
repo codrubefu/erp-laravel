@@ -52,9 +52,11 @@ trait LogsModelChanges
             ? ($action === 'created' ? AuditLog::USER_CREATED : ($action === 'updated' ? AuditLog::USER_UPDATED : "user.{$action}"))
             : class_basename($model).".{$action}";
 
+        $subject = $model instanceof User && $action !== 'deleted' ? $model : null;
+
         app(BusinessActivityLogger::class)->record(
             strtolower($eventType),
-            $model instanceof User ? $model : null,
+            $subject,
             $model,
             $oldValues ?? [],
             $newValues ?? [],

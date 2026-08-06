@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['article_id', 'user_id', 'delivered_at', 'viewed_at'])]
 class ArticleReceipt extends Model
 {
+    protected $table = 'article_user_receipts';
+
     protected function casts(): array
     {
         return ['delivered_at' => 'datetime', 'viewed_at' => 'datetime'];
