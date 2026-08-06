@@ -171,6 +171,11 @@ class CreateOrganizationAdmin extends Command
             ['name' => 'payments.create', 'label' => 'Create payments', 'description' => 'Register payments.'],
             ['name' => 'payments.update', 'label' => 'Update payments', 'description' => 'Update payment payable model links.'],
             ['name' => 'payments.manage', 'label' => 'Manage payments', 'description' => 'Manage all payment actions.'],
+            ['name' => 'dashboard.view', 'label' => 'View dashboard', 'description' => 'Read tenant dashboard aggregates.'],
+            ['name' => 'reports.view', 'label' => 'View financial reports', 'description' => 'Read tenant financial aggregates.'],
+            ['name' => 'reports.export', 'label' => 'Export financial reports', 'description' => 'Generate and download financial exports.'],
+            ['name' => 'segments.view', 'label' => 'View segments', 'description' => 'Read and evaluate saved member segments.'],
+            ['name' => 'segments.manage', 'label' => 'Manage segments', 'description' => 'Create, update, and delete saved member segments.'],
         ])->merge(CustomFieldRightsSeeder::rights());
     }
 }
