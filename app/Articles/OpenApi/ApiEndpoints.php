@@ -7,6 +7,56 @@ use OpenApi\Attributes as OA;
 class ApiEndpoints
 {
     #[OA\Get(
+        path: '/articles-feed',
+        summary: 'List publishable announcements targeted to the authenticated user',
+        security: [['bearerAuth' => []]],
+        tags: ['Articles'],
+        parameters: [
+            new OA\QueryParameter(
+                name: 'per_page',
+                description: 'Number of announcements per page.',
+                required: false,
+                schema: new OA\Schema(type: 'integer', default: 15, minimum: 1),
+                example: 15,
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Priority-ordered targeted announcements. Returned announcements are marked as delivered for the authenticated user.',
+                content: new OA\JsonContent(ref: '#/components/schemas/ArticleFeedResponse'),
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated.'),
+        ],
+    )]
+    public function feed(): void
+    {
+    }
+
+    #[OA\Post(
+        path: '/articles/{article}/view',
+        summary: 'Mark a targeted announcement as viewed',
+        security: [['bearerAuth' => []]],
+        tags: ['Articles'],
+        parameters: [new OA\PathParameter(name: 'article', required: true, schema: new OA\Schema(type: 'integer'))],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'View timestamp recorded.',
+                content: new OA\JsonContent(
+                    properties: [new OA\Property(property: 'data', ref: '#/components/schemas/Article')],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated.'),
+            new OA\Response(response: 404, description: 'Announcement is missing or not visible to this user.'),
+        ],
+    )]
+    public function markViewed(): void
+    {
+    }
+
+    #[OA\Get(
         path: '/articles',
         summary: 'List articles',
         security: [['bearerAuth' => []]],
