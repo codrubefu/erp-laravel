@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Subscription\Models\Subscription;
+use App\Payments\Models\Payment;
 use App\Users\Models\Group;
 use App\Users\Models\Location;
 use App\Users\Models\Organization;
@@ -10,6 +11,7 @@ use App\Users\Models\Right;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class UserCrudTest extends TestCase
@@ -498,6 +500,85 @@ class UserCrudTest extends TestCase
             'subscription_id' => $oldSubscription->id,
             'user_id' => $user->id,
         ]);
+    }
+
+    public function test_syncing_existing_subscription_preserves_lifecycle_and_payment_link(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.manage']);
+        $user = User::factory()->create(['organization_id' => $admin->organization_id]);
+        $subscription = Subscription::query()->create($this->subscriptionData([
+            'name' => 'Paid plan',
+            'price' => 100,
+            'duration_days' => 30,
+            'expiration_rule' => 'duration',
+        ]));
+
+        $user->subscriptions()->attach($subscription, [
+            'status' => 'active',
+            'start_date' => '2026-08-01',
+            'expires_at' => '2026-08-31',
+            'activated_at' => '2026-08-01 10:00:00',
+        ]);
+        $assignmentId = $user->subscriptions()->whereKey($subscription->id)->first()->pivot->id;
+        $payment = Payment::query()->create([
+            'organization_id' => $admin->organization_id,
+            'first_name' => 'Ana',
+            'last_name' => 'Pop',
+            'payment_type_id' => Payment::TYPE_CARD,
+            'status' => Payment::STATUS_CONFIRMED,
+            'model_type' => Payment::MODEL_TYPE_SUBSCRIPTION_USER,
+            'model_id' => $assignmentId,
+            'amount' => 100,
+            'paid_at' => '2026-08-01 10:00:00',
+            'admin_id' => $admin->id,
+        ]);
+        DB::table('subscription_user')->where('id', $assignmentId)->update(['activation_payment_id' => $payment->id]);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->patchJson("/api/users/subscription/{$user->id}", [
+                'subscriptions' => [
+                    ['id' => $subscription->id, 'start_date' => '2026-08-02'],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.subscriptions.0.pivot.status', 'active')
+            ->assertJsonPath('data.subscriptions.0.pivot.activation_payment_id', $payment->id);
+
+        $this->assertDatabaseHas('subscription_user', [
+            'id' => $assignmentId,
+            'subscription_id' => $subscription->id,
+            'user_id' => $user->id,
+            'status' => 'active',
+            'activation_payment_id' => $payment->id,
+        ]);
+    }
+
+    public function test_subscription_history_uses_lifecycle_status(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.view']);
+        $user = User::factory()->create(['organization_id' => $admin->organization_id]);
+        $subscription = Subscription::query()->create($this->subscriptionData([
+            'name' => 'Paused plan',
+            'price' => 0,
+            'duration_days' => 30,
+            'expiration_rule' => 'duration',
+        ]));
+
+        $user->subscriptions()->attach($subscription, [
+            'status' => 'suspended',
+            'start_date' => now()->subDays(5)->toDateString(),
+            'expires_at' => now()->addDays(25)->toDateString(),
+            'suspended_at' => now(),
+            'status_reason' => 'Medical leave',
+        ]);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson("/api/users/{$user->id}")
+            ->assertOk()
+            ->assertJsonPath('data.subscription_history.0.subscription_id', $subscription->id)
+            ->assertJsonPath('data.subscription_history.0.status', 'suspended')
+            ->assertJsonPath('data.subscription_history.0.is_active', false)
+            ->assertJsonPath('data.subscription_history.0.status_reason', 'Medical leave');
     }
 
     public function test_user_with_manage_right_can_delete_user(): void

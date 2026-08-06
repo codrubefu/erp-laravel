@@ -25,19 +25,23 @@ class UserResource extends JsonResource
             'subscriptions' => $this->whenLoaded('subscriptions'),
             'subscription_history' => $this->whenLoaded('subscriptions', function (): array {
                 return $this->subscriptions->map(function ($subscription): array {
-                    $startDate = $subscription->pivot?->start_date;
-                    $expiresAt = $subscription->pivot?->expires_at;
-                    $today = now()->toDateString();
+                    $pivot = $subscription->pivot;
+                    $status = $pivot?->status ?? 'pending';
 
                     return [
-                        'id' => $subscription->pivot?->id,
+                        'id' => $pivot?->id,
                         'subscription_id' => $subscription->id,
                         'name' => $subscription->name,
-                        'start_date' => $startDate,
-                        'expires_at' => $expiresAt,
-                        'is_active' => $subscription->is_active
-                            && ($startDate === null || $startDate <= $today)
-                            && ($expiresAt === null || $expiresAt >= $today),
+                        'start_date' => $pivot?->start_date,
+                        'expires_at' => $pivot?->expires_at,
+                        'status' => $status,
+                        'accesses_used' => $pivot?->accesses_used,
+                        'suspended_at' => $pivot?->suspended_at,
+                        'resume_at' => $pivot?->resume_at,
+                        'status_reason' => $pivot?->status_reason,
+                        'activation_payment_id' => $pivot?->activation_payment_id,
+                        'is_active' => $subscription->is_active && $status === 'active',
+                        'is_currently_active' => $subscription->is_active && $status === 'active',
                     ];
                 })->all();
             }),

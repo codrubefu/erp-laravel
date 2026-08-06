@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Subscription\Models\Subscription;
+use App\Payments\Models\Payment;
 use App\Users\Models\Group;
 use App\Users\Models\Right;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class SubscriptionCrudTest extends TestCase
@@ -143,6 +145,51 @@ class SubscriptionCrudTest extends TestCase
                 'duration_days',
                 'max_users',
             ]);
+    }
+
+    public function test_updating_subscription_user_ids_preserves_existing_assignment_payment_link(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['subscriptions.update']);
+        $member = User::factory()->create(['organization_id' => $admin->organization_id]);
+        $subscription = Subscription::query()->create($this->subscriptionData([
+            'name' => 'Preserve pivot',
+            'price' => 100,
+        ]));
+
+        $subscription->users()->attach($member, [
+            'status' => 'active',
+            'start_date' => '2026-08-01',
+            'activated_at' => '2026-08-01 10:00:00',
+        ]);
+        $assignmentId = $subscription->users()->whereKey($member->id)->first()->pivot->id;
+        $payment = Payment::query()->create([
+            'organization_id' => $admin->organization_id,
+            'first_name' => 'Ana',
+            'last_name' => 'Pop',
+            'payment_type_id' => Payment::TYPE_CARD,
+            'status' => Payment::STATUS_CONFIRMED,
+            'model_type' => Payment::MODEL_TYPE_SUBSCRIPTION_USER,
+            'model_id' => $assignmentId,
+            'amount' => 100,
+            'paid_at' => '2026-08-01 10:00:00',
+            'admin_id' => $admin->id,
+        ]);
+        DB::table('subscription_user')->where('id', $assignmentId)->update(['activation_payment_id' => $payment->id]);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->patchJson("/api/subscriptions/{$subscription->id}", $this->subscriptionData([
+                'name' => 'Preserved pivot',
+                'user_ids' => [$member->id],
+            ]))
+            ->assertOk();
+
+        $this->assertDatabaseHas('subscription_user', [
+            'id' => $assignmentId,
+            'subscription_id' => $subscription->id,
+            'user_id' => $member->id,
+            'status' => 'active',
+            'activation_payment_id' => $payment->id,
+        ]);
     }
 
     private function subscriptionData(array $overrides = []): array

@@ -75,7 +75,9 @@ class SubscriptionController extends Controller
             $subscription->update($data);
 
             if ($userIds !== null) {
-                $subscription->users()->sync($userIds);
+                $currentUserIds = $subscription->users()->pluck('users.id')->all();
+                $subscription->users()->detach(array_diff($currentUserIds, $userIds));
+                $subscription->users()->syncWithoutDetaching($userIds);
             }
         });
 
@@ -108,8 +110,9 @@ class SubscriptionController extends Controller
 
     public function activate(Request $request, SubscriptionUser $assignment): JsonResponse
     {
-        $data = $request->validate(['payment_id' => ['required', 'integer', 'exists:payments,id']]);
-        $assignment = $this->lifecycle->activate($assignment, Payment::query()->findOrFail($data['payment_id']));
+        $data = $request->validate(['payment_id' => ['nullable', 'integer', 'exists:payments,id']]);
+        $payment = isset($data['payment_id']) ? Payment::query()->findOrFail($data['payment_id']) : null;
+        $assignment = $this->lifecycle->activate($assignment, $payment);
 
         return response()->json(['data' => $assignment->load(['subscription', 'user', 'activationPayment'])]);
     }

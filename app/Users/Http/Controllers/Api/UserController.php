@@ -174,8 +174,8 @@ class UserController extends Controller
             if ($hasSubscriptionAssignments) {
                 $previous = $user->subscriptions()->get()->keyBy('id');
                 $assignedIds = collect($subscriptionAssignments)->pluck('id');
-                $user->subscriptions()->detach();
-                $this->attachSubscriptionAssignments($user, $subscriptionAssignments, $previous->keys()->all());
+                $user->subscriptions()->detach($previous->except($assignedIds->all())->keys()->all());
+                $this->attachSubscriptionAssignments($user, $subscriptionAssignments, $previous);
                 $previous->except($assignedIds->all())->each(function (Subscription $subscription) use ($user): void {
                     $this->activityLogger->record(AuditLog::SUBSCRIPTION_SUSPENDED, $user, $subscription, [], [
                         'subscription_id' => $subscription->id,
@@ -195,8 +195,8 @@ class UserController extends Controller
             $previous = $user->subscriptions()->get()->keyBy('id');
             $assignments = $this->subscriptionAssignments($request->validated());
             $assignedIds = collect($assignments)->pluck('id');
-            $user->subscriptions()->detach();
-            $this->attachSubscriptionAssignments($user, $assignments, $previous->keys()->all());
+            $user->subscriptions()->detach($previous->except($assignedIds->all())->keys()->all());
+            $this->attachSubscriptionAssignments($user, $assignments, $previous);
 
             $previous->except($assignedIds->all())->each(function (Subscription $subscription) use ($user): void {
                 $this->activityLogger->record(AuditLog::SUBSCRIPTION_SUSPENDED, $user, $subscription, [], [
@@ -272,16 +272,42 @@ class UserController extends Controller
         abort_unless(User::query()->whereKey($user->getKey())->exists(), 404);
     }
 
-    private function attachSubscriptionAssignments(User $user, array $assignments, array $renewedSubscriptionIds = []): void
+    private function attachSubscriptionAssignments(User $user, array $assignments, mixed $previousSubscriptions = []): void
     {
+        $previous = collect($previousSubscriptions)->keyBy('id');
+
         foreach ($assignments as $assignment) {
             $subscription = Subscription::query()->findOrFail($assignment['id']);
             $startDate = CarbonImmutable::parse($assignment['start_date'])->startOfDay();
-
-            $user->subscriptions()->attach($subscription->id, [
+            $pivotData = [
+                'status' => $this->subscriptionInitialStatus($subscription, $startDate),
                 'start_date' => $startDate->toDateString(),
                 'expires_at' => $this->subscriptionExpiresAt($subscription, $startDate),
-            ]);
+                'activated_at' => (float) $subscription->price > 0 ? null : now(),
+            ];
+
+            if ($previous->has($subscription->id)) {
+                $previousPivot = $previous->get($subscription->id)->pivot;
+                $user->subscriptions()->updateExistingPivot($subscription->id, [
+                    'start_date' => $pivotData['start_date'],
+                    'expires_at' => $pivotData['expires_at'],
+                ]);
+
+                $previousStartDate = $previousPivot?->start_date === null
+                    ? null
+                    : CarbonImmutable::parse($previousPivot->start_date)->toDateString();
+
+                if ($previousStartDate !== $startDate->toDateString()) {
+                    $this->activityLogger->record(AuditLog::SUBSCRIPTION_RENEWED, $user, $subscription, [], [
+                        'subscription_id' => $subscription->id,
+                        'start_date' => $startDate->toDateString(),
+                    ]);
+                }
+
+                continue;
+            }
+
+            $user->subscriptions()->attach($subscription->id, $pivotData);
 
             DB::afterCommit(function () use ($user, $subscription, $startDate): void {
                 NotificationRequested::dispatch(
@@ -293,9 +319,7 @@ class UserController extends Controller
             });
 
             $this->activityLogger->record(
-                in_array($subscription->id, $renewedSubscriptionIds, true)
-                    ? AuditLog::SUBSCRIPTION_RENEWED
-                    : AuditLog::SUBSCRIPTION_ASSIGNED,
+                AuditLog::SUBSCRIPTION_ASSIGNED,
                 $user,
                 $subscription,
                 [],
@@ -330,10 +354,19 @@ class UserController extends Controller
 
     private function subscriptionExpiresAt(Subscription $subscription, CarbonImmutable $startDate): ?string
     {
-        if ($subscription->duration_days !== null) {
-            return $startDate->addDays($subscription->duration_days)->toDateString();
+        return match ($subscription->expiration_rule) {
+            'none' => null,
+            'fixed_date' => $subscription->fixed_expires_at?->toDateString(),
+            default => $subscription->duration_days === null ? null : $startDate->addDays($subscription->duration_days)->toDateString(),
+        };
+    }
+
+    private function subscriptionInitialStatus(Subscription $subscription, CarbonImmutable $startDate): string
+    {
+        if ((float) $subscription->price > 0) {
+            return 'pending';
         }
 
-        return null;
+        return $startDate->isFuture() ? 'reserved' : 'active';
     }
 }

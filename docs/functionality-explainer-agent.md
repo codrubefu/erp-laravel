@@ -534,3 +534,11 @@ Dashboard-ul este un sumar read-only pentru prima pagina ERP. Endpoint-ul este `
 Raspunsul include KPI-uri (`active_members`, `flagged_subscriptions`, `total_revenue`, `active_locations`), venit pe perioada, distributie status membri, activitate pe perioada si indicatori pentru automatizari. Datele sunt calculate tenant-safe din `users`, `locations`, `payments`, `subscriptions`, pivotul `subscription_user`, `audit_logs` si `articles`, folosind intotdeauna `organization_id` din utilizatorul autentificat.
 
 Endpoint-ul nu produce side effects: nu creeaza plati, nu trimite SMS-uri/notificari, nu porneste joburi si nu modifica statusuri. Implementarea este in `app/Dashboard/Http/Controllers/Api/DashboardController.php`, `app/Dashboard/Services/DashboardService.php`, `routes/dashboard.php` si fisierele OpenAPI din `app/Dashboard/OpenApi`.
+
+## Note abonamente gratuite si assignment-uri
+
+Assignment-urile din `subscription_user` pastreaza statusul lifecycle si legatura de plata prin `activation_payment_id`. La sincronizarea abonamentelor unui utilizator, codul trebuie sa detaseze doar abonamentele eliminate si sa actualizeze pivot-ul existent pentru abonamentele pastrate, altfel se pierde istoricul si plata asociata.
+
+`POST /api/subscription-assignments/{assignment}/activate` accepta `payment_id` optional: abonamentele cu pret mai mare de 0 necesita o plata confirmata si legata de assignment, iar abonamentele gratuite pot fi activate fara plata. La atasare noua, abonamentele gratuite intra direct in `active` sau `reserved` daca data de start este in viitor; abonamentele platite raman `pending`.
+
+`subscription_history` din `UserResource` trebuie sa expuna statusul lifecycle real din pivot (`pending`, `active`, `expired`, `suspended`, `consumed`, `reserved`) impreuna cu campurile de audit ale assignment-ului. Nu recalcula istoricul doar din `start_date` si `expires_at`.

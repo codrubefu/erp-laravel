@@ -30,6 +30,25 @@ class SubscriptionLifecycleTest extends TestCase
         $this->assertTrue(AuditLog::query()->where('model_type', SubscriptionUser::class)->where('model_id', $assignment->id)->where('action', 'updated')->exists());
     }
 
+    public function test_free_subscription_can_be_activated_without_payment(): void
+    {
+        Carbon::setTestNow('2026-08-06 10:00:00');
+        $assignment = $this->assignment(['price' => 0]);
+
+        $assignment = app(SubscriptionLifecycleService::class)->activate($assignment);
+
+        $this->assertSame('active', $assignment->status);
+        $this->assertNull($assignment->activation_payment_id);
+        $this->assertTrue($assignment->activated_at->equalTo(now()));
+    }
+
+    public function test_paid_subscription_still_requires_payment_to_activate(): void
+    {
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+
+        app(SubscriptionLifecycleService::class)->activate($this->assignment(['price' => 10]));
+    }
+
     public function test_grace_period_includes_exact_boundary_then_expires_after_it(): void
     {
         Carbon::setTestNow('2026-08-06 10:00:00');

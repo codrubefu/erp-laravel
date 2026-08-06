@@ -12,21 +12,26 @@ class SubscriptionLifecycleService
 {
     public const STATUSES = ['pending', 'active', 'expired', 'suspended', 'consumed', 'reserved'];
 
-    public function activate(SubscriptionUser $assignment, Payment $payment, ?CarbonInterface $at = null): SubscriptionUser
+    public function activate(SubscriptionUser $assignment, ?Payment $payment = null, ?CarbonInterface $at = null): SubscriptionUser
     {
         return DB::transaction(function () use ($assignment, $payment, $at): SubscriptionUser {
             $assignment = $this->locked($assignment);
             $at ??= now();
-
-            if ($payment->model_type !== Payment::MODEL_TYPE_SUBSCRIPTION_USER || $payment->model_id !== $assignment->id || $payment->paid_at === null) {
-                throw ValidationException::withMessages(['payment_id' => 'Payment must be confirmed and linked to this subscription assignment.']);
-            }
 
             if (! in_array($assignment->status, ['pending', 'reserved', 'expired'], true)) {
                 throw ValidationException::withMessages(['status' => 'Only pending, reserved, or expired assignments can be activated.']);
             }
 
             $subscription = $assignment->subscription;
+
+            if ($payment !== null) {
+                if ($payment->model_type !== Payment::MODEL_TYPE_SUBSCRIPTION_USER || $payment->model_id !== $assignment->id || $payment->paid_at === null) {
+                    throw ValidationException::withMessages(['payment_id' => 'Payment must be confirmed and linked to this subscription assignment.']);
+                }
+            } elseif ((float) $subscription->price > 0) {
+                throw ValidationException::withMessages(['payment_id' => 'Payment is required to activate a paid subscription assignment.']);
+            }
+
             $start = $assignment->start_date ?? $at;
             $expiresAt = match ($subscription->expiration_rule) {
                 'none' => null,
@@ -40,7 +45,7 @@ class SubscriptionLifecycleService
                 'start_date' => $start,
                 'expires_at' => $expiresAt,
                 'activated_at' => $at,
-                'activation_payment_id' => $payment->id,
+                'activation_payment_id' => $payment?->id,
                 'suspended_at' => null,
                 'resume_at' => null,
                 'status_reason' => null,
