@@ -6,6 +6,7 @@ use App\Articles\Http\Requests\StoreArticleRequest;
 use App\Articles\Http\Requests\UpdateArticleRequest;
 use App\Articles\Http\Resources\ArticleResource;
 use App\Articles\Models\Article;
+use App\Articles\Models\ArticleReceipt;
 use App\Users\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,6 +15,40 @@ use Illuminate\Support\Facades\DB;
 
 class ArticleController extends Controller
 {
+    public function feed(Request $request): AnonymousResourceCollection
+    {
+        $user = $request->user();
+        $articles = Article::query()->visibleTo($user)
+            ->with(['author', 'groups', 'locations', 'receipts' => fn ($query) => $query->where('user_id', $user->id)])
+            ->orderByDesc('priority')->orderByDesc('publish_at')
+            ->paginate($request->integer('per_page', 15));
+
+        $now = now();
+        foreach ($articles as $article) {
+            ArticleReceipt::query()->firstOrCreate(
+                ['article_id' => $article->id, 'user_id' => $user->id],
+                ['delivered_at' => $now],
+            );
+        }
+
+        $articles->load(['receipts' => fn ($query) => $query->where('user_id', $user->id)]);
+
+        return ArticleResource::collection($articles);
+    }
+
+    public function markViewed(Request $request, int $article): ArticleResource
+    {
+        $user = $request->user();
+        $article = Article::query()->visibleTo($user)->findOrFail($article);
+        $receipt = ArticleReceipt::query()->firstOrCreate(
+            ['article_id' => $article->id, 'user_id' => $user->id],
+            ['delivered_at' => now()],
+        );
+        $receipt->update(['viewed_at' => now()]);
+
+        return new ArticleResource($article->load(['author', 'groups', 'locations', 'receipts' => fn ($query) => $query->where('user_id', $user->id)]));
+    }
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $articles = Article::query()

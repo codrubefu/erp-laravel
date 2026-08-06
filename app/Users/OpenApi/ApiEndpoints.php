@@ -1087,6 +1087,61 @@ class ApiEndpoints
     {
     }
 
+    #[OA\Get(
+        path: '/users/{user}/activity',
+        summary: 'List a user activity journal',
+        description: 'Returns the organization-scoped business activity for the selected member, ordered newest first. Audit values are sanitized and never contain passwords, tokens, CNP or other secrets.',
+        security: [['bearerAuth' => []]],
+        tags: ['Users'],
+        parameters: [
+            new OA\PathParameter(
+                name: 'user',
+                description: 'User whose business activity is requested.',
+                required: true,
+                schema: new OA\Schema(type: 'integer'),
+                example: 35,
+            ),
+            new OA\QueryParameter(
+                name: 'type',
+                description: 'Filter by an exact business event identifier.',
+                required: false,
+                schema: new OA\Schema(
+                    type: 'string',
+                    enum: [
+                        'user.created',
+                        'user.updated',
+                        'subscription.assigned',
+                        'subscription.renewed',
+                        'subscription.suspended',
+                        'payment.recorded',
+                        'approval.granted',
+                        'card.issued',
+                        'sms.sent',
+                    ],
+                ),
+                example: 'payment.recorded',
+            ),
+            new OA\QueryParameter(name: 'from', description: 'Include activity on or after this date.', required: false, schema: new OA\Schema(type: 'string', format: 'date'), example: '2026-08-01'),
+            new OA\QueryParameter(name: 'to', description: 'Include activity on or before this date.', required: false, schema: new OA\Schema(type: 'string', format: 'date'), example: '2026-08-31'),
+            new OA\QueryParameter(name: 'per_page', required: false, schema: new OA\Schema(type: 'integer', minimum: 1, maximum: 100, default: 15), example: 25),
+            new OA\QueryParameter(name: 'page', required: false, schema: new OA\Schema(type: 'integer', minimum: 1), example: 1),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Paginated activity journal, isolated to the authenticated organization.',
+                content: new OA\JsonContent(ref: '#/components/schemas/UserActivityPage'),
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated.'),
+            new OA\Response(response: 403, description: 'Missing users.view right.'),
+            new OA\Response(response: 404, description: 'User not found in the authenticated organization.'),
+            new OA\Response(response: 422, description: 'Invalid type, period, or pagination parameters.', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
+        ],
+    )]
+    public function usersActivity(): void
+    {
+    }
+
     #[OA\Patch(
         path: '/users/{user}',
         summary: 'Update a user',

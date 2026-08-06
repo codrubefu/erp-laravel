@@ -8,6 +8,9 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use App\Users\Models\AuditLog;
+use App\Users\Models\User;
+use App\Users\Services\BusinessActivityLogger;
 
 class SendExpiringSubscriptionSms implements ShouldQueue
 {
@@ -73,6 +76,17 @@ class SendExpiringSubscriptionSms implements ShouldQueue
             'status' => $sent ? SmsMessage::STATUS_SENT : SmsMessage::STATUS_FAILED,
             'sent_at' => $sent ? Carbon::now() : null,
         ])->save();
+
+        if ($sent) {
+            $user = User::query()->withoutGlobalScopes()->find($assignment->user_id);
+            if ($user !== null) {
+                app(BusinessActivityLogger::class)->record(AuditLog::SMS_SENT, $user, $smsMessage, [], [
+                    'type' => $smsMessage->type,
+                    'subscription_id' => $smsMessage->subscription_id,
+                    'sent_at' => $smsMessage->sent_at,
+                ]);
+            }
+        }
     }
 
     private function message(string $subscriptionName, string $expiresAt): string

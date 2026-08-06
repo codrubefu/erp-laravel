@@ -7,20 +7,26 @@ use App\Users\Http\Controllers\Controller;
 use App\Users\Http\Requests\SyncUserSubscriptionsRequest;
 use App\Users\Http\Requests\StoreUserRequest;
 use App\Users\Http\Requests\UpdateUserRequest;
+use App\Users\Http\Resources\ActivityResource;
 use App\Users\Http\Resources\UserResource;
-use App\Users\Models\User;
+use App\Users\Models\AuditLog;
 use App\Users\Models\Scopes\LocationAccessScope;
+use App\Users\Models\User;
+use App\Users\Services\BusinessActivityLogger;
 use App\Users\Services\OrganizationAccessService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
-    public function __construct(private readonly OrganizationAccessService $organizationAccess)
+    public function __construct(
+        private readonly OrganizationAccessService $organizationAccess,
+        private readonly BusinessActivityLogger $activityLogger,
+    )
     {
     }
 
@@ -165,8 +171,15 @@ class UserController extends Controller
             }
 
             if ($hasSubscriptionAssignments) {
+                $previous = $user->subscriptions()->get()->keyBy('id');
+                $assignedIds = collect($subscriptionAssignments)->pluck('id');
                 $user->subscriptions()->detach();
-                $this->attachSubscriptionAssignments($user, $subscriptionAssignments);
+                $this->attachSubscriptionAssignments($user, $subscriptionAssignments, $previous->keys()->all());
+                $previous->except($assignedIds->all())->each(function (Subscription $subscription) use ($user): void {
+                    $this->activityLogger->record(AuditLog::SUBSCRIPTION_SUSPENDED, $user, $subscription, [], [
+                        'subscription_id' => $subscription->id,
+                    ]);
+                });
             }
         });
 
@@ -178,8 +191,17 @@ class UserController extends Controller
         $this->abortIfUserIsNotVisible($user);
 
         DB::transaction(function () use ($request, $user): void {
+            $previous = $user->subscriptions()->get()->keyBy('id');
+            $assignments = $this->subscriptionAssignments($request->validated());
+            $assignedIds = collect($assignments)->pluck('id');
             $user->subscriptions()->detach();
-            $this->attachSubscriptionAssignments($user, $this->subscriptionAssignments($request->validated()));
+            $this->attachSubscriptionAssignments($user, $assignments, $previous->keys()->all());
+
+            $previous->except($assignedIds->all())->each(function (Subscription $subscription) use ($user): void {
+                $this->activityLogger->record(AuditLog::SUBSCRIPTION_SUSPENDED, $user, $subscription, [], [
+                    'subscription_id' => $subscription->id,
+                ]);
+            });
         });
 
         return new UserResource($this->loadUserForResponse($user, request()->user()?->organization_id, true));
@@ -249,7 +271,7 @@ class UserController extends Controller
         abort_unless(User::query()->whereKey($user->getKey())->exists(), 404);
     }
 
-    private function attachSubscriptionAssignments(User $user, array $assignments): void
+    private function attachSubscriptionAssignments(User $user, array $assignments, array $renewedSubscriptionIds = []): void
     {
         foreach ($assignments as $assignment) {
             $subscription = Subscription::query()->findOrFail($assignment['id']);
@@ -259,7 +281,41 @@ class UserController extends Controller
                 'start_date' => $startDate->toDateString(),
                 'expires_at' => $this->subscriptionExpiresAt($subscription, $startDate),
             ]);
+
+            $this->activityLogger->record(
+                in_array($subscription->id, $renewedSubscriptionIds, true)
+                    ? AuditLog::SUBSCRIPTION_RENEWED
+                    : AuditLog::SUBSCRIPTION_ASSIGNED,
+                $user,
+                $subscription,
+                [],
+                ['subscription_id' => $subscription->id, 'start_date' => $startDate->toDateString()],
+            );
         }
+    }
+
+    public function activity(Request $request, User $user): AnonymousResourceCollection
+    {
+        $this->abortIfUserIsNotVisible($user);
+
+        $validated = $request->validate([
+            'type' => ['nullable', 'string', 'max:64'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $activities = AuditLog::query()
+            ->where('organization_id', $request->user()->organization_id)
+            ->where('subject_user_id', $user->id)
+            ->when($validated['type'] ?? null, fn ($query, $type) => $query->where('event_type', $type))
+            ->when($validated['from'] ?? null, fn ($query, $from) => $query->whereDate('created_at', '>=', $from))
+            ->when($validated['to'] ?? null, fn ($query, $to) => $query->whereDate('created_at', '<=', $to))
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate($validated['per_page'] ?? 15);
+
+        return ActivityResource::collection($activities);
     }
 
     private function subscriptionExpiresAt(Subscription $subscription, CarbonImmutable $startDate): ?string
