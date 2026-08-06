@@ -44,7 +44,7 @@ class FinancialReportService
             ->whereColumn('previous.id', '<', 'su.id'))->count();
 
         $period = $filters['group_by'] ?? 'month';
-        $dateExpression = $period === 'day' ? 'date(payments.paid_at)' : "strftime('%Y-%m', payments.paid_at)";
+        $dateExpression = $this->periodExpression($period);
         $revenue = (clone $confirmed)->selectRaw($dateExpression.' as period')
             ->selectRaw('SUM(payments.amount) as total')->groupBy('period')->orderBy('period')->get()
             ->map(fn ($row) => ['period' => $row->period, 'total' => (float) $row->total])->all();
@@ -101,6 +101,20 @@ class FinancialReportService
                     ->whereColumn('segment_su.id', 'payments.model_id')->whereIn('segment_su.user_id', $memberIds));
         }
         return $query;
+    }
+
+    private function periodExpression(string $period): string
+    {
+        if ($period === 'day') {
+            return 'date(payments.paid_at)';
+        }
+
+        return match (DB::connection()->getDriverName()) {
+            'mysql', 'mariadb' => "DATE_FORMAT(payments.paid_at, '%Y-%m')",
+            'pgsql' => "to_char(payments.paid_at, 'YYYY-MM')",
+            'sqlsrv' => "CONVERT(varchar(7), payments.paid_at, 120)",
+            default => "strftime('%Y-%m', payments.paid_at)",
+        };
     }
 
     private function segmentMemberIds(int $organizationId, array $filters): ?array
