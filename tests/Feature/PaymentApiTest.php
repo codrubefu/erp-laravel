@@ -7,6 +7,7 @@ use App\Users\Models\Group;
 use App\Users\Models\Right;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class PaymentApiTest extends TestCase
@@ -19,6 +20,7 @@ class PaymentApiTest extends TestCase
         Payment::query()->create($this->paymentData([
             'model_id' => 77,
             'admin_id' => $admin->id,
+            'organization_id' => $admin->organization_id,
         ]));
 
         $this->withHeader('Authorization', "Bearer {$token}")
@@ -31,23 +33,24 @@ class PaymentApiTest extends TestCase
             ->assertJsonPath('data.0.admin.id', $admin->id);
     }
 
-            public function test_user_with_create_right_can_create_payment_for_authenticated_admin(): void
+    public function test_user_with_create_right_can_create_payment_for_authenticated_admin(): void
     {
         [$admin, $token] = $this->authenticatedUserWithRights(['payments.create']);
+        $modelId = $this->subscriptionAssignment($admin);
 
         $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/payments', [
                 'first_name' => 'Jane',
                 'last_name' => 'Client',
                 'payment_type_id' => Payment::TYPE_CASH,
-                'model_id' => 30,
+                'model_id' => $modelId,
                 'amount' => 99.99,
                 'paid_at' => '2026-06-01 10:15:00',
             ])
             ->assertCreated()
             ->assertJsonPath('data.model_type', Payment::MODEL_TYPE_SUBSCRIPTION_USER)
             ->assertJsonPath('data.payment_type', 'cash')
-            ->assertJsonPath('data.model_id', 30)
+            ->assertJsonPath('data.model_id', $modelId)
             ->assertJsonPath('data.admin_id', $admin->id);
 
         $this->assertDatabaseHas('payments', [
@@ -55,7 +58,7 @@ class PaymentApiTest extends TestCase
             'last_name' => 'Client',
             'payment_type_id' => Payment::TYPE_CASH,
             'model_type' => Payment::MODEL_TYPE_SUBSCRIPTION_USER,
-            'model_id' => 30,
+            'model_id' => $modelId,
             'admin_id' => $admin->id,
         ]);
     }
@@ -85,30 +88,33 @@ class PaymentApiTest extends TestCase
     public function test_user_with_update_right_can_attach_subscription_model_to_payment(): void
     {
         [$admin, $token] = $this->authenticatedUserWithRights(['payments.update']);
+        $modelId = $this->subscriptionAssignment($admin);
         $payment = Payment::query()->create($this->paymentData([
             'model_id' => 10,
             'admin_id' => $admin->id,
+            'organization_id' => $admin->organization_id,
         ]));
 
         $this->withHeader('Authorization', "Bearer {$token}")
             ->patchJson("/api/payments/{$payment->id}/attach-model", [
                 'model_type' => Payment::MODEL_TYPE_SUBSCRIPTION_USER,
-                'model_id' => 55,
+                'model_id' => $modelId,
             ])
             ->assertOk()
             ->assertJsonPath('data.model_type', Payment::MODEL_TYPE_SUBSCRIPTION_USER)
-            ->assertJsonPath('data.model_id', 55);
+            ->assertJsonPath('data.model_id', $modelId);
 
         $this->assertDatabaseHas('payments', [
             'id' => $payment->id,
             'model_type' => Payment::MODEL_TYPE_SUBSCRIPTION_USER,
-            'model_id' => 55,
+            'model_id' => $modelId,
         ]);
     }
 
     public function test_user_with_create_right_can_create_payment_for_event_occurrence_participant(): void
     {
         [$admin, $token] = $this->authenticatedUserWithRights(['payments.create']);
+        $modelId = $this->eventAssignment($admin);
 
         $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/payments', [
@@ -116,14 +122,14 @@ class PaymentApiTest extends TestCase
                 'last_name' => 'Client',
                 'payment_type_id' => Payment::TYPE_CARD,
                 'model_type' => Payment::MODEL_TYPE_EVENT_OCCURRENCE_USER,
-                'model_id' => 41,
+                'model_id' => $modelId,
                 'amount' => 49.99,
                 'paid_at' => '2026-06-01 10:15:00',
             ])
             ->assertCreated()
             ->assertJsonPath('data.model_type', Payment::MODEL_TYPE_EVENT_OCCURRENCE_USER)
             ->assertJsonPath('data.payment_type', 'card')
-            ->assertJsonPath('data.model_id', 41)
+            ->assertJsonPath('data.model_id', $modelId)
             ->assertJsonPath('data.admin_id', $admin->id);
 
         $this->assertDatabaseHas('payments', [
@@ -131,7 +137,7 @@ class PaymentApiTest extends TestCase
             'last_name' => 'Client',
             'payment_type_id' => Payment::TYPE_CARD,
             'model_type' => Payment::MODEL_TYPE_EVENT_OCCURRENCE_USER,
-            'model_id' => 41,
+            'model_id' => $modelId,
             'admin_id' => $admin->id,
         ]);
     }
@@ -190,5 +196,41 @@ class PaymentApiTest extends TestCase
         ])->json('token');
 
         return [$user, $token];
+    }
+
+    private function subscriptionAssignment(User $operator): int
+    {
+        $member = User::factory()->create(['organization_id' => $operator->organization_id]);
+        $subscriptionId = DB::table('subscriptions')->insertGetId([
+            'organization_id' => $operator->organization_id,
+            'name' => 'Membership', 'description' => 'Test', 'price' => 100, 'currency' => 'RON',
+            'billing_interval' => 'yearly', 'duration_days' => 365, 'trial_days' => 0, 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        return DB::table('subscription_user')->insertGetId([
+            'subscription_id' => $subscriptionId, 'user_id' => $member->id,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+    }
+
+    private function eventAssignment(User $operator): int
+    {
+        $member = User::factory()->create(['organization_id' => $operator->organization_id]);
+        $eventId = DB::table('events')->insertGetId([
+            'organization_id' => $operator->organization_id, 'title' => 'Event', 'start_time' => '10:00:00',
+            'end_time' => '11:00:00', 'recurrence_type' => 'once', 'start_date' => now()->toDateString(),
+            'status' => 'active', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $occurrenceId = DB::table('event_occurrences')->insertGetId([
+            'organization_id' => $operator->organization_id, 'event_id' => $eventId,
+            'occurrence_date' => now()->toDateString(), 'start_datetime' => now(), 'end_datetime' => now()->addHour(),
+            'status' => 'scheduled', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        return DB::table('event_occurrence_user')->insertGetId([
+            'event_occurrence_id' => $occurrenceId, 'user_id' => $member->id,
+            'status' => 'registered', 'created_at' => now(), 'updated_at' => now(),
+        ]);
     }
 }
