@@ -16,12 +16,16 @@ Artisan::command('inspire', function () {
 Schedule::call(function (): void {
     Campaign::query()->where('status', 'scheduled')->where('scheduled_at', '<=', now())
         ->eachById(fn (Campaign $campaign) => DispatchCampaign::dispatch($campaign->id));
-})->everyMinute()->withoutOverlapping();
+})->everyMinute()->description('campaigns.dispatch-due')->withoutOverlapping();
 
 Schedule::job(new DispatchSubscriptionLifecycleNotifications)
+    ->name('subscriptions.lifecycle-notifications')
     ->dailyAt('08:00')
     ->withoutOverlapping()
     ->onOneServer();
 
 Schedule::job(new SendExpiringSubscriptionSms)->daily();
-Schedule::job(new TransitionArticlePublicationStatus)->everyMinute()->withoutOverlapping();
+Schedule::job(new TransitionArticlePublicationStatus)
+    ->name('articles.transition-publication-status')
+    ->everyMinute()
+    ->withoutOverlapping();
