@@ -77,7 +77,7 @@ Route::middleware('auth.bearer')->group(function (): void {
     Route::post('/users/{user}/documents/{document}/replace', [UserDocumentController::class, 'replace'])->middleware('right:user-documents.upload');
     Route::post('/users/{user}/documents/{document}/download-url', [UserDocumentController::class, 'signedDownloadUrl'])->middleware('right:user-documents.view');
     Route::get('/users/{user}/documents/{document}/download', [UserDocumentController::class, 'download'])
-        ->middleware(['right:user-documents.view', 'signed'])
+        ->middleware('right:user-documents.view')
         ->name('user-documents.download');
     Route::delete('/users/{user}/documents/{document}', [UserDocumentController::class, 'destroy'])->middleware('right:user-documents.delete');
     Route::get('/users/{user}', [UserController::class, 'show'])->middleware('right:users.view');
