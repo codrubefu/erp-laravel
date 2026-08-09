@@ -18,7 +18,7 @@ class Campaign extends Model
 {
     use BelongsToAuthenticatedOrganization, SetsOrganizationFromAuthenticatedUser;
 
-    public const CHANNELS = ['mail', 'push'];
+    public const CHANNELS = ['mail', 'sms'];
 
     public function organization(): BelongsTo { return $this->belongsTo(Organization::class); }
     public function segment(): BelongsTo { return $this->belongsTo(Segment::class); }

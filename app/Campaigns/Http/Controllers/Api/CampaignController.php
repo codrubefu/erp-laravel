@@ -29,7 +29,7 @@ class CampaignController extends Controller
     {
         $this->owned($request, $campaign);
         $recipients = $service->recipients($campaign);
-        return response()->json(['count' => (clone $recipients)->count(), 'data' => $recipients->limit(100)->get(['id', 'first_name', 'last_name', 'email'])]);
+        return response()->json(['count' => (clone $recipients)->count(), 'data' => $recipients->limit(100)->get(['id', 'first_name', 'last_name', 'email', 'phone'])]);
     }
     public function schedule(Request $request, Campaign $campaign, CampaignService $service): JsonResponse
     {

@@ -12,7 +12,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'segment_id', description: 'Optional dynamic segment from the same organization.', type: 'integer', nullable: true, example: 4),
         new OA\Property(property: 'created_by', type: 'integer', example: 2),
         new OA\Property(property: 'name', type: 'string', example: 'Noutăți august'),
-        new OA\Property(property: 'channel', type: 'string', enum: ['mail', 'push'], example: 'mail'),
+        new OA\Property(property: 'channel', type: 'string', enum: ['mail', 'sms'], example: 'mail'),
         new OA\Property(property: 'subject', type: 'string', nullable: true, example: 'Noutăți pentru membri'),
         new OA\Property(property: 'content', type: 'string', example: 'Conținutul campaniei.'),
         new OA\Property(property: 'status', type: 'string', enum: ['draft', 'scheduled', 'sent', 'cancelled'], example: 'draft'),
@@ -29,7 +29,7 @@ use OpenApi\Attributes as OA;
     required: ['name', 'channel', 'content'],
     properties: [
         new OA\Property(property: 'name', type: 'string', maxLength: 255, example: 'Noutăți august'),
-        new OA\Property(property: 'channel', type: 'string', enum: ['mail', 'push'], example: 'mail'),
+        new OA\Property(property: 'channel', type: 'string', enum: ['mail', 'sms'], example: 'mail'),
         new OA\Property(property: 'subject', type: 'string', nullable: true, maxLength: 255),
         new OA\Property(property: 'content', type: 'string', example: 'Conținutul campaniei.'),
         new OA\Property(property: 'segment_id', type: 'integer', nullable: true, example: 4),

@@ -336,7 +336,7 @@ Authenticated routes:
 
 Functional behavior:
 
-- Campaigns are organization-scoped drafts for the `mail` or `push` channel and can optionally reference a dynamic segment from the same organization.
+- Campaigns are organization-scoped drafts for the `mail` or `sms` channel and can optionally reference a dynamic segment from the same organization.
 - Draft content and audience can be edited. Preview returns the complete current recipient count and at most 100 recipient rows.
 - Scheduling does not freeze recipients. The every-minute scheduler queues `DispatchCampaign`, and `CampaignService` evaluates the dynamic segment when dispatch becomes due, so eligibility changes between scheduling and delivery are honored.
 - Dispatch creates campaign-linked `notification_deliveries` and uses `campaign:{campaign_id} + user_id + channel` for idempotency. Re-running dispatch does not duplicate deliveries.
