@@ -21,6 +21,7 @@ class ArticleResource extends JsonResource
             'priority' => $this->priority,
             'status' => $this->status,
             'audience_segment' => $this->audience_segment,
+            'segment_id' => $this->segment_id,
             'created_by' => $this->created_by,
             'author' => UserResource::make($this->whenLoaded('author')),
             'groups' => GroupResource::collection($this->whenLoaded('groups')),

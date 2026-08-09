@@ -20,7 +20,13 @@ class SendNotificationDelivery implements ShouldQueue
     public function handle(NotificationSender $sender): void
     {
         $delivery = NotificationDelivery::query()->with('user')->findOrFail($this->deliveryId);
-        if ($delivery->status === 'sent') return;
+        if (in_array($delivery->status, ['sent', 'skipped'], true)) return;
+
+        $scope = $delivery->consent_scope ?: 'all';
+        if (! $delivery->user->consentsToScope($delivery->channel, $scope)) {
+            $delivery->update(['status' => 'skipped', 'skip_reason' => 'consent']);
+            return;
+        }
 
         $attemptNumber = $delivery->attempts()->count() + 1;
         $attempt = $delivery->attempts()->create([

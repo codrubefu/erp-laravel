@@ -2,8 +2,12 @@
 
 namespace App\Subscription\Services;
 
+use App\Notifications\Events\NotificationRequested;
 use App\Payments\Models\Payment;
 use App\Subscription\Models\SubscriptionUser;
+use App\Users\Models\AuditLog;
+use App\Users\Models\User;
+use App\Users\Services\BusinessActivityLogger;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -11,6 +15,8 @@ use Illuminate\Validation\ValidationException;
 class SubscriptionLifecycleService
 {
     public const STATUSES = ['pending', 'active', 'expired', 'suspended', 'consumed', 'reserved'];
+
+    public function __construct(private readonly BusinessActivityLogger $activityLogger) {}
 
     public function activate(SubscriptionUser $assignment, ?Payment $payment = null, ?CarbonInterface $at = null): SubscriptionUser
     {
@@ -25,7 +31,12 @@ class SubscriptionLifecycleService
             $subscription = $assignment->subscription;
 
             if ($payment !== null) {
-                if ($payment->model_type !== Payment::MODEL_TYPE_SUBSCRIPTION_USER || $payment->model_id !== $assignment->id || $payment->paid_at === null) {
+                if (
+                    $payment->status !== Payment::STATUS_CONFIRMED
+                    || (int) $payment->organization_id !== (int) $subscription->organization_id
+                    || $payment->model_type !== Payment::MODEL_TYPE_SUBSCRIPTION_USER
+                    || (int) $payment->model_id !== (int) $assignment->id
+                ) {
                     throw ValidationException::withMessages(['payment_id' => 'Payment must be confirmed and linked to this subscription assignment.']);
                 }
             } elseif ((float) $subscription->price > 0) {
@@ -40,7 +51,8 @@ class SubscriptionLifecycleService
             };
             $status = $start->isAfter($at) ? 'reserved' : 'active';
 
-            $assignment->update([
+            $oldValues = $assignment->only(['status', 'start_date', 'expires_at', 'activated_at', 'activation_payment_id']);
+            $assignment->forceFill([
                 'status' => $status,
                 'start_date' => $start,
                 'expires_at' => $expiresAt,
@@ -49,7 +61,32 @@ class SubscriptionLifecycleService
                 'suspended_at' => null,
                 'resume_at' => null,
                 'status_reason' => null,
-            ]);
+            ])->saveQuietly();
+
+            $assignmentId = (int) $assignment->id;
+            $actorId = $payment?->admin_id;
+            DB::afterCommit(function () use ($assignmentId, $actorId, $oldValues): void {
+                $activatedAssignment = SubscriptionUser::query()->with(['subscription', 'user'])->find($assignmentId);
+                if ($activatedAssignment === null) {
+                    return;
+                }
+
+                NotificationRequested::dispatch(
+                    $activatedAssignment->user,
+                    NotificationRequested::SUBSCRIPTION_ACTIVATED,
+                    "subscription.activated:{$activatedAssignment->id}:{$activatedAssignment->activated_at?->timestamp}",
+                    ['subscription' => $activatedAssignment->subscription->name],
+                );
+
+                $this->activityLogger->record(
+                    AuditLog::SUBSCRIPTION_ACTIVATED,
+                    $activatedAssignment->user,
+                    $activatedAssignment,
+                    $oldValues,
+                    $activatedAssignment->only(['status', 'start_date', 'expires_at', 'activated_at', 'activation_payment_id']),
+                    $actorId === null ? null : User::query()->withoutGlobalScopes()->find($actorId),
+                );
+            });
 
             return $assignment->refresh();
         });

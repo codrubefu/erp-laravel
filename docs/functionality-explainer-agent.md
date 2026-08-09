@@ -44,6 +44,9 @@ API routes are split by module and included from `routes/api.php`:
 - `routes/custom-fields.php`
 - `routes/sms.php`
 - `routes/payment.php`
+- `routes/reporting.php`
+- `routes/dashboard.php`
+- `routes/campaign.php`
 
 Most endpoints are protected by `auth.bearer`. Permission checks use the custom middleware `right:...`.
 
@@ -65,6 +68,24 @@ Flow:
 2. A personal access token is created and returned.
 3. Authenticated endpoints require `Authorization: Bearer <token>`.
 4. `POST /api/logout` revokes the current token.
+
+Security behavior:
+
+- `POST /api/login` has a dedicated configurable per-minute limiter keyed by IP, organization, and a hash of the declared email.
+- Successful and failed attempts are logged with outcome, user ID when known, organization, IP, and a hash of the declared identity. Passwords and bearer tokens are never logged.
+- Tokens receive `expires_at` from `BEARER_TOKEN_EXPIRATION_MINUTES`; expired tokens and tokens belonging to inactive users are rejected.
+- Changing a password or changing `active` to false deletes every bearer session for that user. Incident-response code can explicitly call `BearerTokenService::revokeAll()`.
+- `PATCH /api/me/password` applies separate configurable Laravel `Password` policies for operators and administrators, including the compromised-password check, and revokes the calling session on success.
+- Main configuration and tests are `config/security.php` and `tests/Feature/ApiSecurityTest.php`.
+
+### API abuse protection and deployment security
+
+- Payment callbacks use the `callbacks` limiter, keyed by IP, declared `X-Organization-Id`, and `X-Provider-Id` or the callback `external_reference`.
+- Financial aggregation/export and dynamic segment member evaluation use the stricter `expensive` limiter, keyed by IP, authenticated organization, and authenticated user ID.
+- A rate-limit rejection returns HTTP `429`; it does not create payments, exports, audit records, notifications, or other business side effects.
+- `SecurityHeaders` adds HSTS on HTTPS plus content-type, frame, referrer, and permissions protections. Explicit proxy addresses are read from `TRUSTED_PROXIES` so HTTPS and client-IP detection remain trustworthy.
+- Production requirements for HTTPS-only ingress, secure cookies, secret management and branch access through VPN are mandatory and documented in `docs/deployment-security.md`.
+- Relevant implementation files are `AppServiceProvider`, `SecurityHeaders`, `bootstrap/app.php`, `routes/payment.php`, and `routes/reporting.php`; no new database table is introduced by these controls.
 
 The project also supports `GET /api/organizations/slug/{slug}` to resolve organization details before login.
 
@@ -283,14 +304,45 @@ Routes:
 
 Functional behavior:
 
-- Articles have title, description, status, publish date, expiration date, priority, audience segment, and author.
+- Articles have title, description, status, publish date, expiration date, priority, audience segment, optional dynamic `segment_id`, and author.
 - Statuses: `draft`, `scheduled`, `published`, `expired`.
 - Audience segments: `all_users`, `active_subscribers`, `expired_users`, `groups`, `locations`.
 - Feed visibility is calculated per user using organization, publication status, dates, segment, group membership, location membership, and subscription status.
+- When `segment_id` is present, `Article::scopeVisibleTo()` asks `SegmentService` for current membership. Both the segment and user must belong to the article organization; an ID from another tenant is rejected by create/update validation and never grants feed visibility.
 - `GET /api/articles-feed` records delivery receipts.
 - `POST /api/articles/{article}/view` records view time.
 - Receipts are stored in `article_user_receipts`.
 - Scheduled job `TransitionArticlePublicationStatus` publishes scheduled articles and expires outdated articles.
+
+### E-mail and Push Campaigns
+
+Main files:
+
+- `app/Campaigns/Http/Controllers/Api/CampaignController.php`
+- `app/Campaigns/Models/Campaign.php`
+- `app/Campaigns/Services/CampaignService.php`
+- `app/Campaigns/Jobs/DispatchCampaign.php`
+- `routes/campaign.php`
+
+Authenticated routes:
+
+- `GET /api/campaigns`
+- `POST /api/campaigns`
+- `PUT/PATCH /api/campaigns/{campaign}`
+- `GET /api/campaigns/{campaign}/preview`
+- `POST /api/campaigns/{campaign}/schedule`
+- `POST /api/campaigns/{campaign}/cancel`
+- `GET /api/campaigns/{campaign}/statistics`
+
+Functional behavior:
+
+- Campaigns are organization-scoped drafts for the `mail` or `push` channel and can optionally reference a dynamic segment from the same organization.
+- Draft content and audience can be edited. Preview returns the complete current recipient count and at most 100 recipient rows.
+- Scheduling does not freeze recipients. The every-minute scheduler queues `DispatchCampaign`, and `CampaignService` evaluates the dynamic segment when dispatch becomes due, so eligibility changes between scheduling and delivery are honored.
+- Dispatch creates campaign-linked `notification_deliveries` and uses `campaign:{campaign_id} + user_id + channel` for idempotency. Re-running dispatch does not duplicate deliveries.
+- Draft or scheduled campaigns can be cancelled; already sent or cancelled campaigns reject cancellation.
+- Statistics aggregate pending, sent, failed, and consent-skipped deliveries.
+- Main tables are `campaigns` and the existing `notification_deliveries`; campaign dispatch also produces `notification_attempts` during actual sends.
 
 ### Custom Fields
 
@@ -332,6 +384,7 @@ Main services:
 
 - `app/Payments/Services/PaymentService.php`
 - `app/Payments/Services/ReceiptService.php`
+- `app/Subscription/Services/SubscriptionLifecycleService.php` for subscription assignment activation
 
 Routes:
 
@@ -351,10 +404,13 @@ Functional behavior:
 - Payment creation verifies the payable record belongs to the authenticated organization.
 - Cash payments are immediately confirmed.
 - Non-cash payments start as initiated and are updated by callback.
-- Confirmed subscription payments activate the related subscription assignment and calculate expiration based on subscription duration.
-- Confirmed payments receive a receipt number.
+- Confirmed subscription payments are delegated to `SubscriptionLifecycleService::activate()`; the payment service does not update `subscription_user` directly.
+- A payment can activate an assignment only when its `status` is exactly `confirmed`, its `organization_id` matches the subscription organization, and its `model_type`/`model_id` point to that exact `subscription_user` row. A populated `paid_at` field alone is not confirmation.
+- Activation locks the assignment and atomically writes its lifecycle `status`, `start_date`, `expires_at`, `activated_at`, and `activation_payment_id`. Expiration follows the subscription's `expiration_rule` (`duration`, `fixed_date`, or `none`), including future starts becoming `reserved`.
+- Confirmed payments receive a receipt number in the same transaction as subscription activation.
 - Receipt download is allowed only for confirmed payments with receipt numbers.
-- Callback processing is idempotent and handles terminal statuses.
+- Callback processing is idempotent and handles terminal statuses; a duplicate confirmed callback does not activate or notify twice.
+- The `subscription.activated` notification and audit business event are emitted only after the activation transaction commits, so rolled-back activations have no external activation side effects.
 - Callback signatures use `services.payments.callback_secret`.
 
 ### SMS
@@ -390,11 +446,16 @@ Main files:
 - `app/Notifications/Jobs/DispatchSubscriptionLifecycleNotifications.php`
 - `config/notifications.php`
 - `database/migrations/2026_08_06_000001_create_notification_layer.php`
+- `database/migrations/2026_08_09_000001_create_campaigns_and_notification_preferences.php`
 
 Functional behavior:
 
 - Feature code dispatches `NotificationRequested`.
 - The listener checks user consent for `sms`, `mail`, and `push`.
+- `PUT /api/notification-preferences` lets the authenticated user subscribe or unsubscribe by channel and scope. Scope `all` blocks the complete channel, while `campaigns` controls campaign messages.
+- Consent is checked again by `SendNotificationDelivery` immediately before calling the provider. A withdrawn consent changes the delivery to `skipped` with reason `consent`, even if the user was eligible when the campaign was scheduled or expanded.
+- `POST /api/push-devices` registers or refreshes one of multiple push tokens, and `DELETE /api/push-devices/{device}` removes an owned device. These self-service endpoints require bearer authentication but no administrative right.
+- Push sends target every row in `push_devices` for the user. Provider responses `404` and `410` delete invalid tokens; the legacy `users.push_token` is used only as a compatibility fallback when no device rows exist.
 - For every allowed channel, it creates one `notification_deliveries` row.
 - Unique key `event_key + user_id + channel` prevents duplicate sends for the same event/channel.
 - New deliveries dispatch `SendNotificationDelivery`.
@@ -421,7 +482,7 @@ Main files:
 Functional behavior:
 
 - Model changes are logged for models using `LogsModelChanges`.
-- Business events include user creation/update/delete, subscription assignment/renewal/suspension, payment recorded, approval granted, card issued, and SMS sent.
+- Business events include user creation/update/delete, subscription assignment/activation/renewal/suspension, payment recorded, approval granted, card issued, and SMS sent.
 - Sensitive fields such as passwords, tokens, CNP/personal numeric code, authorization values, and secrets are removed from logged payloads.
 - User activity can be retrieved through `GET /api/users/{user}/activity`.
 
@@ -432,6 +493,7 @@ Scheduled in `routes/console.php`:
 - `DispatchSubscriptionLifecycleNotifications`: daily at 08:00, sends generic subscription lifecycle notifications.
 - `SendExpiringSubscriptionSms`: daily, sends legacy SMS subscription expiration notices.
 - `TransitionArticlePublicationStatus`: every minute, publishes scheduled articles and expires old articles.
+- Campaign scheduler callback: every minute, queues `DispatchCampaign` for due scheduled campaigns; `CampaignService` expands their current tenant-safe audience.
 
 Console commands:
 
@@ -539,7 +601,9 @@ Endpoint-ul nu produce side effects: nu creeaza plati, nu trimite SMS-uri/notifi
 
 Assignment-urile din `subscription_user` pastreaza statusul lifecycle si legatura de plata prin `activation_payment_id`. La sincronizarea abonamentelor unui utilizator, codul trebuie sa detaseze doar abonamentele eliminate si sa actualizeze pivot-ul existent pentru abonamentele pastrate, altfel se pierde istoricul si plata asociata.
 
-`POST /api/subscription-assignments/{assignment}/activate` accepta `payment_id` optional: abonamentele cu pret mai mare de 0 necesita o plata confirmata si legata de assignment, iar abonamentele gratuite pot fi activate fara plata. La atasare noua, abonamentele gratuite intra direct in `active` sau `reserved` daca data de start este in viitor; abonamentele platite raman `pending`.
+`POST /api/subscription-assignments/{assignment}/activate` accepta `payment_id` optional: abonamentele cu pret mai mare de 0 necesita o plata cu status explicit `confirmed`, din aceeasi organizatie si legata exact de assignment prin `model_type=subscription_user` si `model_id`; simpla completare a `paid_at` nu confirma plata. Abonamentele gratuite pot fi activate fara plata. La atasare noua, abonamentele gratuite intra direct in `active` sau `reserved` daca data de start este in viitor; abonamentele platite raman `pending`.
+
+Pentru platile cash, confirmarea, numarul chitantei si activarea assignment-ului sunt salvate atomic. Pentru card si transfer bancar, acelasi flux ruleaza la callback-ul confirmat. Activarea seteaza `status`, `start_date`, `expires_at`, `activated_at` si `activation_payment_id` prin `SubscriptionLifecycleService`; notificarea si auditul `subscription.activated` sunt emise numai dupa commit. Callback-urile confirmate duplicate sunt idempotente si nu repeta aceste efecte.
 
 `subscription_history` din `UserResource` trebuie sa expuna statusul lifecycle real din pivot (`pending`, `active`, `expired`, `suspended`, `consumed`, `reserved`) impreuna cu campurile de audit ale assignment-ului. Nu recalcula istoricul doar din `start_date` si `expires_at`.
 

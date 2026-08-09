@@ -41,7 +41,7 @@ class ApiEndpoints
     #[OA\Post(
         path: '/payments',
         summary: 'Create a payment',
-        description: 'Creates a payment linked to a payable object from the authenticated organization. Organization, branch and operator are inferred from authentication. Cash is confirmed immediately; card and bank payments start as initiated.',
+        description: 'Creates a payment linked to a payable object from the authenticated organization. Organization, branch and operator are inferred from authentication. Cash is confirmed immediately; for subscription_user payments, receipt issuance and lifecycle activation are committed atomically. Card and bank payments start as initiated.',
         security: [['bearerAuth' => []]],
         tags: ['Payment'],
         requestBody: new OA\RequestBody(
@@ -103,7 +103,7 @@ class ApiEndpoints
     #[OA\Post(
         path: '/payments/callback',
         summary: 'Process a payment provider callback',
-        description: 'Processes an idempotent card or bank callback. The X-Payment-Signature value must be the lowercase hexadecimal HMAC-SHA256 of the exact raw request body, calculated with PAYMENT_CALLBACK_SECRET.',
+        description: 'Processes an idempotent card or bank callback. A confirmed subscription payment activates only the exact subscription_user assignment in the same organization; paid_at alone is not confirmation. Receipt issuance and activation are atomic, while activation notification and audit are emitted after commit. Duplicate confirmed callbacks do not repeat activation side effects. The X-Payment-Signature value must be the lowercase hexadecimal HMAC-SHA256 of the exact raw request body, calculated with PAYMENT_CALLBACK_SECRET.',
         tags: ['Payment'],
         parameters: [
             new OA\HeaderParameter(
@@ -111,6 +111,18 @@ class ApiEndpoints
                 required: true,
                 description: 'Hexadecimal HMAC-SHA256 signature of the raw JSON request body.',
                 schema: new OA\Schema(type: 'string', example: 'f77d7a45a507d93688c8c6ae93f9c8f74e0acff810f2e98a8cc63fcb23c81a48'),
+            ),
+            new OA\HeaderParameter(
+                name: 'X-Organization-Id',
+                required: true,
+                description: 'Declared organization identifier used as part of the callback rate-limit key.',
+                schema: new OA\Schema(type: 'integer', example: 1),
+            ),
+            new OA\HeaderParameter(
+                name: 'X-Provider-Id',
+                required: false,
+                description: 'Stable provider identity used in the callback rate-limit key. When omitted, external_reference is used.',
+                schema: new OA\Schema(type: 'string', example: 'netopia-production'),
             ),
         ],
         requestBody: new OA\RequestBody(

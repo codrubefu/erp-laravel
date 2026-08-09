@@ -11,7 +11,7 @@ use App\Users\Http\Controllers\Api\RightController;
 use App\Users\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 Route::get('/organizations/slug/{slug}', [OrganizationController::class, 'showBySlug']);
 
 Route::middleware('auth.bearer')->group(function (): void {

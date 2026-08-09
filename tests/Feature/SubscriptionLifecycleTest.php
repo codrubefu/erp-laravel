@@ -27,7 +27,7 @@ class SubscriptionLifecycleTest extends TestCase
         $this->assertSame('active', $assignment->status);
         $this->assertSame($payment->id, $assignment->activation_payment_id);
         $this->assertTrue($assignment->expires_at->equalTo(now()->addDays(30)));
-        $this->assertTrue(AuditLog::query()->where('model_type', SubscriptionUser::class)->where('model_id', $assignment->id)->where('action', 'updated')->exists());
+        $this->assertFalse(AuditLog::query()->where('model_type', SubscriptionUser::class)->where('model_id', $assignment->id)->where('event_type', AuditLog::SUBSCRIPTION_ACTIVATED)->exists());
     }
 
     public function test_free_subscription_can_be_activated_without_payment(): void
@@ -119,6 +119,8 @@ class SubscriptionLifecycleTest extends TestCase
             'model_id' => $assignment->id,
             'amount' => 10,
             'paid_at' => now(),
+            'status' => Payment::STATUS_CONFIRMED,
+            'organization_id' => $assignment->subscription->organization_id,
             'admin_id' => $assignment->user_id,
         ]);
     }

@@ -6,6 +6,8 @@ use App\Users\Models\Group;
 use App\Users\Models\Location;
 use App\Users\Models\Organization;
 use App\Users\Models\User;
+use App\Reporting\Models\Segment;
+use App\Reporting\Services\SegmentService;
 use App\Users\Models\Concerns\BelongsToAuthenticatedOrganization;
 use App\Users\Models\Concerns\LogsModelChanges;
 use App\Users\Models\Concerns\SetsOrganizationFromAuthenticatedUser;
@@ -20,7 +22,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\DB;
 
-#[Fillable(['title', 'description', 'publish_at', 'expires_at', 'priority', 'status', 'audience_segment', 'created_by', 'organization_id'])]
+#[Fillable(['title', 'description', 'publish_at', 'expires_at', 'priority', 'status', 'audience_segment', 'segment_id', 'created_by', 'organization_id'])]
 class Article extends Model
 {
     public const STATUSES = ['draft', 'scheduled', 'published', 'expired'];
@@ -58,6 +60,11 @@ class Article extends Model
         return $this->hasMany(ArticleReceipt::class);
     }
 
+    public function segment(): BelongsTo
+    {
+        return $this->belongsTo(Segment::class);
+    }
+
     public function scopePublishable(Builder $query): Builder
     {
         return $query->where('status', 'published')
@@ -67,11 +74,18 @@ class Article extends Model
 
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
+        $segmentIds = app(SegmentService::class)->segmentIdsFor($user);
+
         return $query->publishable()
             // Deliberately do not include organization-less or other-organization announcements.
             ->where($this->qualifyColumn('organization_id'), $user->organization_id)
-            ->where(function (Builder $query) use ($user): void {
-                $query->where('audience_segment', 'all_users')
+            ->where(function (Builder $query) use ($segmentIds, $user): void {
+                $query->where(function (Builder $query): void {
+                    $query->whereNull('segment_id')->where('audience_segment', 'all_users');
+                })
+                    ->orWhere(function (Builder $query) use ($segmentIds): void {
+                        $query->whereNotNull('segment_id')->whereIn('segment_id', $segmentIds);
+                    })
                     ->orWhere(function (Builder $query) use ($user): void {
                         $query->where('audience_segment', 'active_subscribers')
                             ->whereExists($this->subscriptionForUserQuery($user, active: true));

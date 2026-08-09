@@ -3,6 +3,8 @@
 namespace App\Payments\Services;
 
 use App\Payments\Models\Payment;
+use App\Subscription\Models\SubscriptionUser;
+use App\Subscription\Services\SubscriptionLifecycleService;
 use App\Users\Models\AuditLog;
 use App\Users\Models\User;
 use App\Users\Services\BusinessActivityLogger;
@@ -13,9 +15,10 @@ use InvalidArgumentException;
 
 class PaymentService
 {
-    public function __construct(private readonly BusinessActivityLogger $activityLogger)
-    {
-    }
+    public function __construct(
+        private readonly BusinessActivityLogger $activityLogger,
+        private readonly SubscriptionLifecycleService $subscriptionLifecycle,
+    ) {}
 
     public function create(array $data, User $admin): Payment
     {
@@ -111,13 +114,8 @@ class PaymentService
             return;
         }
 
-        $assignment = DB::table('subscription_user')->where('id', $payment->model_id)->first();
-        $duration = DB::table('subscriptions')->where('id', $assignment->subscription_id)->value('duration_days');
-        DB::table('subscription_user')->where('id', $payment->model_id)->update([
-            'start_date' => now()->toDateString(),
-            'expires_at' => $duration ? now()->addDays((int) $duration)->toDateString() : null,
-            'updated_at' => now(),
-        ]);
+        $assignment = SubscriptionUser::query()->findOrFail($payment->model_id);
+        $this->subscriptionLifecycle->activate($assignment, $payment);
     }
 
     private function ensurePayableBelongsToOrganization(string $type, int $id, int $organizationId): void

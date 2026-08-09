@@ -17,6 +17,7 @@ class BearerTokenService
             'name' => $name,
             'token' => $this->hash($plainTextToken),
             'abilities' => $abilities,
+            'expires_at' => Carbon::now()->addMinutes(max(1, (int) config('security.tokens.expiration_minutes', 60))),
         ]);
 
         return $plainTextToken;
@@ -45,6 +46,12 @@ class BearerTokenService
     public function revoke(PersonalAccessToken $accessToken): void
     {
         $accessToken->delete();
+    }
+
+    /** Revoke every API session after a credential/status change or security incident. */
+    public function revokeAll(User $user): int
+    {
+        return $user->accessTokens()->delete();
     }
 
     private function hash(string $plainTextToken): string

@@ -246,7 +246,7 @@ use OpenApi\Attributes as OA;
     required: ['current_password', 'password', 'password_confirmation'],
     properties: [
         new OA\Property(property: 'current_password', type: 'string', format: 'password', example: 'current-password'),
-        new OA\Property(property: 'password', type: 'string', format: 'password', minLength: 8, example: 'new-password'),
+        new OA\Property(property: 'password', description: 'Must satisfy the configured operator or administrator policy and the compromised-password check.', type: 'string', format: 'password', minLength: 8, example: 'New-Secure-Password-42!'),
         new OA\Property(property: 'password_confirmation', type: 'string', format: 'password', example: 'new-password'),
     ],
     type: 'object',
@@ -263,7 +263,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'push_token', description: 'Device token used for push notifications.', type: 'string', nullable: true, maxLength: 2048, example: 'device-token-abc123'),
         new OA\Property(property: 'active', type: 'boolean', example: true),
         new OA\Property(property: 'email', type: 'string', format: 'email', example: 'john@example.com'),
-        new OA\Property(property: 'password', type: 'string', format: 'password', nullable: true, example: 'password'),
+        new OA\Property(property: 'password', description: 'Optional. Policy depends on the target endpoint: operator policy for users/clients and administrator policy for administrators; compromised passwords are rejected.', type: 'string', format: 'password', nullable: true, minLength: 8, example: 'New-Secure-Password-42!'),
         new OA\Property(
             property: 'group_ids',
             type: 'array',

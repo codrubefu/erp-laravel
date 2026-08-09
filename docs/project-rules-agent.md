@@ -141,6 +141,16 @@ Authorization: Bearer <token>
 
 Login is organization-aware. Preserve `organization_id` behavior when touching auth.
 
+Security rules:
+
+- Keep token lifetime configurable through `config/security.php`; never issue a bearer token without `expires_at`.
+- Password changes and user suspension must revoke all sessions. Use `BearerTokenService::revokeAll()` for incident-driven revocation.
+- Authentication logs may contain outcome, numeric IDs, IP, and a one-way hash of declared identity, but never passwords, raw identities when avoidable, authorization headers, or tokens.
+- Use the named `login`, `callbacks`, and `expensive` limiters. Their keys must retain IP, organization, and declared/authenticated identity; do not replace them with IP-only throttling.
+- New expensive or public callback endpoints must define an appropriate named limiter, document HTTP 429 in OpenAPI, and be added to `docs/functionality-explainer-agent.md`.
+- Password validation must use the beneficiary-configurable Laravel `Password` policies for the correct operator or administrator account type.
+- Production changes must preserve the controls in `docs/deployment-security.md`, especially HTTPS, explicit trusted proxies, secret-manager injection, secure cookies/headers, and branch access through VPN.
+
 ## Authorization and Rights Rules
 
 Users receive rights through groups:
@@ -311,13 +321,17 @@ Payments use:
 - `PaymentService`
 - `ReceiptService`
 - `Payment` model
+- `SubscriptionLifecycleService` for subscription activation
 
 Rules:
 
 - Verify payable records belong to the authenticated organization.
 - Keep callback processing idempotent.
 - Preserve terminal status behavior.
-- Confirmed subscription payments activate the subscription assignment.
+- Confirmed subscription payments must activate the assignment through `SubscriptionLifecycleService::activate()`; do not update lifecycle fields directly from `PaymentService`.
+- Accept an activation payment only when `status === Payment::STATUS_CONFIRMED`, it belongs to the subscription organization, and `model_type` plus `model_id` identify the exact assignment. Never treat `paid_at` alone as confirmation.
+- Keep payment confirmation, receipt issuance, assignment status, activation timestamps, validity dates, and `activation_payment_id` in one transaction.
+- Dispatch the activation notification and write the `subscription.activated` business audit only after commit.
 - Cash payments are immediately confirmed.
 - Receipt downloads require confirmed status and receipt number.
 - Keep callback route public but throttled and signature-protected.
@@ -416,4 +430,3 @@ Before finishing, verify:
 - Side effects are handled: audit, notification, SMS, payment, receipt, jobs.
 - `docs/functionality-explainer-agent.md` is updated if functionality changed.
 - Relevant tests were run, or inability to run them is reported.
-
