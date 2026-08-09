@@ -3,7 +3,7 @@
 use App\Payments\Http\Controllers\Api\PaymentController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/payments/callback', [PaymentController::class, 'callback'])->middleware('throttle:120,1');
+Route::post('/payments/callback', [PaymentController::class, 'callback'])->middleware('throttle:callbacks');
 
 Route::middleware('auth.bearer')->group(function (): void {
     Route::get('/payments', [PaymentController::class, 'index'])

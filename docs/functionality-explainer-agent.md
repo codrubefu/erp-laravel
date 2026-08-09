@@ -66,6 +66,24 @@ Flow:
 3. Authenticated endpoints require `Authorization: Bearer <token>`.
 4. `POST /api/logout` revokes the current token.
 
+Security behavior:
+
+- `POST /api/login` has a dedicated configurable per-minute limiter keyed by IP, organization, and a hash of the declared email.
+- Successful and failed attempts are logged with outcome, user ID when known, organization, IP, and a hash of the declared identity. Passwords and bearer tokens are never logged.
+- Tokens receive `expires_at` from `BEARER_TOKEN_EXPIRATION_MINUTES`; expired tokens and tokens belonging to inactive users are rejected.
+- Changing a password or changing `active` to false deletes every bearer session for that user. Incident-response code can explicitly call `BearerTokenService::revokeAll()`.
+- `PATCH /api/me/password` applies separate configurable Laravel `Password` policies for operators and administrators, including the compromised-password check, and revokes the calling session on success.
+- Main configuration and tests are `config/security.php` and `tests/Feature/ApiSecurityTest.php`.
+
+### API abuse protection and deployment security
+
+- Payment callbacks use the `callbacks` limiter, keyed by IP, declared `X-Organization-Id`, and `X-Provider-Id` or the callback `external_reference`.
+- Financial aggregation/export and dynamic segment member evaluation use the stricter `expensive` limiter, keyed by IP, authenticated organization, and authenticated user ID.
+- A rate-limit rejection returns HTTP `429`; it does not create payments, exports, audit records, notifications, or other business side effects.
+- `SecurityHeaders` adds HSTS on HTTPS plus content-type, frame, referrer, and permissions protections. Explicit proxy addresses are read from `TRUSTED_PROXIES` so HTTPS and client-IP detection remain trustworthy.
+- Production requirements for HTTPS-only ingress, secure cookies, secret management and branch access through VPN are mandatory and documented in `docs/deployment-security.md`.
+- Relevant implementation files are `AppServiceProvider`, `SecurityHeaders`, `bootstrap/app.php`, `routes/payment.php`, and `routes/reporting.php`; no new database table is introduced by these controls.
+
 The project also supports `GET /api/organizations/slug/{slug}` to resolve organization details before login.
 
 ### Authorization

@@ -10,6 +10,7 @@ use App\Users\Services\OrganizationAccessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -33,15 +34,29 @@ class AuthController extends Controller
             ->first();
 
         if (! $user || ! $user->active || $user->password === null || ! Hash::check($credentials['password'], $user->password)) {
+            $this->logAuthentication($request, false, $user?->id, (int) $credentials['organization_id'], $credentials['email']);
             return response()->json([
                 'message' => 'Invalid credentials.',
             ], 401);
         }
 
+        $this->logAuthentication($request, true, $user->id, $user->organization_id, $credentials['email']);
+
         return response()->json([
             'token' => $this->tokens->create($user),
             'token_type' => 'Bearer',
             'user' => $this->organizationAccess->loadUserAccessRelations($user),
+        ]);
+    }
+
+    private function logAuthentication(Request $request, bool $successful, ?int $userId, int $organizationId, string $declaredIdentity): void
+    {
+        Log::info('API authentication attempt', [
+            'successful' => $successful,
+            'user_id' => $userId,
+            'organization_id' => $organizationId,
+            'declared_identity_hash' => hash('sha256', mb_strtolower($declaredIdentity)),
+            'ip' => $request->ip(),
         ]);
     }
 
