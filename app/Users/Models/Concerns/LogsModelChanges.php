@@ -65,6 +65,9 @@ trait LogsModelChanges
 
     protected static function visibleAttributes(Model $model): array
     {
-        return Arr::except($model->attributesToArray(), $model->getHidden());
+        return Arr::except($model->attributesToArray(), array_unique(array_merge(
+            $model->getHidden(),
+            ['cnp', 'password', 'remember_token', 'token', 'access_token', 'refresh_token', 'push_token', 'provider_payload', 'payload', 'secret', 'client_secret'],
+        )));
     }
 }

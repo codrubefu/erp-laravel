@@ -542,3 +542,29 @@ Assignment-urile din `subscription_user` pastreaza statusul lifecycle si legatur
 `POST /api/subscription-assignments/{assignment}/activate` accepta `payment_id` optional: abonamentele cu pret mai mare de 0 necesita o plata confirmata si legata de assignment, iar abonamentele gratuite pot fi activate fara plata. La atasare noua, abonamentele gratuite intra direct in `active` sau `reserved` daca data de start este in viitor; abonamentele platite raman `pending`.
 
 `subscription_history` din `UserResource` trebuie sa expuna statusul lifecycle real din pivot (`pending`, `active`, `expired`, `suspended`, `consumed`, `reserved`) impreuna cu campurile de audit ale assignment-ului. Nu recalcula istoricul doar din `start_date` si `expires_at`.
+
+## Consimțăminte și cereri GDPR
+
+Modulul Users include un registru append-only pentru consimțăminte și un workflow complet pentru drepturile persoanei vizate. Fiecare acord sau retragere creează un rând nou în `consent_records`; rândurile existente nu se actualizează și nu se șterg. Evenimentul păstrează organizația și utilizatorul, scopul, canalul, versiunea politicii, valoarea `granted`, timestamp-ul efectiv, sursa și actorul. `User::consentsTo()` folosește cel mai recent eveniment pentru combinația `notifications` + canal. Migrarea `2026_08_09_000001_create_gdpr_layer.php` importă snapshot-urile JSON istorice din `users.notification_consents` cu sursa `legacy_migration`.
+
+Endpoint-uri self-service, disponibile oricărui utilizator autentificat:
+
+- `GET /api/me/privacy/data` întoarce profilul propriu și istoricul consimțămintelor;
+- `POST /api/me/privacy/exports` creează o cerere și pune în coadă exportul propriu;
+- `PATCH /api/me/privacy/rectification` rectifică numele, telefonul sau e-mailul propriu;
+- `POST /api/me/privacy/consents` adaugă un eveniment de acord sau retragere;
+- `POST /api/me/privacy/erasure-requests` înregistrează o cerere de ștergere;
+- `GET /api/privacy/exports/{export}` întoarce statusul și, pentru un export gata și neexpirat, linkul temporar semnat;
+- `GET /api/privacy/exports/{export}/download` descarcă fișierul privat numai cu semnătură validă, înainte de expirare și pentru persoana vizată sau un operator autorizat.
+
+Endpoint-uri administrative:
+
+- `GET /api/users/{user}/privacy/data` și `POST /api/users/{user}/privacy/exports` cer dreptul `gdpr.export`;
+- `PATCH /api/users/{user}/privacy/rectification`, `POST /api/users/{user}/privacy/consents`, `POST /api/users/{user}/privacy/erasure-requests` și `POST /api/privacy/requests/{gdprRequest}/process` cer dreptul `gdpr.process`;
+- toate verifică explicit că utilizatorul, cererea sau exportul aparține organizației operatorului; accesul cross-tenant răspunde cu 404.
+
+`GeneratePersonalDataExport` procesează asincron exportul și scrie JSON-ul în storage-ul privat, sub `gdpr/{organization_id}/{export_id}.json`. Interogarea persoanei folosește simultan `organization_id` și `user_id`, iar plățile sunt filtrate din nou după organizație. Exportul nu include `provider_payload` sau actorul intern al consimțământului. După generare, `gdpr_exports` primește statusul `ready`, calea și o expirare la 24 de ore. Jobul nu trimite notificări, SMS-uri, nu creează plăți și nu modifică înregistrări financiare.
+
+Procesarea unei cereri de ștergere este implementată de `GdprErasureService`. Workflow-ul șterge recepțiile articolelor, valorile custom și livrările de notificări fără obligație de retenție; anonimizează referințele și valorile din `audit_logs`; păstrează plățile/chitanțele, dar elimină numele, referințele directe și payload-ul furnizorului; revocă tokenurile și asocierile de acces; apoi transformă contul într-un cont inactiv pseudonimizat. `gdpr_requests.execution_proof` păstrează doar politica, momentul și categoriile de acțiuni executate, iar legăturile directe la persoana eliminată sunt șterse. `DELETE /api/users/{user}` pornește același workflow de retenție în locul ștergerii fizice directe.
+
+Tabelele principale sunt `consent_records`, `gdpr_requests` și `gdpr_exports`, împreună cu tabelele clasificate de workflow: `article_user_receipts`, `custom_field_values`, `notification_deliveries`, `audit_logs`, `payments`, `personal_access_tokens`, `group_user`, `location_user` și `users`. Implementarea se află în `GdprController`, `GeneratePersonalDataExport`, `GdprErasureService`, modelele GDPR din `app/Users/Models`, `routes/user.php` și fișierele `app/Users/OpenApi`. `LogsModelChanges` exclude explicit CNP, parole, tokenuri, payload-uri și secrete din snapshot-urile de audit.

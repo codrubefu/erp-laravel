@@ -15,6 +15,8 @@ use App\Users\Models\Scopes\LocationAccessScope;
 use App\Users\Models\User;
 use App\Users\Services\BusinessActivityLogger;
 use App\Users\Services\OrganizationAccessService;
+use App\Users\Models\GdprRequest;
+use App\Users\Services\GdprErasureService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -27,6 +29,7 @@ class UserController extends Controller
     public function __construct(
         private readonly OrganizationAccessService $organizationAccess,
         private readonly BusinessActivityLogger $activityLogger,
+        private readonly GdprErasureService $gdprErasureService,
     )
     {
     }
@@ -218,12 +221,11 @@ class UserController extends Controller
             ], 422);
         }
 
-        DB::transaction(function () use ($user): void {
-            $user->accessTokens()->delete();
-            $user->groups()->detach();
-            $user->locations()->detach();
-            $user->delete();
-        });
+        $gdprRequest = GdprRequest::query()->create([
+            'organization_id' => $user->organization_id, 'user_id' => $user->id, 'type' => 'erasure',
+            'status' => 'pending', 'requested_by' => $request->user()->id,
+        ]);
+        $this->gdprErasureService->execute($gdprRequest, $user, $request->user());
 
         return response()->json(status: 204);
     }
