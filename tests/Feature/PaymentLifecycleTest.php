@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Payments\Models\Payment;
 use App\Payments\Services\PaymentService;
+use App\Subscription\Models\SubscriptionUser;
+use App\Subscription\Services\SubscriptionLifecycleService;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +25,28 @@ class PaymentLifecycleTest extends TestCase
         $this->assertNotNull($payment->receipt_number);
         $this->assertDatabaseHas('subscription_user', [
             'id' => $assignmentId,
+            'status' => 'active',
             'start_date' => now()->toDateString(),
+            'activation_payment_id' => $payment->id,
+        ]);
+    }
+
+    public function test_bank_callback_activates_subscription_and_issues_receipt(): void
+    {
+        [$operator, $assignmentId] = $this->subscriptionAssignment();
+        $payment = app(PaymentService::class)->create($this->paymentData($assignmentId, Payment::TYPE_BANK_TRANSFER), $operator);
+
+        $payment = app(PaymentService::class)->processCallback([
+            'external_reference' => $payment->external_reference,
+            'transaction_id' => 'bank-123',
+            'status' => Payment::STATUS_CONFIRMED,
+        ]);
+
+        $this->assertNotNull($payment->receipt_number);
+        $this->assertDatabaseHas('subscription_user', [
+            'id' => $assignmentId,
+            'status' => 'active',
+            'activation_payment_id' => $payment->id,
         ]);
     }
 
@@ -45,6 +68,7 @@ class PaymentLifecycleTest extends TestCase
 
         $this->assertSame(1, Payment::query()->where('external_reference', $payment->external_reference)->count());
         $this->assertNotNull($payment->refresh()->receipt_number);
+        $this->assertSame($payment->id, DB::table('subscription_user')->where('id', $assignmentId)->value('activation_payment_id'));
     }
 
     public function test_failed_payment_does_not_activate_subscription(): void
@@ -60,6 +84,25 @@ class PaymentLifecycleTest extends TestCase
 
         $this->assertDatabaseHas('payments', ['id' => $payment->id, 'status' => Payment::STATUS_FAILED, 'failure_reason' => 'declined']);
         $this->assertDatabaseHas('subscription_user', ['id' => $assignmentId, 'start_date' => null, 'expires_at' => null]);
+    }
+
+    public function test_confirmed_payment_from_another_organization_cannot_activate_assignment(): void
+    {
+        [$operator, $assignmentId] = $this->subscriptionAssignment();
+        $otherOperator = User::factory()->create();
+        $payment = Payment::query()->create(array_merge($this->paymentData($assignmentId, Payment::TYPE_CARD), [
+            'organization_id' => $otherOperator->organization_id,
+            'admin_id' => $otherOperator->id,
+            'status' => Payment::STATUS_CONFIRMED,
+            'confirmed_at' => now(),
+        ]));
+
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+
+        app(SubscriptionLifecycleService::class)->activate(
+            SubscriptionUser::query()->findOrFail($assignmentId),
+            $payment,
+        );
     }
 
     private function subscriptionAssignment(): array

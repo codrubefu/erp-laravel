@@ -311,13 +311,17 @@ Payments use:
 - `PaymentService`
 - `ReceiptService`
 - `Payment` model
+- `SubscriptionLifecycleService` for subscription activation
 
 Rules:
 
 - Verify payable records belong to the authenticated organization.
 - Keep callback processing idempotent.
 - Preserve terminal status behavior.
-- Confirmed subscription payments activate the subscription assignment.
+- Confirmed subscription payments must activate the assignment through `SubscriptionLifecycleService::activate()`; do not update lifecycle fields directly from `PaymentService`.
+- Accept an activation payment only when `status === Payment::STATUS_CONFIRMED`, it belongs to the subscription organization, and `model_type` plus `model_id` identify the exact assignment. Never treat `paid_at` alone as confirmation.
+- Keep payment confirmation, receipt issuance, assignment status, activation timestamps, validity dates, and `activation_payment_id` in one transaction.
+- Dispatch the activation notification and write the `subscription.activated` business audit only after commit.
 - Cash payments are immediately confirmed.
 - Receipt downloads require confirmed status and receipt number.
 - Keep callback route public but throttled and signature-protected.
@@ -416,4 +420,3 @@ Before finishing, verify:
 - Side effects are handled: audit, notification, SMS, payment, receipt, jobs.
 - `docs/functionality-explainer-agent.md` is updated if functionality changed.
 - Relevant tests were run, or inability to run them is reported.
-

@@ -207,7 +207,7 @@ class ApiEndpoints
     #[OA\Post(
         path: '/subscription-assignments/{assignment}/activate',
         summary: 'Activate a subscription assignment',
-        description: 'Activates a free assignment without payment, or a paid assignment with a confirmed payment linked to the assignment.',
+        description: 'Activates a free assignment without payment, or a paid assignment only when the payment status is confirmed, belongs to the same organization, and model_type/model_id identify this exact subscription_user assignment. paid_at alone does not confirm payment. Lifecycle dates and activation_payment_id are committed atomically; activation notification and audit are emitted after commit.',
         security: [['bearerAuth' => []]],
         tags: ['Subscription'],
         parameters: [
@@ -221,7 +221,7 @@ class ApiEndpoints
             new OA\Response(response: 200, description: 'Assignment activated.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/SubscriptionAssignment')], type: 'object')),
             new OA\Response(response: 403, description: 'Missing subscriptions.update or subscriptions.manage right.'),
             new OA\Response(response: 404, description: 'Assignment or payment not found.'),
-            new OA\Response(response: 422, description: 'Payment is required for paid subscriptions, is not confirmed, is linked to another assignment, or transition is invalid.'),
+            new OA\Response(response: 422, description: 'Payment is required for paid subscriptions, is not confirmed, belongs to another organization, is linked to another assignment, or transition is invalid.'),
         ],
     )]
     public function activateAssignment(): void
