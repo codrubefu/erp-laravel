@@ -314,6 +314,65 @@ class UserCrudTest extends TestCase
         ]);
     }
 
+    public function test_user_code_and_phone_must_be_unique_within_same_organization(): void
+    {
+        $organization = Organization::query()->create(['name' => 'Unique Codes Org', 'slug' => 'unique-codes-org']);
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.manage']);
+        $admin->update(['organization_id' => $organization->id]);
+
+        User::factory()->create([
+            'organization_id' => $organization->id,
+            'email' => 'existing-unique@example.com',
+            'user_code' => 'CARD-001',
+            'phone' => '+40722000001',
+        ]);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/users', [
+                'first_name' => 'Duplicate',
+                'last_name' => 'Identifiers',
+                'email' => 'duplicate-identifiers@example.com',
+                'user_code' => 'CARD-001',
+                'phone' => '+40722000001',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['user_code', 'phone']);
+    }
+
+    public function test_user_code_and_phone_can_be_reused_in_different_organizations(): void
+    {
+        $firstOrganization = Organization::query()->create(['name' => 'First Identifiers Org', 'slug' => 'first-identifiers-org']);
+        $secondOrganization = Organization::query()->create(['name' => 'Second Identifiers Org', 'slug' => 'second-identifiers-org']);
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.manage']);
+        $admin->update(['organization_id' => $secondOrganization->id]);
+
+        User::factory()->create([
+            'organization_id' => $firstOrganization->id,
+            'email' => 'first-identifiers@example.com',
+            'user_code' => 'CARD-001',
+            'phone' => '+40722000001',
+        ]);
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/users', [
+                'first_name' => 'Shared',
+                'last_name' => 'Identifiers',
+                'email' => 'second-identifiers@example.com',
+                'user_code' => 'CARD-001',
+                'phone' => '+40722000001',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.user_code', 'CARD-001')
+            ->assertJsonPath('data.phone', '+40722000001');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $response->json('data.id'),
+            'organization_id' => $secondOrganization->id,
+            'user_code' => 'CARD-001',
+            'phone' => '+40722000001',
+        ]);
+    }
+
     public function test_user_can_have_multiple_active_subscriptions(): void
     {
         [, $token] = $this->authenticatedUserWithRights(['users.manage']);

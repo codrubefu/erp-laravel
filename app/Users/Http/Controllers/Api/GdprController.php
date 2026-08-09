@@ -72,7 +72,13 @@ class GdprController extends Controller
         $subject = $this->subject($request, $user);
         $data = $request->validate([
             'first_name' => ['sometimes', 'string', 'max:255'], 'last_name' => ['sometimes', 'string', 'max:255'],
-            'phone' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'phone' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('users', 'phone')->where('organization_id', $subject->organization_id)->ignore($subject->id),
+            ],
             'email' => ['sometimes', 'email', Rule::unique('users')->where('organization_id', $subject->organization_id)->ignore($subject->id)],
         ]);
         $subject->update($data);

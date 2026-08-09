@@ -200,10 +200,10 @@ use OpenApi\Attributes as OA;
     schema: 'User',
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 35),
-        new OA\Property(property: 'user_code', type: 'string', nullable: true, maxLength: 32, example: 'USR00000000000000000000000000001'),
+        new OA\Property(property: 'user_code', description: 'Unique within the authenticated organization when present.', type: 'string', nullable: true, maxLength: 32, example: 'USR00000000000000000000000000001'),
         new OA\Property(property: 'first_name', type: 'string', example: 'John'),
         new OA\Property(property: 'last_name', type: 'string', example: 'Doe'),
-        new OA\Property(property: 'phone', type: 'string', nullable: true, example: '+15550001111'),
+        new OA\Property(property: 'phone', description: 'Unique within the authenticated organization when present.', type: 'string', nullable: true, example: '+15550001111'),
         new OA\Property(property: 'notification_consents', ref: '#/components/schemas/NotificationConsents'),
         new OA\Property(property: 'push_token', description: 'Device token used for consented push notifications.', type: 'string', nullable: true, maxLength: 2048, example: 'device-token-abc123'),
         new OA\Property(property: 'active', type: 'boolean', example: true),
@@ -255,10 +255,10 @@ use OpenApi\Attributes as OA;
     schema: 'StoreUserRequest',
     required: ['first_name', 'last_name', 'email'],
     properties: [
-        new OA\Property(property: 'user_code', type: 'string', nullable: true, maxLength: 32, example: 'USR00000000000000000000000000001'),
+        new OA\Property(property: 'user_code', description: 'Unique within the authenticated organization when present.', type: 'string', nullable: true, maxLength: 32, example: 'USR00000000000000000000000000001'),
         new OA\Property(property: 'first_name', type: 'string', example: 'John'),
         new OA\Property(property: 'last_name', type: 'string', example: 'Doe'),
-        new OA\Property(property: 'phone', type: 'string', nullable: true, example: '+15550001111'),
+        new OA\Property(property: 'phone', description: 'Unique within the authenticated organization when present.', type: 'string', nullable: true, example: '+15550001111'),
         new OA\Property(property: 'notification_consents', ref: '#/components/schemas/NotificationConsents'),
         new OA\Property(property: 'push_token', description: 'Device token used for push notifications.', type: 'string', nullable: true, maxLength: 2048, example: 'device-token-abc123'),
         new OA\Property(property: 'active', type: 'boolean', example: true),
@@ -294,10 +294,10 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(
     schema: 'UpdateUserRequest',
     properties: [
-        new OA\Property(property: 'user_code', type: 'string', nullable: true, maxLength: 32, example: 'USR00000000000000000000000000001'),
+        new OA\Property(property: 'user_code', description: 'Unique within the organization when present.', type: 'string', nullable: true, maxLength: 32, example: 'USR00000000000000000000000000001'),
         new OA\Property(property: 'first_name', type: 'string', example: 'John'),
         new OA\Property(property: 'last_name', type: 'string', example: 'Doe'),
-        new OA\Property(property: 'phone', type: 'string', nullable: true, example: '+15550001111'),
+        new OA\Property(property: 'phone', description: 'Unique within the organization when present.', type: 'string', nullable: true, example: '+15550001111'),
         new OA\Property(property: 'notification_consents', ref: '#/components/schemas/NotificationConsents'),
         new OA\Property(property: 'push_token', description: 'Device token used for push notifications; send null to remove it.', type: 'string', nullable: true, maxLength: 2048, example: 'device-token-abc123'),
         new OA\Property(property: 'active', type: 'boolean', example: true),
@@ -460,7 +460,7 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'first_name', type: 'string', example: 'Maria'),
         new OA\Property(property: 'last_name', type: 'string', example: 'Popescu'),
-        new OA\Property(property: 'phone', type: 'string', nullable: true, example: '+40722111222'),
+        new OA\Property(property: 'phone', description: 'Unique within the organization when present.', type: 'string', nullable: true, example: '+40722111222'),
         new OA\Property(property: 'email', type: 'string', format: 'email', example: 'maria@example.com'),
     ],
     type: 'object',

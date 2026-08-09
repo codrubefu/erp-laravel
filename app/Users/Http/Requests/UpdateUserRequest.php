@@ -17,10 +17,24 @@ class UpdateUserRequest extends FormRequest
         $user = $this->route('user');
 
         return [
-            'user_code' => ['nullable', 'string', 'max:32'],
+            'user_code' => [
+                'nullable',
+                'string',
+                'max:32',
+                Rule::unique('users', 'user_code')
+                    ->where('organization_id', $user?->organization_id)
+                    ->ignore($user?->id),
+            ],
             'first_name' => ['sometimes', 'required', 'string', 'max:255'],
             'last_name' => ['sometimes', 'required', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:255'],
+            'phone' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('users', 'phone')
+                    ->where('organization_id', $user?->organization_id)
+                    ->ignore($user?->id),
+            ],
             'active' => ['sometimes', 'boolean'],
             'email' => [
                 'sometimes',

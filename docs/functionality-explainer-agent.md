@@ -152,6 +152,7 @@ Functional behavior:
 - Administrators are users with groups, excluding users who only have `profile.view`.
 - Clients are users with no groups or only `profile.view`.
 - Users can have groups, locations, subscriptions, notification consents, push tokens, and user codes.
+- User e-mail, user code, and phone are unique within the organization when present; the same values may be reused in another organization.
 - Users cannot delete their own account.
 - User visibility is affected by location access scope.
 - Subscription sync detaches old subscriptions, attaches new ones, calculates expiration, logs activity, and dispatches subscription activation notifications.

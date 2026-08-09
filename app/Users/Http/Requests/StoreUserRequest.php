@@ -16,10 +16,20 @@ class StoreUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_code' => ['nullable', 'string', 'max:32'],
+            'user_code' => [
+                'nullable',
+                'string',
+                'max:32',
+                Rule::unique('users', 'user_code')->where('organization_id', $this->user()?->organization_id),
+            ],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:255'],
+            'phone' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('users', 'phone')->where('organization_id', $this->user()?->organization_id),
+            ],
             'active' => ['sometimes', 'boolean'],
             'email' => [
                 'required',
