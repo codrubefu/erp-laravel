@@ -6,6 +6,7 @@ use App\Users\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Campaigns\Models\Campaign;
 
 class NotificationDelivery extends Model
 {
@@ -15,4 +16,5 @@ class NotificationDelivery extends Model
 
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
     public function attempts(): HasMany { return $this->hasMany(NotificationAttempt::class); }
+    public function campaign(): BelongsTo { return $this->belongsTo(Campaign::class); }
 }

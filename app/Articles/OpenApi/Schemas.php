@@ -15,6 +15,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'priority', description: 'Higher values are displayed first in the user feed.', type: 'integer', minimum: 0, example: 10),
         new OA\Property(property: 'status', description: 'Current publication lifecycle state.', type: 'string', enum: ['draft', 'scheduled', 'published', 'expired'], example: 'published'),
         new OA\Property(property: 'audience_segment', description: 'Users eligible to receive the announcement. The groups and locations segments use the corresponding ID arrays.', type: 'string', enum: ['all_users', 'active_subscribers', 'expired_users', 'groups', 'locations'], example: 'groups'),
+        new OA\Property(property: 'segment_id', description: 'Optional dynamic segment from the same organization. When present, visibility is evaluated from the current segment membership.', type: 'integer', nullable: true, example: 3),
         new OA\Property(property: 'created_by', type: 'integer', example: 1),
         new OA\Property(property: 'organization_id', type: 'integer', nullable: true, example: 1),
         new OA\Property(property: 'author', ref: '#/components/schemas/User'),
@@ -47,6 +48,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'priority', type: 'integer', minimum: 0),
         new OA\Property(property: 'status', type: 'string', enum: ['draft', 'scheduled', 'published', 'expired']),
         new OA\Property(property: 'audience_segment', description: 'Use groups or locations together with the corresponding ID array.', type: 'string', enum: ['all_users', 'active_subscribers', 'expired_users', 'groups', 'locations'], example: 'all_users'),
+        new OA\Property(property: 'segment_id', description: 'Dynamic segment ID from the authenticated organization.', type: 'integer', nullable: true, example: 3),
         new OA\Property(
             property: 'groups',
             type: 'array',
@@ -72,6 +74,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'priority', type: 'integer', minimum: 0),
         new OA\Property(property: 'status', type: 'string', enum: ['draft', 'scheduled', 'published', 'expired']),
         new OA\Property(property: 'audience_segment', description: 'Use groups or locations together with the corresponding ID array.', type: 'string', enum: ['all_users', 'active_subscribers', 'expired_users', 'groups', 'locations']),
+        new OA\Property(property: 'segment_id', description: 'Dynamic segment ID from the authenticated organization; null removes dynamic targeting.', type: 'integer', nullable: true, example: 3),
         new OA\Property(
             property: 'groups',
             type: 'array',

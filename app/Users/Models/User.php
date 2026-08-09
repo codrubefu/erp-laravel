@@ -24,6 +24,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Notifications\Models\NotificationPreference;
+use App\Notifications\Models\PushDevice;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -130,14 +132,25 @@ class User extends Authenticatable
 
     public function consentsTo(string $channel): bool
     {
-        return (bool) ($this->notification_consents[$channel] ?? false)
+        return $this->consentsToScope($channel, 'all');
+    }
+
+    public function consentsToScope(string $channel, string $scope): bool
+    {
+        $optedOut = $this->notificationPreferences()->where('channel', $channel)
+            ->whereIn('scope', ['all', $scope])->where('subscribed', false)->exists();
+
+        return ! $optedOut && (bool) ($this->notification_consents[$channel] ?? false)
             && match ($channel) {
                 'sms' => filled($this->phone),
                 'mail' => filled($this->email),
-                'push' => filled($this->push_token),
+                'push' => $this->pushDevices()->exists() || filled($this->push_token),
                 default => false,
             };
     }
+
+    public function notificationPreferences(): HasMany { return $this->hasMany(NotificationPreference::class); }
+    public function pushDevices(): HasMany { return $this->hasMany(PushDevice::class); }
 
     /**
      * Get the attributes that should be cast.

@@ -8,6 +8,23 @@ use Illuminate\Database\Eloquent\Builder;
 
 class SegmentService
 {
+    /** @return array<int, int> */
+    public function segmentIdsFor(User $user): array
+    {
+        return Segment::query()->where('organization_id', $user->organization_id)->get()
+            ->filter(fn (Segment $segment) => $this->contains($segment, $user))
+            ->modelKeys();
+    }
+
+    public function contains(Segment $segment, User $user): bool
+    {
+        if ((int) $segment->organization_id !== (int) $user->organization_id) {
+            return false;
+        }
+
+        return $this->members($segment)->whereKey($user->getKey())->exists();
+    }
+
     /**
      * Builds the tenant-safe member query reused by reports, announcements and campaigns.
      */

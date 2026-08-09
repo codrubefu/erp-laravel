@@ -23,6 +23,7 @@ class UpdateArticleRequest extends FormRequest
             'priority' => ['sometimes', 'integer', 'min:0'],
             'status' => ['sometimes', Rule::in(Article::STATUSES)],
             'audience_segment' => ['sometimes', Rule::in(Article::AUDIENCE_SEGMENTS)],
+            'segment_id' => ['sometimes', 'nullable', 'integer', Rule::exists('segments', 'id')->where('organization_id', $this->user()->organization_id)],
             'groups' => ['sometimes', 'array'],
             'groups.*' => ['integer', Rule::exists('groups', 'id')->where('organization_id', $this->user()->organization_id)],
             'locations' => ['sometimes', 'array'],
