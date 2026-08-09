@@ -95,7 +95,7 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(
     schema: 'ActivateSubscriptionAssignmentRequest',
     properties: [
-        new OA\Property(property: 'payment_id', type: 'integer', nullable: true, example: 42),
+        new OA\Property(property: 'payment_id', type: 'integer', nullable: true, example: 42, description: 'Required for paid subscriptions. The payment must have status confirmed, belong to the same organization, and reference this exact subscription_user assignment.'),
     ],
     type: 'object',
 )]

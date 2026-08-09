@@ -332,6 +332,7 @@ Main services:
 
 - `app/Payments/Services/PaymentService.php`
 - `app/Payments/Services/ReceiptService.php`
+- `app/Subscription/Services/SubscriptionLifecycleService.php` for subscription assignment activation
 
 Routes:
 
@@ -351,10 +352,13 @@ Functional behavior:
 - Payment creation verifies the payable record belongs to the authenticated organization.
 - Cash payments are immediately confirmed.
 - Non-cash payments start as initiated and are updated by callback.
-- Confirmed subscription payments activate the related subscription assignment and calculate expiration based on subscription duration.
-- Confirmed payments receive a receipt number.
+- Confirmed subscription payments are delegated to `SubscriptionLifecycleService::activate()`; the payment service does not update `subscription_user` directly.
+- A payment can activate an assignment only when its `status` is exactly `confirmed`, its `organization_id` matches the subscription organization, and its `model_type`/`model_id` point to that exact `subscription_user` row. A populated `paid_at` field alone is not confirmation.
+- Activation locks the assignment and atomically writes its lifecycle `status`, `start_date`, `expires_at`, `activated_at`, and `activation_payment_id`. Expiration follows the subscription's `expiration_rule` (`duration`, `fixed_date`, or `none`), including future starts becoming `reserved`.
+- Confirmed payments receive a receipt number in the same transaction as subscription activation.
 - Receipt download is allowed only for confirmed payments with receipt numbers.
-- Callback processing is idempotent and handles terminal statuses.
+- Callback processing is idempotent and handles terminal statuses; a duplicate confirmed callback does not activate or notify twice.
+- The `subscription.activated` notification and audit business event are emitted only after the activation transaction commits, so rolled-back activations have no external activation side effects.
 - Callback signatures use `services.payments.callback_secret`.
 
 ### SMS
@@ -421,7 +425,7 @@ Main files:
 Functional behavior:
 
 - Model changes are logged for models using `LogsModelChanges`.
-- Business events include user creation/update/delete, subscription assignment/renewal/suspension, payment recorded, approval granted, card issued, and SMS sent.
+- Business events include user creation/update/delete, subscription assignment/activation/renewal/suspension, payment recorded, approval granted, card issued, and SMS sent.
 - Sensitive fields such as passwords, tokens, CNP/personal numeric code, authorization values, and secrets are removed from logged payloads.
 - User activity can be retrieved through `GET /api/users/{user}/activity`.
 
@@ -539,6 +543,8 @@ Endpoint-ul nu produce side effects: nu creeaza plati, nu trimite SMS-uri/notifi
 
 Assignment-urile din `subscription_user` pastreaza statusul lifecycle si legatura de plata prin `activation_payment_id`. La sincronizarea abonamentelor unui utilizator, codul trebuie sa detaseze doar abonamentele eliminate si sa actualizeze pivot-ul existent pentru abonamentele pastrate, altfel se pierde istoricul si plata asociata.
 
-`POST /api/subscription-assignments/{assignment}/activate` accepta `payment_id` optional: abonamentele cu pret mai mare de 0 necesita o plata confirmata si legata de assignment, iar abonamentele gratuite pot fi activate fara plata. La atasare noua, abonamentele gratuite intra direct in `active` sau `reserved` daca data de start este in viitor; abonamentele platite raman `pending`.
+`POST /api/subscription-assignments/{assignment}/activate` accepta `payment_id` optional: abonamentele cu pret mai mare de 0 necesita o plata cu status explicit `confirmed`, din aceeasi organizatie si legata exact de assignment prin `model_type=subscription_user` si `model_id`; simpla completare a `paid_at` nu confirma plata. Abonamentele gratuite pot fi activate fara plata. La atasare noua, abonamentele gratuite intra direct in `active` sau `reserved` daca data de start este in viitor; abonamentele platite raman `pending`.
+
+Pentru platile cash, confirmarea, numarul chitantei si activarea assignment-ului sunt salvate atomic. Pentru card si transfer bancar, acelasi flux ruleaza la callback-ul confirmat. Activarea seteaza `status`, `start_date`, `expires_at`, `activated_at` si `activation_payment_id` prin `SubscriptionLifecycleService`; notificarea si auditul `subscription.activated` sunt emise numai dupa commit. Callback-urile confirmate duplicate sunt idempotente si nu repeta aceste efecte.
 
 `subscription_history` din `UserResource` trebuie sa expuna statusul lifecycle real din pivot (`pending`, `active`, `expired`, `suspended`, `consumed`, `reserved`) impreuna cu campurile de audit ale assignment-ului. Nu recalcula istoricul doar din `start_date` si `expires_at`.
