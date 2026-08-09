@@ -14,7 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class PaymentController extends Controller
 {
@@ -52,7 +52,7 @@ class PaymentController extends Controller
         return response()->json(['data' => new PaymentResource($this->payments->processCallback($data))]);
     }
 
-    public function receipt(Request $request, Payment $payment): StreamedResponse
+    public function receipt(Request $request, Payment $payment): Response
     {
         abort_unless((int) $payment->organization_id === (int) $request->user()->organization_id, 404);
         abort_unless($payment->status === Payment::STATUS_CONFIRMED && $payment->receipt_number !== null, 409, 'Receipt is only available for confirmed payments.');

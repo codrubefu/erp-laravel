@@ -160,9 +160,9 @@ class ApiEndpoints
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Receipt text file.',
+                description: 'Receipt PDF file.',
                 content: new OA\MediaType(
-                    mediaType: 'text/plain',
+                    mediaType: 'application/pdf',
                     schema: new OA\Schema(type: 'string', format: 'binary'),
                 ),
             ),

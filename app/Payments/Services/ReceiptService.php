@@ -3,22 +3,30 @@
 namespace App\Payments\Services;
 
 use App\Payments\Models\Payment;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Dompdf\Dompdf;
+use Dompdf\Options;
+use Symfony\Component\HttpFoundation\Response;
 
 class ReceiptService
 {
-    public function download(Payment $payment): StreamedResponse
+    public function download(Payment $payment): Response
     {
-        $content = implode("\n", [
-            'CHITANTA '.$payment->receipt_number,
-            'Data: '.$payment->confirmed_at?->format('Y-m-d H:i:s'),
-            'Platitor: '.$payment->first_name.' '.$payment->last_name,
-            'Suma: '.$payment->amount,
-            'Referinta: '.$payment->external_reference,
-        ])."\n";
+        $payment->loadMissing(['admin', 'location']);
 
-        return response()->streamDownload(static function () use ($content): void {
-            echo $content;
-        }, $payment->receipt_number.'.txt', ['Content-Type' => 'text/plain; charset=UTF-8']);
+        $options = new Options();
+        $options->set('defaultFont', 'DejaVu Sans');
+        $options->set('isRemoteEnabled', false);
+        $options->set('isHtml5ParserEnabled', true);
+
+        $pdf = new Dompdf($options);
+        $pdf->loadHtml(view('payments.receipt', ['payment' => $payment])->render(), 'UTF-8');
+        $pdf->setPaper('a4');
+        $pdf->render();
+
+        return response($pdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$payment->receipt_number.'.pdf"',
+            'Cache-Control' => 'private, max-age=0, must-revalidate',
+        ]);
     }
 }
