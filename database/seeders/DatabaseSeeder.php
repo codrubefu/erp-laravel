@@ -52,6 +52,8 @@ class DatabaseSeeder extends Seeder
             ['name' => 'reports.export', 'label' => 'Export financial reports', 'description' => 'Generate and download financial exports.'],
             ['name' => 'segments.view', 'label' => 'View segments', 'description' => 'Read and evaluate saved member segments.'],
             ['name' => 'segments.manage', 'label' => 'Manage segments', 'description' => 'Create, update, and delete saved member segments.'],
+            ['name' => 'gdpr.export', 'label' => 'Export personal data', 'description' => 'Access and export personal data for tenant users.'],
+            ['name' => 'gdpr.process', 'label' => 'Process GDPR requests', 'description' => 'Rectify data and process erasure requests.'],
         ])
             ->merge(LocationGroupRightsSeeder::rights())
             ->merge(CustomFieldRightsSeeder::rights())

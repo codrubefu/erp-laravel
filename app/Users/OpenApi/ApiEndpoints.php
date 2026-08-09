@@ -1243,20 +1243,107 @@ class ApiEndpoints
 
     #[OA\Delete(
         path: '/users/{user}',
-        summary: 'Delete a user',
+        summary: 'Execute the GDPR retention and erasure workflow for a user',
         security: [['bearerAuth' => []]],
         tags: ['Users'],
         parameters: [
             new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 204, description: 'User deleted.'),
+            new OA\Response(response: 204, description: 'Documents deleted, activity anonymized, financial records minimized, and account anonymized.'),
             new OA\Response(response: 403, description: 'Missing users.manage right.'),
             new OA\Response(response: 404, description: 'User not found.'),
             new OA\Response(response: 422, description: 'Cannot delete your own user account.'),
         ],
     )]
     public function usersDestroy(): void
+    {
+    }
+
+    #[OA\Get(path: '/me/privacy/data', summary: 'Access own personal data', security: [['bearerAuth' => []]], tags: ['GDPR'], responses: [
+        new OA\Response(response: 200, description: 'Personal profile and consent history.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/GdprDataAccess')], type: 'object')),
+        new OA\Response(response: 401, description: 'Unauthenticated.'),
+    ])]
+    public function gdprSelfAccess(): void
+    {
+    }
+
+    #[OA\Post(path: '/me/privacy/exports', summary: 'Queue an export of own personal data', security: [['bearerAuth' => []]], tags: ['GDPR'], responses: [
+        new OA\Response(response: 202, description: 'Export queued.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/GdprExport')], type: 'object')),
+        new OA\Response(response: 401, description: 'Unauthenticated.'),
+    ])]
+    public function gdprSelfExport(): void
+    {
+    }
+
+    #[OA\Patch(path: '/me/privacy/rectification', summary: 'Rectify own profile data', security: [['bearerAuth' => []]], tags: ['GDPR'], requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/GdprRectificationRequest')), responses: [
+        new OA\Response(response: 200, description: 'Profile rectified.'),
+        new OA\Response(response: 422, description: 'Validation failed.'),
+    ])]
+    public function gdprSelfRectification(): void
+    {
+    }
+
+    #[OA\Post(path: '/me/privacy/consents', summary: 'Append an own consent or withdrawal event', security: [['bearerAuth' => []]], tags: ['GDPR'], requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/ConsentRecordRequest')), responses: [
+        new OA\Response(response: 201, description: 'Consent event appended.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/ConsentRecord')], type: 'object')),
+        new OA\Response(response: 422, description: 'Validation failed.'),
+    ])]
+    public function gdprSelfConsent(): void
+    {
+    }
+
+    #[OA\Post(path: '/me/privacy/erasure-requests', summary: 'Request erasure of own data', security: [['bearerAuth' => []]], tags: ['GDPR'], responses: [
+        new OA\Response(response: 202, description: 'Erasure request recorded.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/GdprRequest')], type: 'object')),
+    ])]
+    public function gdprSelfErasure(): void
+    {
+    }
+
+    #[OA\Get(path: '/privacy/exports/{export}', summary: 'Get export status and temporary download URL', security: [['bearerAuth' => []]], tags: ['GDPR'], parameters: [new OA\PathParameter(name: 'export', required: true, schema: new OA\Schema(type: 'string', format: 'uuid'))], responses: [
+        new OA\Response(response: 200, description: 'Export status.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/GdprExport')], type: 'object')),
+        new OA\Response(response: 403, description: 'Not the data subject and missing gdpr.export right.'),
+        new OA\Response(response: 404, description: 'Export not found in current tenant.'),
+    ])]
+    public function gdprExportStatus(): void
+    {
+    }
+
+    #[OA\Get(path: '/privacy/exports/{export}/download', summary: 'Download an unexpired private export', security: [['bearerAuth' => []]], tags: ['GDPR'], parameters: [new OA\PathParameter(name: 'export', required: true, schema: new OA\Schema(type: 'string', format: 'uuid'))], responses: [
+        new OA\Response(response: 200, description: 'JSON export file.', content: new OA\MediaType(mediaType: 'application/json')),
+        new OA\Response(response: 403, description: 'Invalid/expired signature or insufficient access.'),
+        new OA\Response(response: 404, description: 'Export not found in current tenant.'),
+    ])]
+    public function gdprExportDownload(): void
+    {
+    }
+
+    #[OA\Get(path: '/users/{user}/privacy/data', summary: 'Administratively access a user data set (requires gdpr.export)', security: [['bearerAuth' => []]], tags: ['GDPR'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer'))], responses: [new OA\Response(response: 200, description: 'Tenant user data.'), new OA\Response(response: 403, description: 'Missing gdpr.export right.'), new OA\Response(response: 404, description: 'User not found in current tenant.')])]
+    public function gdprAdminAccess(): void
+    {
+    }
+
+    #[OA\Post(path: '/users/{user}/privacy/exports', summary: 'Administratively queue a user export (requires gdpr.export)', security: [['bearerAuth' => []]], tags: ['GDPR'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer'))], responses: [new OA\Response(response: 202, description: 'Export queued.'), new OA\Response(response: 403, description: 'Missing gdpr.export right.'), new OA\Response(response: 404, description: 'User not found in current tenant.')])]
+    public function gdprAdminExport(): void
+    {
+    }
+
+    #[OA\Patch(path: '/users/{user}/privacy/rectification', summary: 'Administratively rectify user data (requires gdpr.process)', security: [['bearerAuth' => []]], tags: ['GDPR'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer'))], requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/GdprRectificationRequest')), responses: [new OA\Response(response: 200, description: 'Profile rectified.'), new OA\Response(response: 403, description: 'Missing gdpr.process right.'), new OA\Response(response: 422, description: 'Validation failed.')])]
+    public function gdprAdminRectification(): void
+    {
+    }
+
+    #[OA\Post(path: '/users/{user}/privacy/consents', summary: 'Administratively append a consent event (requires gdpr.process)', security: [['bearerAuth' => []]], tags: ['GDPR'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer'))], requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/ConsentRecordRequest')), responses: [new OA\Response(response: 201, description: 'Consent event appended.'), new OA\Response(response: 403, description: 'Missing gdpr.process right.'), new OA\Response(response: 422, description: 'Validation failed.')])]
+    public function gdprAdminConsent(): void
+    {
+    }
+
+    #[OA\Post(path: '/users/{user}/privacy/erasure-requests', summary: 'Administratively create an erasure request (requires gdpr.process)', security: [['bearerAuth' => []]], tags: ['GDPR'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer'))], responses: [new OA\Response(response: 202, description: 'Erasure request recorded.'), new OA\Response(response: 403, description: 'Missing gdpr.process right.'), new OA\Response(response: 404, description: 'User not found in current tenant.')])]
+    public function gdprAdminErasure(): void
+    {
+    }
+
+    #[OA\Post(path: '/privacy/requests/{gdprRequest}/process', summary: 'Process a pending erasure request (requires gdpr.process)', security: [['bearerAuth' => []]], tags: ['GDPR'], parameters: [new OA\PathParameter(name: 'gdprRequest', required: true, schema: new OA\Schema(type: 'string', format: 'uuid'))], responses: [new OA\Response(response: 200, description: 'Retention workflow completed.'), new OA\Response(response: 403, description: 'Missing gdpr.process right.'), new OA\Response(response: 404, description: 'Request not found in current tenant.'), new OA\Response(response: 422, description: 'Request cannot be processed or actor is the subject.')])]
+    public function gdprProcessErasure(): void
     {
     }
 }

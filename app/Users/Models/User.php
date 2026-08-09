@@ -61,6 +61,11 @@ class User extends Authenticatable
         return $this->hasMany(PersonalAccessToken::class);
     }
 
+    public function consentRecords(): HasMany
+    {
+        return $this->hasMany(ConsentRecord::class);
+    }
+
     public function registeredPayments(): HasMany
     {
         return $this->hasMany(Payment::class, 'admin_id');
@@ -142,10 +147,13 @@ class User extends Authenticatable
 
     public function consentsToScope(string $channel, string $scope): bool
     {
+        $granted = $this->consentRecords()->where('purpose', 'notifications')->where('channel', $channel)
+            ->latest('occurred_at')->latest('id')->value('granted');
+
         $optedOut = $this->notificationPreferences()->where('channel', $channel)
             ->whereIn('scope', ['all', $scope])->where('subscribed', false)->exists();
 
-        return ! $optedOut && (bool) ($this->notification_consents[$channel] ?? false)
+        return ! $optedOut && (bool) $granted
             && match ($channel) {
                 'sms' => filled($this->phone),
                 'mail' => filled($this->email),

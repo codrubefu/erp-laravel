@@ -428,6 +428,72 @@ use OpenApi\Attributes as OA;
     ],
     type: 'object',
 )]
+#[OA\Schema(
+    schema: 'ConsentRecord',
+    required: ['purpose', 'channel', 'policy_version', 'granted', 'occurred_at', 'source'],
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 81),
+        new OA\Property(property: 'purpose', type: 'string', example: 'notifications'),
+        new OA\Property(property: 'channel', type: 'string', enum: ['sms', 'mail', 'push'], example: 'mail'),
+        new OA\Property(property: 'policy_version', type: 'string', example: '2026-08'),
+        new OA\Property(property: 'granted', description: 'False represents a withdrawal event.', type: 'boolean', example: false),
+        new OA\Property(property: 'occurred_at', type: 'string', format: 'date-time'),
+        new OA\Property(property: 'source', type: 'string', example: 'self_service'),
+        new OA\Property(property: 'actor_id', type: 'integer', nullable: true, example: 7),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'ConsentRecordRequest',
+    required: ['purpose', 'channel', 'policy_version', 'granted'],
+    properties: [
+        new OA\Property(property: 'purpose', type: 'string', maxLength: 100, example: 'notifications'),
+        new OA\Property(property: 'channel', type: 'string', enum: ['sms', 'mail', 'push'], example: 'mail'),
+        new OA\Property(property: 'policy_version', type: 'string', maxLength: 40, example: '2026-08'),
+        new OA\Property(property: 'granted', type: 'boolean', example: false),
+        new OA\Property(property: 'source', type: 'string', maxLength: 64, nullable: true, example: 'self_service'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'GdprRectificationRequest',
+    properties: [
+        new OA\Property(property: 'first_name', type: 'string', example: 'Maria'),
+        new OA\Property(property: 'last_name', type: 'string', example: 'Popescu'),
+        new OA\Property(property: 'phone', type: 'string', nullable: true, example: '+40722111222'),
+        new OA\Property(property: 'email', type: 'string', format: 'email', example: 'maria@example.com'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'GdprRequest',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'type', type: 'string', enum: ['export', 'rectification', 'erasure'], example: 'erasure'),
+        new OA\Property(property: 'status', type: 'string', enum: ['pending', 'processing', 'completed', 'failed'], example: 'pending'),
+        new OA\Property(property: 'processed_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'execution_proof', type: 'object', nullable: true, additionalProperties: new OA\AdditionalProperties()),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'GdprExport',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'status', type: 'string', enum: ['pending', 'ready', 'failed'], example: 'ready'),
+        new OA\Property(property: 'expires_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'download_url', description: 'Temporary signed URL, returned only while the export is ready and unexpired.', type: 'string', format: 'uri', nullable: true),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'GdprDataAccess',
+    properties: [
+        new OA\Property(property: 'profile', ref: '#/components/schemas/User'),
+        new OA\Property(property: 'consents', type: 'array', items: new OA\Items(ref: '#/components/schemas/ConsentRecord')),
+    ],
+    type: 'object',
+)]
 class Schemas
 {
 }

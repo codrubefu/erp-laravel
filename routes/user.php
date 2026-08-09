@@ -2,6 +2,7 @@
 
 use App\Users\Http\Controllers\Api\AuthController;
 use App\Users\Http\Controllers\Api\GroupController;
+use App\Users\Http\Controllers\Api\GdprController;
 use App\Users\Http\Controllers\Api\LocationController;
 use App\Users\Http\Controllers\Api\LocationGroupController;
 use App\Users\Http\Controllers\Api\MeController;
@@ -20,6 +21,20 @@ Route::middleware('auth.bearer')->group(function (): void {
     Route::get('/me/events', [MeController::class, 'events']);
     Route::get('/me/subscriptions', [MeController::class, 'subscriptions']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/me/privacy/data', [GdprController::class, 'access']);
+    Route::post('/me/privacy/exports', [GdprController::class, 'export']);
+    Route::patch('/me/privacy/rectification', [GdprController::class, 'rectify']);
+    Route::post('/me/privacy/consents', [GdprController::class, 'consent']);
+    Route::post('/me/privacy/erasure-requests', [GdprController::class, 'requestErasure']);
+    Route::get('/privacy/exports/{export}', [GdprController::class, 'exportStatus']);
+    Route::get('/privacy/exports/{export}/download', [GdprController::class, 'download'])->name('gdpr.exports.download');
+
+    Route::get('/users/{user}/privacy/data', [GdprController::class, 'access'])->middleware('right:gdpr.export');
+    Route::post('/users/{user}/privacy/exports', [GdprController::class, 'export'])->middleware('right:gdpr.export');
+    Route::patch('/users/{user}/privacy/rectification', [GdprController::class, 'rectify'])->middleware('right:gdpr.process');
+    Route::post('/users/{user}/privacy/consents', [GdprController::class, 'consent'])->middleware('right:gdpr.process');
+    Route::post('/users/{user}/privacy/erasure-requests', [GdprController::class, 'requestErasure'])->middleware('right:gdpr.process');
+    Route::post('/privacy/requests/{gdprRequest}/process', [GdprController::class, 'process'])->middleware('right:gdpr.process');
 
     Route::get('/rights', [RightController::class, 'index'])->middleware('right:rights.view');
     Route::post('/rights', [RightController::class, 'store'])->middleware('right:rights.manage');
