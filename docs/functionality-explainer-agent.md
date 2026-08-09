@@ -44,6 +44,9 @@ API routes are split by module and included from `routes/api.php`:
 - `routes/custom-fields.php`
 - `routes/sms.php`
 - `routes/payment.php`
+- `routes/reporting.php`
+- `routes/dashboard.php`
+- `routes/campaign.php`
 
 Most endpoints are protected by `auth.bearer`. Permission checks use the custom middleware `right:...`.
 
@@ -301,14 +304,45 @@ Routes:
 
 Functional behavior:
 
-- Articles have title, description, status, publish date, expiration date, priority, audience segment, and author.
+- Articles have title, description, status, publish date, expiration date, priority, audience segment, optional dynamic `segment_id`, and author.
 - Statuses: `draft`, `scheduled`, `published`, `expired`.
 - Audience segments: `all_users`, `active_subscribers`, `expired_users`, `groups`, `locations`.
 - Feed visibility is calculated per user using organization, publication status, dates, segment, group membership, location membership, and subscription status.
+- When `segment_id` is present, `Article::scopeVisibleTo()` asks `SegmentService` for current membership. Both the segment and user must belong to the article organization; an ID from another tenant is rejected by create/update validation and never grants feed visibility.
 - `GET /api/articles-feed` records delivery receipts.
 - `POST /api/articles/{article}/view` records view time.
 - Receipts are stored in `article_user_receipts`.
 - Scheduled job `TransitionArticlePublicationStatus` publishes scheduled articles and expires outdated articles.
+
+### E-mail and Push Campaigns
+
+Main files:
+
+- `app/Campaigns/Http/Controllers/Api/CampaignController.php`
+- `app/Campaigns/Models/Campaign.php`
+- `app/Campaigns/Services/CampaignService.php`
+- `app/Campaigns/Jobs/DispatchCampaign.php`
+- `routes/campaign.php`
+
+Authenticated routes:
+
+- `GET /api/campaigns`
+- `POST /api/campaigns`
+- `PUT/PATCH /api/campaigns/{campaign}`
+- `GET /api/campaigns/{campaign}/preview`
+- `POST /api/campaigns/{campaign}/schedule`
+- `POST /api/campaigns/{campaign}/cancel`
+- `GET /api/campaigns/{campaign}/statistics`
+
+Functional behavior:
+
+- Campaigns are organization-scoped drafts for the `mail` or `push` channel and can optionally reference a dynamic segment from the same organization.
+- Draft content and audience can be edited. Preview returns the complete current recipient count and at most 100 recipient rows.
+- Scheduling does not freeze recipients. The every-minute scheduler queues `DispatchCampaign`, and `CampaignService` evaluates the dynamic segment when dispatch becomes due, so eligibility changes between scheduling and delivery are honored.
+- Dispatch creates campaign-linked `notification_deliveries` and uses `campaign:{campaign_id} + user_id + channel` for idempotency. Re-running dispatch does not duplicate deliveries.
+- Draft or scheduled campaigns can be cancelled; already sent or cancelled campaigns reject cancellation.
+- Statistics aggregate pending, sent, failed, and consent-skipped deliveries.
+- Main tables are `campaigns` and the existing `notification_deliveries`; campaign dispatch also produces `notification_attempts` during actual sends.
 
 ### Custom Fields
 
@@ -412,11 +446,16 @@ Main files:
 - `app/Notifications/Jobs/DispatchSubscriptionLifecycleNotifications.php`
 - `config/notifications.php`
 - `database/migrations/2026_08_06_000001_create_notification_layer.php`
+- `database/migrations/2026_08_09_000001_create_campaigns_and_notification_preferences.php`
 
 Functional behavior:
 
 - Feature code dispatches `NotificationRequested`.
 - The listener checks user consent for `sms`, `mail`, and `push`.
+- `PUT /api/notification-preferences` lets the authenticated user subscribe or unsubscribe by channel and scope. Scope `all` blocks the complete channel, while `campaigns` controls campaign messages.
+- Consent is checked again by `SendNotificationDelivery` immediately before calling the provider. A withdrawn consent changes the delivery to `skipped` with reason `consent`, even if the user was eligible when the campaign was scheduled or expanded.
+- `POST /api/push-devices` registers or refreshes one of multiple push tokens, and `DELETE /api/push-devices/{device}` removes an owned device. These self-service endpoints require bearer authentication but no administrative right.
+- Push sends target every row in `push_devices` for the user. Provider responses `404` and `410` delete invalid tokens; the legacy `users.push_token` is used only as a compatibility fallback when no device rows exist.
 - For every allowed channel, it creates one `notification_deliveries` row.
 - Unique key `event_key + user_id + channel` prevents duplicate sends for the same event/channel.
 - New deliveries dispatch `SendNotificationDelivery`.
@@ -454,6 +493,7 @@ Scheduled in `routes/console.php`:
 - `DispatchSubscriptionLifecycleNotifications`: daily at 08:00, sends generic subscription lifecycle notifications.
 - `SendExpiringSubscriptionSms`: daily, sends legacy SMS subscription expiration notices.
 - `TransitionArticlePublicationStatus`: every minute, publishes scheduled articles and expires old articles.
+- Campaign scheduler callback: every minute, queues `DispatchCampaign` for due scheduled campaigns; `CampaignService` expands their current tenant-safe audience.
 
 Console commands:
 
