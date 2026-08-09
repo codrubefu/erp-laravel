@@ -25,7 +25,7 @@ class AuthenticateBearerToken
 
         $accessToken = $this->tokens->findValidToken($plainTextToken);
 
-        if (! $accessToken) {
+        if (! $accessToken || ! $accessToken->user->active) {
             return $this->unauthenticated();
         }
 

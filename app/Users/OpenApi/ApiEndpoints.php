@@ -8,7 +8,8 @@ class ApiEndpoints
 {
     #[OA\Post(
         path: '/login',
-        summary: 'Login and issue a bearer token',
+        summary: 'Login and issue an expiring bearer token',
+        description: 'Authentication is organization-aware. Issued tokens expire after the configured bearer-token lifetime. Attempts are rate limited by client IP, organization and a hash of the declared email; authentication logs never contain the password or issued token.',
         tags: ['Auth'],
         requestBody: new OA\RequestBody(
             required: true,
@@ -25,6 +26,7 @@ class ApiEndpoints
         responses: [
             new OA\Response(response: 200, description: 'Bearer token issued.'),
             new OA\Response(response: 401, description: 'Invalid credentials.'),
+            new OA\Response(response: 429, description: 'Login rate limit exceeded for this IP, organization and declared identity.'),
         ],
     )]
     public function login(): void
@@ -94,7 +96,8 @@ class ApiEndpoints
 
     #[OA\Patch(
         path: '/me/password',
-        summary: 'Update the authenticated user password',
+        summary: 'Update the authenticated user password and revoke sessions',
+        description: 'Applies the configured operator or administrator password policy, including the compromised-password check. A successful password change revokes every bearer token for the user, including the token used for this request.',
         security: [['bearerAuth' => []]],
         tags: ['Auth'],
         requestBody: new OA\RequestBody(

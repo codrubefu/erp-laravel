@@ -4,6 +4,7 @@ namespace App\Users\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use App\Users\Support\PasswordPolicy;
 
 class StoreUserRequest extends FormRequest
 {
@@ -26,7 +27,7 @@ class StoreUserRequest extends FormRequest
                 'max:255',
                 Rule::unique('users', 'email')->where('organization_id', $this->user()?->organization_id),
             ],
-            'password' => ['sometimes', 'nullable', 'string', 'min:8'],
+            'password' => ['sometimes', 'nullable', 'string', PasswordPolicy::for($this->is('api/administrators*') ? 'administrator' : 'operator')],
             'notification_consents' => ['sometimes', 'array:sms,mail,push'],
             'notification_consents.*' => ['boolean'],
             'push_token' => ['nullable', 'string', 'max:2048'],

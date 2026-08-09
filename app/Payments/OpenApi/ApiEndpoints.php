@@ -112,6 +112,18 @@ class ApiEndpoints
                 description: 'Hexadecimal HMAC-SHA256 signature of the raw JSON request body.',
                 schema: new OA\Schema(type: 'string', example: 'f77d7a45a507d93688c8c6ae93f9c8f74e0acff810f2e98a8cc63fcb23c81a48'),
             ),
+            new OA\HeaderParameter(
+                name: 'X-Organization-Id',
+                required: true,
+                description: 'Declared organization identifier used as part of the callback rate-limit key.',
+                schema: new OA\Schema(type: 'integer', example: 1),
+            ),
+            new OA\HeaderParameter(
+                name: 'X-Provider-Id',
+                required: false,
+                description: 'Stable provider identity used in the callback rate-limit key. When omitted, external_reference is used.',
+                schema: new OA\Schema(type: 'string', example: 'netopia-production'),
+            ),
         ],
         requestBody: new OA\RequestBody(
             required: true,

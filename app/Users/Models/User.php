@@ -47,6 +47,11 @@ class User extends Authenticatable
     protected static function booted(): void
     {
         static::addGlobalScope(new LocationAccessScope());
+        static::updated(function (User $user): void {
+            if ($user->wasChanged('password') || ($user->wasChanged('active') && ! $user->active)) {
+                $user->accessTokens()->delete();
+            }
+        });
     }
 
     public function accessTokens(): HasMany
