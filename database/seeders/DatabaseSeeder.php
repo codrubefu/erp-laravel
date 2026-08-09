@@ -21,6 +21,9 @@ class DatabaseSeeder extends Seeder
             ['name' => 'profile.view', 'label' => 'View own profile', 'description' => 'Access the authenticated user profile.'],
             ['name' => 'users.view', 'label' => 'View users', 'description' => 'Read user records.'],
             ['name' => 'users.manage', 'label' => 'Manage users', 'description' => 'Create, update, and deactivate users.'],
+            ['name' => 'user-documents.view', 'label' => 'View user documents', 'description' => 'Read and securely download member documents.'],
+            ['name' => 'user-documents.upload', 'label' => 'Upload user documents', 'description' => 'Upload and replace member documents.'],
+            ['name' => 'user-documents.delete', 'label' => 'Delete user documents', 'description' => 'Delete member documents from private storage.'],
             ['name' => 'groups.view', 'label' => 'View groups', 'description' => 'Read user groups and their rights.'],
             ['name' => 'groups.manage', 'label' => 'Manage groups', 'description' => 'Create, update, and delete user groups.'],
             ['name' => 'rights.view', 'label' => 'View rights', 'description' => 'Read available application rights.'],
@@ -77,6 +80,7 @@ class DatabaseSeeder extends Seeder
         $manager->rights()->sync($rights->only([
             'profile.view',
             'users.view',
+            'user-documents.view',
             'groups.view',
             'rights.view',
             'location_groups.view',

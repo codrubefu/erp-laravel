@@ -9,6 +9,7 @@ use App\Users\Http\Controllers\Api\MeController;
 use App\Users\Http\Controllers\Api\OrganizationController;
 use App\Users\Http\Controllers\Api\RightController;
 use App\Users\Http\Controllers\Api\UserController;
+use App\Users\Http\Controllers\Api\UserDocumentController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
@@ -71,6 +72,14 @@ Route::middleware('auth.bearer')->group(function (): void {
     Route::post('/users', [UserController::class, 'store'])->middleware('right:users.manage');
     Route::patch('/users/subscription/{user}', [UserController::class, 'syncSubscriptions'])->middleware('right:users.manage');
     Route::get('/users/{user}/activity', [UserController::class, 'activity'])->middleware('right:users.view');
+    Route::get('/users/{user}/documents', [UserDocumentController::class, 'index'])->middleware('right:user-documents.view');
+    Route::post('/users/{user}/documents', [UserDocumentController::class, 'store'])->middleware('right:user-documents.upload');
+    Route::post('/users/{user}/documents/{document}/replace', [UserDocumentController::class, 'replace'])->middleware('right:user-documents.upload');
+    Route::post('/users/{user}/documents/{document}/download-url', [UserDocumentController::class, 'signedDownloadUrl'])->middleware('right:user-documents.view');
+    Route::get('/users/{user}/documents/{document}/download', [UserDocumentController::class, 'download'])
+        ->middleware(['right:user-documents.view', 'signed'])
+        ->name('user-documents.download');
+    Route::delete('/users/{user}/documents/{document}', [UserDocumentController::class, 'destroy'])->middleware('right:user-documents.delete');
     Route::get('/users/{user}', [UserController::class, 'show'])->middleware('right:users.view');
     Route::put('/users/{user}', [UserController::class, 'update'])->middleware('right:users.manage');
     Route::patch('/users/{user}', [UserController::class, 'update'])->middleware('right:users.manage');

@@ -242,6 +242,52 @@ use OpenApi\Attributes as OA;
     type: 'object',
 )]
 #[OA\Schema(
+    schema: 'UserDocument',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 12),
+        new OA\Property(property: 'user_id', type: 'integer', example: 35),
+        new OA\Property(property: 'organization_id', type: 'integer', example: 1),
+        new OA\Property(property: 'location_id', type: 'integer', nullable: true, example: 2),
+        new OA\Property(property: 'category', type: 'string', enum: ['membership_request', 'identity_document', 'gdpr_agreement', 'certificate', 'contract', 'photo', 'other'], example: 'contract'),
+        new OA\Property(property: 'title', type: 'string', example: 'Signed contract'),
+        new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Initial signed version.'),
+        new OA\Property(property: 'expires_at', type: 'string', format: 'date', nullable: true, example: '2027-01-01'),
+        new OA\Property(property: 'original_name', type: 'string', example: 'contract.pdf'),
+        new OA\Property(property: 'mime_type', type: 'string', example: 'application/pdf'),
+        new OA\Property(property: 'extension', type: 'string', example: 'pdf'),
+        new OA\Property(property: 'size', type: 'integer', example: 102400),
+        new OA\Property(property: 'checksum', type: 'string', example: 'sha256hex'),
+        new OA\Property(property: 'status', type: 'string', enum: ['active', 'replaced', 'deleted'], example: 'active'),
+        new OA\Property(property: 'uploaded_by', type: 'integer', nullable: true, example: 5),
+        new OA\Property(property: 'replaces_document_id', type: 'integer', nullable: true, example: 11),
+        new OA\Property(property: 'scanned_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'UserDocumentUploadRequest',
+    required: ['file', 'category', 'title'],
+    properties: [
+        new OA\Property(property: 'file', type: 'string', format: 'binary'),
+        new OA\Property(property: 'category', type: 'string', enum: ['membership_request', 'identity_document', 'gdpr_agreement', 'certificate', 'contract', 'photo', 'other'], example: 'identity_document'),
+        new OA\Property(property: 'title', type: 'string', example: 'Identity card'),
+        new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Front and back scan.'),
+        new OA\Property(property: 'expires_at', type: 'string', format: 'date', nullable: true, example: '2030-01-01'),
+        new OA\Property(property: 'location_id', type: 'integer', nullable: true, example: 2),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'UserDocumentDownloadUrl',
+    properties: [
+        new OA\Property(property: 'download_url', type: 'string', example: 'https://example.test/api/users/35/documents/12/download?expires=...'),
+        new OA\Property(property: 'expires_at', type: 'string', format: 'date-time'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
     schema: 'UpdateMePasswordRequest',
     required: ['current_password', 'password', 'password_confirmation'],
     properties: [

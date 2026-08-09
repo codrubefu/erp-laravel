@@ -54,4 +54,9 @@ return [
         'provider' => env('PAYMENT_PROVIDER', 'default'),
     ],
 
+    'antivirus' => [
+        'binary' => env('CLAMAV_BINARY', ''),
+        'timeout' => (int) env('CLAMAV_TIMEOUT', 30),
+    ],
+
 ];

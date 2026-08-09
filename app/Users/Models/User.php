@@ -71,6 +71,11 @@ class User extends Authenticatable
         return $this->hasMany(Payment::class, 'admin_id');
     }
 
+    public function documents(): HasMany
+    {
+        return $this->hasMany(UserDocument::class);
+    }
+
     public function articles(): HasMany
     {
         return $this->hasMany(Article::class, 'created_by');

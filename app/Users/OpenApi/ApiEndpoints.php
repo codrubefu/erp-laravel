@@ -1346,4 +1346,34 @@ class ApiEndpoints
     public function gdprProcessErasure(): void
     {
     }
+
+    #[OA\Get(path: '/users/{user}/documents', summary: 'List member documents', security: [['bearerAuth' => []]], tags: ['User Documents'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer'))], responses: [new OA\Response(response: 200, description: 'Paginated user documents.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/UserDocument'))])), new OA\Response(response: 403, description: 'Missing user-documents.view right.'), new OA\Response(response: 404, description: 'User not found in current tenant.')])]
+    public function userDocumentsIndex(): void
+    {
+    }
+
+    #[OA\Post(path: '/users/{user}/documents', summary: 'Upload a member document', security: [['bearerAuth' => []]], tags: ['User Documents'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer'))], requestBody: new OA\RequestBody(required: true, content: new OA\MediaType(mediaType: 'multipart/form-data', schema: new OA\Schema(ref: '#/components/schemas/UserDocumentUploadRequest'))), responses: [new OA\Response(response: 200, description: 'Document uploaded.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/UserDocument')])), new OA\Response(response: 403, description: 'Missing user-documents.upload right.'), new OA\Response(response: 422, description: 'Validation or antivirus scan failed.')])]
+    public function userDocumentsStore(): void
+    {
+    }
+
+    #[OA\Post(path: '/users/{user}/documents/{document}/replace', summary: 'Replace a member document with a new version', security: [['bearerAuth' => []]], tags: ['User Documents'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer')), new OA\PathParameter(name: 'document', required: true, schema: new OA\Schema(type: 'integer'))], requestBody: new OA\RequestBody(required: true, content: new OA\MediaType(mediaType: 'multipart/form-data', schema: new OA\Schema(ref: '#/components/schemas/UserDocumentUploadRequest'))), responses: [new OA\Response(response: 200, description: 'Replacement document uploaded.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/UserDocument')])), new OA\Response(response: 403, description: 'Missing user-documents.upload right.'), new OA\Response(response: 404, description: 'User or document not found in current tenant.'), new OA\Response(response: 422, description: 'Validation or antivirus scan failed.')])]
+    public function userDocumentsReplace(): void
+    {
+    }
+
+    #[OA\Post(path: '/users/{user}/documents/{document}/download-url', summary: 'Create a temporary signed document download URL', security: [['bearerAuth' => []]], tags: ['User Documents'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer')), new OA\PathParameter(name: 'document', required: true, schema: new OA\Schema(type: 'integer'))], responses: [new OA\Response(response: 200, description: 'Temporary signed URL.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/UserDocumentDownloadUrl')])), new OA\Response(response: 403, description: 'Missing user-documents.view right.'), new OA\Response(response: 404, description: 'User or document not found in current tenant.')])]
+    public function userDocumentsDownloadUrl(): void
+    {
+    }
+
+    #[OA\Get(path: '/users/{user}/documents/{document}/download', summary: 'Download a member document through a signed URL', security: [['bearerAuth' => []]], tags: ['User Documents'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer')), new OA\PathParameter(name: 'document', required: true, schema: new OA\Schema(type: 'integer'))], responses: [new OA\Response(response: 200, description: 'Private document file.', content: new OA\MediaType(mediaType: 'application/octet-stream', schema: new OA\Schema(type: 'string', format: 'binary'))), new OA\Response(response: 403, description: 'Invalid signature or missing user-documents.view right.'), new OA\Response(response: 404, description: 'User or document not found in current tenant.')])]
+    public function userDocumentsDownload(): void
+    {
+    }
+
+    #[OA\Delete(path: '/users/{user}/documents/{document}', summary: 'Delete a member document', security: [['bearerAuth' => []]], tags: ['User Documents'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer')), new OA\PathParameter(name: 'document', required: true, schema: new OA\Schema(type: 'integer'))], responses: [new OA\Response(response: 204, description: 'Document deleted.'), new OA\Response(response: 403, description: 'Missing user-documents.delete right.'), new OA\Response(response: 404, description: 'User or document not found in current tenant.')])]
+    public function userDocumentsDestroy(): void
+    {
+    }
 }

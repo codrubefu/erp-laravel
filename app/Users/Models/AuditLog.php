@@ -32,6 +32,10 @@ class AuditLog extends Model
     public const APPROVAL_GRANTED = 'approval.granted';
     public const CARD_ISSUED = 'card.issued';
     public const SMS_SENT = 'sms.sent';
+    public const USER_DOCUMENT_UPLOADED = 'user_document.uploaded';
+    public const USER_DOCUMENT_DOWNLOADED = 'user_document.downloaded';
+    public const USER_DOCUMENT_REPLACED = 'user_document.replaced';
+    public const USER_DOCUMENT_DELETED = 'user_document.deleted';
 
     public function user(): BelongsTo
     {

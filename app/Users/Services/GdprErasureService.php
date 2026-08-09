@@ -5,6 +5,7 @@ namespace App\Users\Services;
 use App\Users\Models\GdprRequest;
 use App\Users\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class GdprErasureService
 {
@@ -17,6 +18,19 @@ class GdprErasureService
             DB::table('article_user_receipts')->where('user_id', $subject->id)->delete();
             DB::table('custom_field_values')->where('entity_type', User::class)->where('entity_id', $subject->id)->delete();
             DB::table('notification_deliveries')->where('user_id', $subject->id)->delete();
+            DB::table('user_documents')->where('organization_id', $subject->organization_id)->where('user_id', $subject->id)
+                ->orderBy('id')
+                ->get(['id', 'disk', 'path'])
+                ->each(function ($document): void {
+                    Storage::disk($document->disk)->delete($document->path);
+                    DB::table('user_documents')->where('id', $document->id)->update([
+                        'status' => 'deleted',
+                        'path' => 'gdpr-erased',
+                        'original_name' => 'gdpr-erased',
+                        'checksum' => hash('sha256', 'gdpr-erased|'.$document->id),
+                        'updated_at' => now(),
+                    ]);
+                });
 
             // Operational activity is retained only as anonymous statistics.
             DB::table('audit_logs')->where('subject_user_id', $subject->id)->update([
