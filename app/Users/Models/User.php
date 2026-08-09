@@ -153,7 +153,9 @@ class User extends Authenticatable
         $optedOut = $this->notificationPreferences()->where('channel', $channel)
             ->whereIn('scope', ['all', $scope])->where('subscribed', false)->exists();
 
-        return ! $optedOut && (bool) $granted
+        $consented = $granted ?? ($this->notification_consents[$channel] ?? false);
+
+        return ! $optedOut && (bool) $consented
             && match ($channel) {
                 'sms' => filled($this->phone),
                 'mail' => filled($this->email),
