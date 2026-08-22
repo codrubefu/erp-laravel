@@ -93,6 +93,11 @@ class FinancialReportingTest extends TestCase
             ->assertHeader('Content-Type', 'application/pdf');
 
         $this->withToken($token)
+            ->get("/api/reports/financial-documents/invoice/{$assignmentId}/download/xml")
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/xml');
+
+        $this->withToken($token)
             ->get('/api/reports/financial-documents/download?from=2026-08-01&to=2026-08-31')
             ->assertOk()
             ->assertHeader('Content-Type', 'application/zip');

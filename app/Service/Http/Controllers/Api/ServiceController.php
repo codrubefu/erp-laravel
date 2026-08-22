@@ -11,6 +11,7 @@ use App\Service\Models\ServiceUser;
 use App\Service\Services\ServiceLifecycleService;
 use App\Service\Services\PaymentNoteService;
 use App\Service\Services\ServiceDocumentSequenceService;
+use App\Service\Services\ServiceInvoiceService;
 use App\Users\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,6 +25,7 @@ class ServiceController extends Controller
         private readonly ServiceLifecycleService $lifecycle,
         private readonly PaymentNoteService $paymentNotes,
         private readonly ServiceDocumentSequenceService $documentSequences,
+        private readonly ServiceInvoiceService $invoices,
     )
     {
     }
@@ -179,5 +181,16 @@ class ServiceController extends Controller
         });
 
         return response()->json(['data' => $assignment->load(['service', 'user', 'activationPayment'])]);
+    }
+
+    public function invoice(Request $request, ServiceUser $assignment, string $format = 'pdf'): Response
+    {
+        $assignment->loadMissing(['service']);
+        abort_unless((int) $assignment->service->organization_id === (int) $request->user()->organization_id, 404);
+        abort_if(blank($assignment->invoice_number), 404);
+
+        return $format === 'xml'
+            ? $this->invoices->xmlDownload($assignment)
+            : $this->invoices->download($assignment);
     }
 }

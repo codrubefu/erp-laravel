@@ -62,8 +62,11 @@ class ReportController extends Controller
         FinancialDocumentReportService $documents,
         string $type,
         int $id,
+        string $format = 'pdf',
     ): Response {
-        return $documents->download($request->user()->organization_id, $type, $id);
+        abort_unless(in_array($format, ['pdf', 'xml'], true), 404);
+
+        return $documents->download($request->user()->organization_id, $type, $id, $format);
     }
 
     public function downloadFinancialDocuments(ReportFilterRequest $request, FinancialDocumentReportService $documents): StreamedResponse

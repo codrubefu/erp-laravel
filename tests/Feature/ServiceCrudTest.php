@@ -226,6 +226,16 @@ class ServiceCrudTest extends TestCase
             'id' => $admin->organization_id,
             'invoice_number' => 1,
         ]);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->get("/api/service-assignments/{$assignmentId}/invoice/pdf")
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->get("/api/service-assignments/{$assignmentId}/invoice/xml")
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/xml');
     }
 
     private function serviceData(array $overrides = []): array

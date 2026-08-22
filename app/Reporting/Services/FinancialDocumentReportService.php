@@ -32,7 +32,7 @@ class FinancialDocumentReportService
             ->all();
     }
 
-    public function download(int $organizationId, string $type, int $id): Response
+    public function download(int $organizationId, string $type, int $id, string $format = 'pdf'): Response
     {
         if ($type === 'receipt') {
             $payment = Payment::query()
@@ -47,7 +47,9 @@ class FinancialDocumentReportService
         $assignment = $this->assignment($organizationId, $id);
         if ($type === 'invoice') {
             abort_if(blank($assignment->invoice_number), 404);
-            return $this->invoices->download($assignment);
+            return $format === 'xml'
+                ? $this->invoices->xmlDownload($assignment)
+                : $this->invoices->download($assignment);
         }
         if ($type === 'payment_note') {
             abort_if(blank($assignment->bill_number), 404);
@@ -68,6 +70,9 @@ class FinancialDocumentReportService
 
         foreach ($rows as $row) {
             $zip->addFromString($row['filename'], $this->content($organizationId, $row['type'], (int) $row['id']));
+            if ($row['type'] === 'invoice' && isset($row['xml_filename'])) {
+                $zip->addFromString($row['xml_filename'], $this->content($organizationId, $row['type'], (int) $row['id'], 'xml'));
+            }
         }
 
         $zip->close();
@@ -78,13 +83,17 @@ class FinancialDocumentReportService
         }, 'documente-financiare.zip', ['Content-Type' => 'application/zip']);
     }
 
-    private function content(int $organizationId, string $type, int $id): string
+    private function content(int $organizationId, string $type, int $id, string $format = 'pdf'): string
     {
         if ($type === 'receipt') {
             return $this->receipts->pdf(Payment::query()->where('organization_id', $organizationId)->findOrFail($id));
         }
 
         $assignment = $this->assignment($organizationId, $id);
+        if ($type === 'invoice' && $format === 'xml') {
+            return $this->invoices->xml($assignment);
+        }
+
         return $type === 'invoice'
             ? $this->invoices->pdf($assignment)
             : $this->paymentNotes->pdf($assignment);
@@ -127,6 +136,7 @@ class FinancialDocumentReportService
                 'amount' => (float) $row->amount,
                 'currency' => $row->currency,
                 'filename' => ($type === 'invoice' ? 'factura-' : 'nota-plata-').$row->number.'.pdf',
+                'xml_filename' => $type === 'invoice' ? 'efactura-'.$row->number.'.xml' : null,
             ];
         })->all();
     }
