@@ -449,6 +449,34 @@ class UserCrudTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_assigning_service_creates_bill_without_invoice(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['users.manage']);
+        $service = Service::query()->create($this->serviceData([
+            'name' => 'Bill only',
+            'is_active' => true,
+        ]));
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/users', [
+                'first_name' => 'Bill',
+                'last_name' => 'Only',
+                'email' => 'bill-only@example.com',
+                'password' => 'password',
+                'service_ids' => [$service->id],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.service_history.0.invoice_number', null)
+            ->assertJsonPath('data.service_history.0.bill_number', 'BILL000001');
+
+        $this->assertDatabaseHas('service_user', [
+            'service_id' => $service->id,
+            'user_id' => $response->json('data.id'),
+            'invoice_number' => null,
+            'bill_number' => 'BILL000001',
+        ]);
+    }
+
     public function test_expired_user_service_is_not_marked_active(): void
     {
         Carbon::setTestNow('2026-05-18 10:00:00');

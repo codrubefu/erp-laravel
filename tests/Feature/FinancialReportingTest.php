@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Payments\Models\Payment;
+use App\Service\Models\Service;
 use App\Users\Models\Group;
 use App\Users\Models\Right;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class FinancialReportingTest extends TestCase
@@ -38,6 +40,62 @@ class FinancialReportingTest extends TestCase
             ->assertOk()->assertJsonPath('data.totals.confirmed', 0);
         $this->withToken($token)->getJson('/api/reports/financial?organization_id='.$outsider->organization_id)
             ->assertForbidden();
+    }
+
+    public function test_financial_documents_report_lists_and_downloads_documents_for_period(): void
+    {
+        [$operator, $token] = $this->loginWith('reports.manage');
+        $member = User::factory()->create(['organization_id' => $operator->organization_id]);
+        $service = Service::query()->create([
+            'organization_id' => $operator->organization_id,
+            'name' => 'Membership',
+            'description' => 'Membership',
+            'price' => 120,
+            'currency' => 'RON',
+            'duration_days' => null,
+            'max_users' => 20,
+            'is_active' => true,
+        ]);
+        $service->users()->attach($member, [
+            'invoice_number' => 'INV000001',
+            'bill_number' => 'BILL000001',
+            'status' => 'active',
+            'start_date' => '2026-08-01',
+        ]);
+        $assignmentId = $service->users()->whereKey($member->id)->first()->pivot->id;
+        DB::table('service_user')->where('id', $assignmentId)->update(['created_at' => '2026-08-10 09:00:00']);
+
+        $payment = Payment::query()->create([
+            'organization_id' => $operator->organization_id,
+            'first_name' => 'Test',
+            'last_name' => 'Member',
+            'payment_type_id' => Payment::TYPE_CASH,
+            'status' => Payment::STATUS_CONFIRMED,
+            'receipt_number' => 'REC000001',
+            'model_type' => Payment::MODEL_TYPE_SERVICE_USER,
+            'model_id' => $assignmentId,
+            'amount' => 120,
+            'paid_at' => '2026-08-11 10:00:00',
+            'admin_id' => $operator->id,
+        ]);
+
+        $this->withToken($token)
+            ->getJson('/api/reports/financial-documents?from=2026-08-01&to=2026-08-31')
+            ->assertOk()
+            ->assertJsonCount(3, 'data')
+            ->assertJsonFragment(['type' => 'invoice', 'number' => 'INV000001'])
+            ->assertJsonFragment(['type' => 'payment_note', 'number' => 'BILL000001'])
+            ->assertJsonFragment(['type' => 'receipt', 'number' => 'REC000001']);
+
+        $this->withToken($token)
+            ->get("/api/reports/financial-documents/invoice/{$assignmentId}/download")
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+
+        $this->withToken($token)
+            ->get('/api/reports/financial-documents/download?from=2026-08-01&to=2026-08-31')
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/zip');
     }
 
     private function payment(User $operator, float $amount, string $status, int $type, string $date, bool $reconciled = false): void

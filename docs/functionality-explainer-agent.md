@@ -245,6 +245,7 @@ Functional behavior:
 - `service_user` stores `start_date` and `expires_at`.
 - Active user services are determined by active service status and date range.
 - Payment notes for service assignments are generated as PDFs from `storage/note-plata.html` or `storage/nota-plata.html` by `PaymentNoteService`; access is restricted to the authenticated organization.
+- Assigning a service creates a bill number on `service_user`. Invoice numbers are not created automatically; `POST /api/service-assignments/{assignment}/invoice` assigns the next organization invoice number to the assignment.
 
 ### Events and Occurrences
 
@@ -585,6 +586,8 @@ Observații:
 ## Raportare financiară și segmente dinamice
 
 API-ul oferă raportare tenant-safe peste plăți și cotizații. `GET /api/reports/financial` (drept `reports.view`) acceptă perioada (`from`, `to`), organizația curentă, filiala (`location_id`), operatorul (`admin_id`), metoda de plată, statusul, tipul cotizației și granularitatea zi/lună. Răspunsul include total confirmat/rambursat/net, venit pe perioadă, creanțe din cotizații, reînnoiri și sume de transfer bancar reconciliate/nereconciliate. `ReportController` coordonează validarea, iar `FinancialReportService` execută agregările exclusiv în organizația utilizatorului.
+
+`GET /api/reports/financial-documents` listează facturi, note de plată și chitanțe pentru perioada selectată. `GET /api/reports/financial-documents/{type}/{id}/download` descarcă un document individual ca PDF, iar `GET /api/reports/financial-documents/download` returnează o arhivă ZIP cu toate documentele filtrate. Lista și descărcările sunt tenant-safe prin `FinancialDocumentReportService`.
 
 `POST /api/reports/financial/exports`, `GET /api/reports/exports/{id}` și `GET /api/reports/exports/{id}/download` necesită dreptul distinct `reports.export`. Exportul CSV sau XLSX este procesat asincron de jobul `GenerateReportExport`; starea și filtrele sunt păstrate în `report_exports`, iar fișierul este scris pe discul local în directorul tenantului. Generarea nu produce plăți, chitanțe sau notificări.
 

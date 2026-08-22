@@ -8,7 +8,7 @@ use Dompdf\Options;
 use Illuminate\Support\Carbon;
 use Symfony\Component\HttpFoundation\Response;
 
-class PaymentNoteService
+class ServiceInvoiceService
 {
     public function download(ServiceUser $assignment): Response
     {
@@ -21,8 +21,6 @@ class PaymentNoteService
 
     public function pdf(ServiceUser $assignment): string
     {
-        $assignment->loadMissing(['service.organization', 'user.organization']);
-
         $options = new Options();
         $options->set('defaultFont', 'DejaVu Sans');
         $options->set('isRemoteEnabled', false);
@@ -36,50 +34,29 @@ class PaymentNoteService
         return $pdf->output();
     }
 
+    public function filename(ServiceUser $assignment): string
+    {
+        return 'factura-'.($assignment->invoice_number ?: $assignment->id).'.pdf';
+    }
+
     private function renderHtml(ServiceUser $assignment): string
     {
+        $assignment->loadMissing(['service.organization', 'user.organization']);
         $service = $assignment->service;
         $user = $assignment->user;
         $fullName = trim("{$user->last_name} {$user->first_name}") ?: $user->email;
-        $issuedAt = now();
         $amount = number_format((float) $service->price, 2, '.', ',');
-        $startDate = $this->formatDate($assignment->start_date ?? $issuedAt);
-        $expiresAt = $assignment->expires_at ? $this->formatDate($assignment->expires_at) : 'fara expirare';
-        $noteNumber = $assignment->bill_number ?: sprintf('%09d', $assignment->id);
-        $cardCode = $user->user_code ?: sprintf('USR%08d', $user->id);
-        $orderDetails = sprintf(
-            'Comanda service #%d | User #%d | Service #%d | Start: %s | Expira: %s',
-            $assignment->id,
-            $user->id,
-            $service->id,
-            $startDate,
-            $expiresAt,
-        );
+        $issuedAt = $assignment->updated_at ?? $assignment->created_at ?? now();
 
-        return view('services.payment-note', [
+        return view('services.invoice', [
             'assignment' => $assignment,
             'service' => $service,
             'user' => $user,
             'organization' => $service->organization ?? $user->organization,
             'fullName' => $fullName,
-            'issuedAt' => $issuedAt,
+            'issuedAt' => Carbon::parse($issuedAt),
             'amount' => $amount,
-            'startDate' => $startDate,
-            'expiresAt' => $expiresAt,
-            'noteNumber' => $noteNumber,
-            'cardCode' => $cardCode,
-            'orderDetails' => $orderDetails,
+            'invoiceNumber' => $assignment->invoice_number ?: sprintf('INV%09d', $assignment->id),
         ])->render();
     }
-
-    public function filename(ServiceUser $assignment): string
-    {
-        return 'nota-plata-serviciu-'.$assignment->id.'.pdf';
-    }
-
-    private function formatDate(Carbon|string|null $date): string
-    {
-        return $date ? Carbon::parse($date)->format('d-M-Y') : now()->format('d-M-Y');
-    }
-
 }

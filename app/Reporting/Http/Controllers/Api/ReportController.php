@@ -6,6 +6,7 @@ use App\Reporting\Http\Requests\ReportFilterRequest;
 use App\Reporting\Jobs\GenerateReportExport;
 use App\Reporting\Models\ReportExport;
 use App\Reporting\Services\FinancialReportService;
+use App\Reporting\Services\FinancialDocumentReportService;
 use App\Users\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class ReportController extends Controller
 {
@@ -45,6 +47,31 @@ class ReportController extends Controller
         $record = $this->tenantExport($request, $export);
         abort_unless($record->status === 'completed' && $record->path, 409, 'Export is not ready.');
         return Storage::disk('local')->download($record->path, "financial-report.{$record->format}");
+    }
+
+    public function financialDocuments(ReportFilterRequest $request, FinancialDocumentReportService $documents): JsonResponse
+    {
+        $filters = $request->validated();
+        $this->assertTenant($request, $filters);
+
+        return response()->json(['data' => $documents->rows($request->user()->organization_id, $filters)]);
+    }
+
+    public function downloadFinancialDocument(
+        Request $request,
+        FinancialDocumentReportService $documents,
+        string $type,
+        int $id,
+    ): Response {
+        return $documents->download($request->user()->organization_id, $type, $id);
+    }
+
+    public function downloadFinancialDocuments(ReportFilterRequest $request, FinancialDocumentReportService $documents): StreamedResponse
+    {
+        $filters = $request->validated();
+        $this->assertTenant($request, $filters);
+
+        return $documents->downloadZip($request->user()->organization_id, $filters);
     }
 
     private function tenantExport(Request $request, string $id): ReportExport

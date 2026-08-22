@@ -192,6 +192,42 @@ class ServiceCrudTest extends TestCase
         ]);
     }
 
+    public function test_generate_invoice_assigns_invoice_number_once(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['services.update']);
+        $member = User::factory()->create(['organization_id' => $admin->organization_id]);
+        $service = Service::query()->create($this->serviceData([
+            'name' => 'Manual invoice',
+        ]));
+
+        $service->users()->attach($member, [
+            'bill_number' => 'BILL000001',
+            'status' => 'active',
+            'start_date' => '2026-08-22',
+        ]);
+        $assignmentId = $service->users()->whereKey($member->id)->first()->pivot->id;
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson("/api/service-assignments/{$assignmentId}/invoice")
+            ->assertOk()
+            ->assertJsonPath('data.invoice_number', 'INV000001');
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson("/api/service-assignments/{$assignmentId}/invoice")
+            ->assertOk()
+            ->assertJsonPath('data.invoice_number', 'INV000001');
+
+        $this->assertDatabaseHas('service_user', [
+            'id' => $assignmentId,
+            'invoice_number' => 'INV000001',
+            'bill_number' => 'BILL000001',
+        ]);
+        $this->assertDatabaseHas('organizations', [
+            'id' => $admin->organization_id,
+            'invoice_number' => 1,
+        ]);
+    }
+
     private function serviceData(array $overrides = []): array
     {
         return array_merge([

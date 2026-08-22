@@ -30,4 +30,6 @@ Route::middleware('auth.bearer')->group(function (): void {
         ->middleware('right:services.update,services.manage');
     Route::get('/service-assignments/{assignment}/payment-note', [ServiceController::class, 'paymentNote'])
         ->middleware('right:services.view,services.manage');
+    Route::post('/service-assignments/{assignment}/invoice', [ServiceController::class, 'generateInvoice'])
+        ->middleware('right:services.update,services.manage');
 });

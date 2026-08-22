@@ -13,6 +13,15 @@ class ReceiptService
 {
     public function download(Payment $payment): Response
     {
+        return response($this->pdf($payment), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$this->filename($payment).'"',
+            'Cache-Control' => 'private, max-age=0, must-revalidate',
+        ]);
+    }
+
+    public function pdf(Payment $payment): string
+    {
         $payment->loadMissing(['admin.organization', 'location']);
 
         $options = new Options();
@@ -25,11 +34,12 @@ class ReceiptService
         $pdf->setPaper('a4');
         $pdf->render();
 
-        return response($pdf->output(), 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="'.$payment->receipt_number.'.pdf"',
-            'Cache-Control' => 'private, max-age=0, must-revalidate',
-        ]);
+        return $pdf->output();
+    }
+
+    public function filename(Payment $payment): string
+    {
+        return ($payment->receipt_number ?: 'chitanta-'.$payment->id).'.pdf';
     }
 
     private function renderHtml(Payment $payment): string

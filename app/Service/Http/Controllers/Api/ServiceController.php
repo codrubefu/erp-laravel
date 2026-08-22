@@ -10,6 +10,7 @@ use App\Payments\Models\Payment;
 use App\Service\Models\ServiceUser;
 use App\Service\Services\ServiceLifecycleService;
 use App\Service\Services\PaymentNoteService;
+use App\Service\Services\ServiceDocumentSequenceService;
 use App\Users\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ class ServiceController extends Controller
     public function __construct(
         private readonly ServiceLifecycleService $lifecycle,
         private readonly PaymentNoteService $paymentNotes,
+        private readonly ServiceDocumentSequenceService $documentSequences,
     )
     {
     }
@@ -153,5 +155,29 @@ class ServiceController extends Controller
         abort_unless((int) $assignment->service->organization_id === (int) $request->user()->organization_id, 404);
 
         return $this->paymentNotes->download($assignment);
+    }
+
+    public function generateInvoice(Request $request, ServiceUser $assignment): JsonResponse
+    {
+        $assignment->loadMissing(['service']);
+        abort_unless((int) $assignment->service->organization_id === (int) $request->user()->organization_id, 404);
+
+        $assignment = DB::transaction(function () use ($assignment): ServiceUser {
+            $lockedAssignment = ServiceUser::query()
+                ->whereKey($assignment->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+            $lockedAssignment->loadMissing(['service']);
+
+            if (blank($lockedAssignment->invoice_number)) {
+                $lockedAssignment->forceFill([
+                    'invoice_number' => $this->documentSequences->nextInvoice((int) $lockedAssignment->service->organization_id),
+                ])->save();
+            }
+
+            return $lockedAssignment;
+        });
+
+        return response()->json(['data' => $assignment->load(['service', 'user', 'activationPayment'])]);
     }
 }
