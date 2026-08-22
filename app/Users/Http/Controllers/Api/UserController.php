@@ -3,9 +3,9 @@
 namespace App\Users\Http\Controllers\Api;
 
 use App\Notifications\Events\NotificationRequested;
-use App\Subscription\Models\Subscription;
+use App\Service\Models\Service;
 use App\Users\Http\Controllers\Controller;
-use App\Users\Http\Requests\SyncUserSubscriptionsRequest;
+use App\Users\Http\Requests\SyncUserServicesRequest;
 use App\Users\Http\Requests\StoreUserRequest;
 use App\Users\Http\Requests\UpdateUserRequest;
 use App\Users\Http\Resources\ActivityResource;
@@ -114,21 +114,21 @@ class UserController extends Controller
         $data = $request->validated();
         $groupIds = $data['group_ids'] ?? [];
         $locationIds = $data['location_ids'] ?? [];
-        $subscriptionAssignments = $this->subscriptionAssignments($data);
+        $serviceAssignments = $this->serviceAssignments($data);
         unset($data['group_ids']);
         unset($data['location_ids']);
-        unset($data['subscription_ids']);
-        unset($data['subscriptions']);
+        unset($data['service_ids']);
+        unset($data['services']);
 
         if (array_key_exists('password', $data) && blank($data['password'])) {
             unset($data['password']);
         }
 
-        $user = DB::transaction(function () use ($data, $groupIds, $locationIds, $subscriptionAssignments): User {
+        $user = DB::transaction(function () use ($data, $groupIds, $locationIds, $serviceAssignments): User {
             $user = User::query()->create($data);
             $user->groups()->sync($groupIds);
             $user->locations()->sync($locationIds);
-            $this->attachSubscriptionAssignments($user, $subscriptionAssignments);
+            $this->attachServiceAssignments($user, $serviceAssignments);
 
             return $user;
         });
@@ -152,18 +152,18 @@ class UserController extends Controller
         $data = $request->validated();
         $groupIds = $data['group_ids'] ?? null;
         $locationIds = $data['location_ids'] ?? null;
-        $hasSubscriptionAssignments = array_key_exists('subscription_ids', $data) || array_key_exists('subscriptions', $data);
-        $subscriptionAssignments = $this->subscriptionAssignments($data);
+        $hasServiceAssignments = array_key_exists('service_ids', $data) || array_key_exists('services', $data);
+        $serviceAssignments = $this->serviceAssignments($data);
         unset($data['group_ids']);
         unset($data['location_ids']);
-        unset($data['subscription_ids']);
-        unset($data['subscriptions']);
+        unset($data['service_ids']);
+        unset($data['services']);
 
         if (array_key_exists('password', $data) && blank($data['password'])) {
             unset($data['password']);
         }
 
-        DB::transaction(function () use ($user, $data, $groupIds, $locationIds, $hasSubscriptionAssignments, $subscriptionAssignments): void {
+        DB::transaction(function () use ($user, $data, $groupIds, $locationIds, $hasServiceAssignments, $serviceAssignments): void {
             $user->update($data);
 
             if ($groupIds !== null) {
@@ -174,14 +174,14 @@ class UserController extends Controller
                 $user->locations()->sync($locationIds);
             }
 
-            if ($hasSubscriptionAssignments) {
-                $previous = $user->subscriptions()->get()->keyBy('id');
-                $assignedIds = collect($subscriptionAssignments)->pluck('id');
-                $user->subscriptions()->detach($previous->except($assignedIds->all())->keys()->all());
-                $this->attachSubscriptionAssignments($user, $subscriptionAssignments, $previous);
-                $previous->except($assignedIds->all())->each(function (Subscription $subscription) use ($user): void {
-                    $this->activityLogger->record(AuditLog::SUBSCRIPTION_SUSPENDED, $user, $subscription, [], [
-                        'subscription_id' => $subscription->id,
+            if ($hasServiceAssignments) {
+                $previous = $user->services()->get()->keyBy('id');
+                $assignedIds = collect($serviceAssignments)->pluck('id');
+                $user->services()->detach($previous->except($assignedIds->all())->keys()->all());
+                $this->attachServiceAssignments($user, $serviceAssignments, $previous);
+                $previous->except($assignedIds->all())->each(function (Service $service) use ($user): void {
+                    $this->activityLogger->record(AuditLog::SERVICE_SUSPENDED, $user, $service, [], [
+                        'service_id' => $service->id,
                     ]);
                 });
             }
@@ -190,20 +190,20 @@ class UserController extends Controller
         return new UserResource($this->loadUserForResponse($user, $request->user()?->organization_id, true));
     }
 
-    public function syncSubscriptions(SyncUserSubscriptionsRequest $request, User $user): UserResource
+    public function syncServices(SyncUserServicesRequest $request, User $user): UserResource
     {
         $this->abortIfUserIsNotVisible($user);
 
         DB::transaction(function () use ($request, $user): void {
-            $previous = $user->subscriptions()->get()->keyBy('id');
-            $assignments = $this->subscriptionAssignments($request->validated());
+            $previous = $user->services()->get()->keyBy('id');
+            $assignments = $this->serviceAssignments($request->validated());
             $assignedIds = collect($assignments)->pluck('id');
-            $user->subscriptions()->detach($previous->except($assignedIds->all())->keys()->all());
-            $this->attachSubscriptionAssignments($user, $assignments, $previous);
+            $user->services()->detach($previous->except($assignedIds->all())->keys()->all());
+            $this->attachServiceAssignments($user, $assignments, $previous);
 
-            $previous->except($assignedIds->all())->each(function (Subscription $subscription) use ($user): void {
-                $this->activityLogger->record(AuditLog::SUBSCRIPTION_SUSPENDED, $user, $subscription, [], [
-                    'subscription_id' => $subscription->id,
+            $previous->except($assignedIds->all())->each(function (Service $service) use ($user): void {
+                $this->activityLogger->record(AuditLog::SERVICE_SUSPENDED, $user, $service, [], [
+                    'service_id' => $service->id,
                 ]);
             });
         });
@@ -230,43 +230,43 @@ class UserController extends Controller
         return response()->json(status: 204);
     }
 
-    private function subscriptionAssignments(array $data): array
+    private function serviceAssignments(array $data): array
     {
-        if (array_key_exists('subscriptions', $data)) {
-            return collect($data['subscriptions'])
-                ->map(fn (array $subscription): array => [
-                    'id' => $subscription['id'],
-                    'start_date' => $subscription['start_date'] ?? now()->toDateString(),
+        if (array_key_exists('services', $data)) {
+            return collect($data['services'])
+                ->map(fn (array $service): array => [
+                    'id' => $service['id'],
+                    'start_date' => $service['start_date'] ?? now()->toDateString(),
                 ])
                 ->all();
         }
 
-        return collect($data['subscription_ids'] ?? [])
-            ->map(fn (int $subscriptionId): array => [
-                'id' => $subscriptionId,
+        return collect($data['service_ids'] ?? [])
+            ->map(fn (int $serviceId): array => [
+                'id' => $serviceId,
                 'start_date' => now()->toDateString(),
             ])
             ->all();
     }
 
-    private function userRelationsForResponse(?int $organizationId, bool $includeSubscriptions = false): array
+    private function userRelationsForResponse(?int $organizationId, bool $includeServices = false): array
     {
         $relations = [
             'groups.rights' => fn ($query) => $this->organizationAccess->applyAvailableRightsFilter($query, $organizationId),
             'locations',
-            'activeSubscriptions',
+            'activeServices',
         ];
 
-        if ($includeSubscriptions) {
-            $relations[] = 'subscriptions';
+        if ($includeServices) {
+            $relations[] = 'services';
         }
 
         return $relations;
     }
 
-    private function loadUserForResponse(User $user, ?int $organizationId, bool $includeSubscriptions = false): User
+    private function loadUserForResponse(User $user, ?int $organizationId, bool $includeServices = false): User
     {
-        return $user->load($this->userRelationsForResponse($organizationId, $includeSubscriptions));
+        return $user->load($this->userRelationsForResponse($organizationId, $includeServices));
     }
 
     private function abortIfUserIsNotVisible(User $user): void
@@ -274,23 +274,23 @@ class UserController extends Controller
         abort_unless(User::query()->whereKey($user->getKey())->exists(), 404);
     }
 
-    private function attachSubscriptionAssignments(User $user, array $assignments, mixed $previousSubscriptions = []): void
+    private function attachServiceAssignments(User $user, array $assignments, mixed $previousServices = []): void
     {
-        $previous = collect($previousSubscriptions)->keyBy('id');
+        $previous = collect($previousServices)->keyBy('id');
 
         foreach ($assignments as $assignment) {
-            $subscription = Subscription::query()->findOrFail($assignment['id']);
+            $service = Service::query()->findOrFail($assignment['id']);
             $startDate = CarbonImmutable::parse($assignment['start_date'])->startOfDay();
             $pivotData = [
-                'status' => $this->subscriptionInitialStatus($subscription, $startDate),
+                'status' => $this->serviceInitialStatus($service, $startDate),
                 'start_date' => $startDate->toDateString(),
-                'expires_at' => $this->subscriptionExpiresAt($subscription, $startDate),
-                'activated_at' => (float) $subscription->price > 0 ? null : now(),
+                'expires_at' => $this->serviceExpiresAt($service, $startDate),
+                'activated_at' => (float) $service->price > 0 ? null : now(),
             ];
 
-            if ($previous->has($subscription->id)) {
-                $previousPivot = $previous->get($subscription->id)->pivot;
-                $user->subscriptions()->updateExistingPivot($subscription->id, [
+            if ($previous->has($service->id)) {
+                $previousPivot = $previous->get($service->id)->pivot;
+                $user->services()->updateExistingPivot($service->id, [
                     'start_date' => $pivotData['start_date'],
                     'expires_at' => $pivotData['expires_at'],
                 ]);
@@ -300,8 +300,8 @@ class UserController extends Controller
                     : CarbonImmutable::parse($previousPivot->start_date)->toDateString();
 
                 if ($previousStartDate !== $startDate->toDateString()) {
-                    $this->activityLogger->record(AuditLog::SUBSCRIPTION_RENEWED, $user, $subscription, [], [
-                        'subscription_id' => $subscription->id,
+                    $this->activityLogger->record(AuditLog::SERVICE_RENEWED, $user, $service, [], [
+                        'service_id' => $service->id,
                         'start_date' => $startDate->toDateString(),
                     ]);
                 }
@@ -309,23 +309,23 @@ class UserController extends Controller
                 continue;
             }
 
-            $user->subscriptions()->attach($subscription->id, $pivotData);
+            $user->services()->attach($service->id, $pivotData);
 
-            DB::afterCommit(function () use ($user, $subscription, $startDate): void {
+            DB::afterCommit(function () use ($user, $service, $startDate): void {
                 NotificationRequested::dispatch(
                     $user->fresh(),
-                    NotificationRequested::SUBSCRIPTION_ACTIVATED,
-                    "subscription.activated:{$user->id}:{$subscription->id}:{$startDate->toDateString()}",
-                    ['subscription' => $subscription->name],
+                    NotificationRequested::SERVICE_ACTIVATED,
+                    "service.activated:{$user->id}:{$service->id}:{$startDate->toDateString()}",
+                    ['service' => $service->name],
                 );
             });
 
             $this->activityLogger->record(
-                AuditLog::SUBSCRIPTION_ASSIGNED,
+                AuditLog::SERVICE_ASSIGNED,
                 $user,
-                $subscription,
+                $service,
                 [],
-                ['subscription_id' => $subscription->id, 'start_date' => $startDate->toDateString()],
+                ['service_id' => $service->id, 'start_date' => $startDate->toDateString()],
             );
         }
     }
@@ -354,18 +354,18 @@ class UserController extends Controller
         return ActivityResource::collection($activities);
     }
 
-    private function subscriptionExpiresAt(Subscription $subscription, CarbonImmutable $startDate): ?string
+    private function serviceExpiresAt(Service $service, CarbonImmutable $startDate): ?string
     {
-        return match ($subscription->expiration_rule) {
+        return match ($service->expiration_rule) {
             'none' => null,
-            'fixed_date' => $subscription->fixed_expires_at?->toDateString(),
-            default => $subscription->duration_days === null ? null : $startDate->addDays($subscription->duration_days)->toDateString(),
+            'fixed_date' => $service->fixed_expires_at?->toDateString(),
+            default => $service->duration_days === null ? null : $startDate->addDays($service->duration_days)->toDateString(),
         };
     }
 
-    private function subscriptionInitialStatus(Subscription $subscription, CarbonImmutable $startDate): string
+    private function serviceInitialStatus(Service $service, CarbonImmutable $startDate): string
     {
-        if ((float) $subscription->price > 0) {
+        if ((float) $service->price > 0) {
             return 'pending';
         }
 

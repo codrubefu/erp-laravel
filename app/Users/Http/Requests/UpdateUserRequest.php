@@ -53,11 +53,11 @@ class UpdateUserRequest extends FormRequest
             'group_ids.*' => ['integer', 'exists:groups,id'],
             'location_ids' => ['sometimes', 'array'],
             'location_ids.*' => ['integer', 'exists:locations,id'],
-            'subscription_ids' => ['sometimes', 'array'],
-            'subscription_ids.*' => ['integer', 'exists:subscriptions,id'],
-            'subscriptions' => ['sometimes', 'array'],
-            'subscriptions.*.id' => ['required_with:subscriptions', 'integer', 'exists:subscriptions,id'],
-            'subscriptions.*.start_date' => ['sometimes', 'date'],
+            'service_ids' => ['sometimes', 'array'],
+            'service_ids.*' => ['integer', 'exists:services,id'],
+            'services' => ['sometimes', 'array'],
+            'services.*.id' => ['required_with:services', 'integer', 'exists:services,id'],
+            'services.*.start_date' => ['sometimes', 'date'],
         ];
     }
 }

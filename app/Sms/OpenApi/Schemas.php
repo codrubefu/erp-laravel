@@ -17,7 +17,7 @@ use OpenApi\Attributes as OA;
     type: 'object',
 )]
 #[OA\Schema(
-    schema: 'SmsMessageSubscription',
+    schema: 'SmsMessageService',
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 1),
         new OA\Property(property: 'name', type: 'string', example: 'Gold'),
@@ -30,9 +30,9 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 1),
         new OA\Property(property: 'user_id', type: 'integer', nullable: true, example: 35),
-        new OA\Property(property: 'subscription_id', type: 'integer', nullable: true, example: 2),
-        new OA\Property(property: 'subscription_user_id', type: 'integer', nullable: true, example: 10),
-        new OA\Property(property: 'type', type: 'string', example: 'subscription_expiring'),
+        new OA\Property(property: 'service_id', type: 'integer', nullable: true, example: 2),
+        new OA\Property(property: 'service_user_id', type: 'integer', nullable: true, example: 10),
+        new OA\Property(property: 'type', type: 'string', example: 'service_expiring'),
         new OA\Property(property: 'destination', type: 'string', example: '0722535723'),
         new OA\Property(property: 'message', type: 'string', example: 'Abonamentul Gold expira la 2026-06-02.'),
         new OA\Property(property: 'status', type: 'string', example: 'sent'),
@@ -40,7 +40,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'user', ref: '#/components/schemas/SmsMessageUser'),
-        new OA\Property(property: 'subscription', ref: '#/components/schemas/SmsMessageSubscription'),
+        new OA\Property(property: 'service', ref: '#/components/schemas/SmsMessageService'),
     ],
     type: 'object',
 )]

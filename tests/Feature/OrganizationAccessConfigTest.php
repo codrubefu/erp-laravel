@@ -22,7 +22,7 @@ class OrganizationAccessConfigTest extends TestCase
             'first_name' => 'John',
             'last_name' => 'Member',
             'payment_type_id' => Payment::TYPE_CARD,
-            'model_type' => Payment::MODEL_TYPE_SUBSCRIPTION_USER,
+            'model_type' => Payment::MODEL_TYPE_SERVICE_USER,
             'model_id' => 77,
             'amount' => 25.50,
             'paid_at' => '2026-06-01 12:00:00',

@@ -59,7 +59,7 @@ class Payment extends Model
         self::STATUS_CANCELLED,
     ];
 
-    public const MODEL_TYPE_SUBSCRIPTION_USER = 'subscription_user';
+    public const MODEL_TYPE_SERVICE_USER = 'service_user';
     public const MODEL_TYPE_EVENT_OCCURRENCE_USER = 'event_occurrence_user';
 
     public const PAYMENT_TYPES = [
@@ -69,7 +69,7 @@ class Payment extends Model
     ];
 
     public const MODEL_TYPES = [
-        self::MODEL_TYPE_SUBSCRIPTION_USER,
+        self::MODEL_TYPE_SERVICE_USER,
         self::MODEL_TYPE_EVENT_OCCURRENCE_USER,
     ];
 

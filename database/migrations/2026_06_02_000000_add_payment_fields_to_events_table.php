@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('events', function (Blueprint $table) {
-            $table->boolean('requires_payment')->default(false)->after('required_subscription_id');
+            $table->boolean('requires_payment')->default(false)->after('required_service_id');
             $table->decimal('payment_amount', 10, 2)->nullable()->after('requires_payment');
             $table->string('payment_type')->nullable()->after('payment_amount');
 

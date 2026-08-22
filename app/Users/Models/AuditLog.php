@@ -24,10 +24,10 @@ class AuditLog extends Model
 
     public const USER_CREATED = 'user.created';
     public const USER_UPDATED = 'user.updated';
-    public const SUBSCRIPTION_ASSIGNED = 'subscription.assigned';
-    public const SUBSCRIPTION_ACTIVATED = 'subscription.activated';
-    public const SUBSCRIPTION_RENEWED = 'subscription.renewed';
-    public const SUBSCRIPTION_SUSPENDED = 'subscription.suspended';
+    public const SERVICE_ASSIGNED = 'service.assigned';
+    public const SERVICE_ACTIVATED = 'service.activated';
+    public const SERVICE_RENEWED = 'service.renewed';
+    public const SERVICE_SUSPENDED = 'service.suspended';
     public const PAYMENT_RECORDED = 'payment.recorded';
     public const APPROVAL_GRANTED = 'approval.granted';
     public const CARD_ISSUED = 'card.issued';

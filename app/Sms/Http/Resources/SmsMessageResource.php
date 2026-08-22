@@ -15,8 +15,8 @@ class SmsMessageResource extends JsonResource
         return [
             'id' => $this->id,
             'user_id' => $this->user_id,
-            'subscription_id' => $this->subscription_id,
-            'subscription_user_id' => $this->subscription_user_id,
+            'service_id' => $this->service_id,
+            'service_user_id' => $this->service_user_id,
             'type' => $this->type,
             'destination' => $this->destination,
             'message' => $this->message,
@@ -32,10 +32,10 @@ class SmsMessageResource extends JsonResource
                 'email' => $this->user->email,
                 'phone' => $this->user->phone,
             ]),
-            'subscription' => $this->whenLoaded('subscription', fn (): ?array => $this->subscription === null ? null : [
-                'id' => $this->subscription->id,
-                'name' => $this->subscription->name,
-                'is_active' => $this->subscription->is_active,
+            'service' => $this->whenLoaded('service', fn (): ?array => $this->service === null ? null : [
+                'id' => $this->service->id,
+                'name' => $this->service->name,
+                'is_active' => $this->service->is_active,
             ]),
         ];
     }

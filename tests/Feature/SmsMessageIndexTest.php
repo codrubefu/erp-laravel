@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Sms\Models\SmsMessage;
-use App\Subscription\Models\Subscription;
+use App\Service\Models\Service;
 use App\Users\Models\Group;
 use App\Users\Models\Right;
 use App\Users\Models\User;
@@ -25,28 +25,28 @@ class SmsMessageIndexTest extends TestCase
             'phone' => '0722000001',
             'email' => 'ion@example.com',
         ]);
-        $subscription = Subscription::query()->create([
+        $service = Service::query()->create([
             'organization_id' => $user->organization_id,
             'name' => 'Gold',
-            'description' => 'Gold subscription',
+            'description' => 'Gold service',
             'price' => 100,
             'currency' => 'RON',
             'duration_days' => 30,
             'max_users' => 10,
             'is_active' => true,
         ]);
-        $user->subscriptions()->attach($subscription->id);
-        $firstSubscriptionUserId = $user->subscriptions()
-            ->where('subscriptions.id', $subscription->id)
+        $user->services()->attach($service->id);
+        $firstServiceUserId = $user->services()
+            ->where('services.id', $service->id)
             ->firstOrFail()
             ->pivot
             ->id;
 
         $firstMatch = SmsMessage::query()->create([
             'user_id' => $user->id,
-            'subscription_id' => $subscription->id,
-            'subscription_user_id' => $firstSubscriptionUserId,
-            'type' => SmsMessage::TYPE_SUBSCRIPTION_EXPIRING,
+            'service_id' => $service->id,
+            'service_user_id' => $firstServiceUserId,
+            'type' => SmsMessage::TYPE_SERVICE_EXPIRING,
             'destination' => '0722000001',
             'message' => 'Gold expires soon',
             'status' => SmsMessage::STATUS_SENT,
@@ -54,18 +54,18 @@ class SmsMessageIndexTest extends TestCase
         ]);
 
         $secondUser = User::factory()->create(['organization_id' => $admin->organization_id]);
-        $secondUser->subscriptions()->attach($subscription->id);
-        $secondSubscriptionUserId = $secondUser->subscriptions()
-            ->where('subscriptions.id', $subscription->id)
+        $secondUser->services()->attach($service->id);
+        $secondServiceUserId = $secondUser->services()
+            ->where('services.id', $service->id)
             ->firstOrFail()
             ->pivot
             ->id;
 
         SmsMessage::query()->create([
             'user_id' => $user->id,
-            'subscription_id' => $subscription->id,
-            'subscription_user_id' => $secondSubscriptionUserId,
-            'type' => SmsMessage::TYPE_SUBSCRIPTION_EXPIRING,
+            'service_id' => $service->id,
+            'service_user_id' => $secondServiceUserId,
+            'type' => SmsMessage::TYPE_SERVICE_EXPIRING,
             'destination' => '0722000001',
             'message' => 'Another Gold reminder',
             'status' => SmsMessage::STATUS_SENT,
@@ -73,17 +73,17 @@ class SmsMessageIndexTest extends TestCase
         ]);
 
         $thirdUser = User::factory()->create(['organization_id' => $admin->organization_id]);
-        $thirdUser->subscriptions()->attach($subscription->id);
-        $thirdSubscriptionUserId = $thirdUser->subscriptions()
-            ->where('subscriptions.id', $subscription->id)
+        $thirdUser->services()->attach($service->id);
+        $thirdServiceUserId = $thirdUser->services()
+            ->where('services.id', $service->id)
             ->firstOrFail()
             ->pivot
             ->id;
 
         SmsMessage::query()->create([
             'user_id' => $user->id,
-            'subscription_id' => $subscription->id,
-            'subscription_user_id' => $thirdSubscriptionUserId,
+            'service_id' => $service->id,
+            'service_user_id' => $thirdServiceUserId,
             'type' => 'manual',
             'destination' => '0733000000',
             'message' => 'Other message',
@@ -92,25 +92,25 @@ class SmsMessageIndexTest extends TestCase
         ]);
 
         $this->withHeader('Authorization', "Bearer {$token}")
-            ->getJson('/api/sms-messages?search=Gold&status=sent&type=subscription_expiring&user_id='.$user->id.'&subscription_id='.$subscription->id.'&sent_from=2026-06-01&sent_to=2026-06-01&per_page=1')
+            ->getJson('/api/sms-messages?search=Gold&status=sent&type=service_expiring&user_id='.$user->id.'&service_id='.$service->id.'&sent_from=2026-06-01&sent_to=2026-06-01&per_page=1')
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', 2)
-            ->assertJsonPath('data.0.subscription.name', 'Gold')
+            ->assertJsonPath('data.0.service.name', 'Gold')
             ->assertJsonPath('data.0.user.first_name', 'Ion')
             ->assertJsonPath('meta.total', 2)
             ->assertJsonPath('meta.per_page', 1)
             ->assertJsonPath('meta.current_page', 1);
 
         $this->withHeader('Authorization', "Bearer {$token}")
-            ->getJson('/api/sms-messages?search=Gold&status=sent&type=subscription_expiring&user_id='.$user->id.'&subscription_id='.$subscription->id.'&sent_from=2026-06-01&sent_to=2026-06-01&per_page=1&page=2')
+            ->getJson('/api/sms-messages?search=Gold&status=sent&type=service_expiring&user_id='.$user->id.'&service_id='.$service->id.'&sent_from=2026-06-01&sent_to=2026-06-01&per_page=1&page=2')
             ->assertOk()
             ->assertJsonPath('data.0.id', $firstMatch->id);
     }
 
     public function test_user_without_sms_view_right_cannot_list_sms_messages(): void
     {
-        [, $token] = $this->authenticatedUserWithRights(['subscriptions.view']);
+        [, $token] = $this->authenticatedUserWithRights(['services.view']);
 
         $this->withHeader('Authorization', "Bearer {$token}")
             ->getJson('/api/sms-messages')

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        foreach (['users', 'groups', 'rights', 'locations', 'articles', 'subscriptions', 'events', 'event_occurrences', 'personal_access_tokens'] as $tableName) {
+        foreach (['users', 'groups', 'rights', 'locations', 'articles', 'services', 'events', 'event_occurrences', 'personal_access_tokens'] as $tableName) {
             Schema::table($tableName, function (Blueprint $table) {
                 $table->foreignId('organization_id')->nullable()->after('id')->constrained('organizations')->nullOnDelete();
                 $table->index('organization_id');
@@ -25,7 +25,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        foreach (['users', 'groups', 'rights', 'locations', 'articles', 'subscriptions', 'events', 'event_occurrences', 'personal_access_tokens'] as $tableName) {
+        foreach (['users', 'groups', 'rights', 'locations', 'articles', 'services', 'events', 'event_occurrences', 'personal_access_tokens'] as $tableName) {
             Schema::table($tableName, function (Blueprint $table) {
                 $table->dropConstrainedForeignId('organization_id');
             });

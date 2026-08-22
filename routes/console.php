@@ -2,9 +2,9 @@
 
 use App\Campaigns\Jobs\DispatchCampaign;
 use App\Campaigns\Models\Campaign;
-use App\Notifications\Jobs\DispatchSubscriptionLifecycleNotifications;
+use App\Notifications\Jobs\DispatchServiceLifecycleNotifications;
 use App\Articles\Jobs\TransitionArticlePublicationStatus;
-use App\Subscription\Jobs\SendExpiringSubscriptionSms;
+use App\Service\Jobs\SendExpiringServiceSms;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -18,13 +18,13 @@ Schedule::call(function (): void {
         ->eachById(fn (Campaign $campaign) => DispatchCampaign::dispatch($campaign->id));
 })->everyMinute()->description('campaigns.dispatch-due')->withoutOverlapping();
 
-Schedule::job(new DispatchSubscriptionLifecycleNotifications)
-    ->name('subscriptions.lifecycle-notifications')
+Schedule::job(new DispatchServiceLifecycleNotifications)
+    ->name('services.lifecycle-notifications')
     ->dailyAt('08:00')
     ->withoutOverlapping()
     ->onOneServer();
 
-Schedule::job(new SendExpiringSubscriptionSms)->daily();
+Schedule::job(new SendExpiringServiceSms)->daily();
 Schedule::job(new TransitionArticlePublicationStatus)
     ->name('articles.transition-publication-status')
     ->everyMinute()

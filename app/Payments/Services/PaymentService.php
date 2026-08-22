@@ -3,8 +3,8 @@
 namespace App\Payments\Services;
 
 use App\Payments\Models\Payment;
-use App\Subscription\Models\SubscriptionUser;
-use App\Subscription\Services\SubscriptionLifecycleService;
+use App\Service\Models\ServiceUser;
+use App\Service\Services\ServiceLifecycleService;
 use App\Users\Models\AuditLog;
 use App\Users\Models\User;
 use App\Users\Services\BusinessActivityLogger;
@@ -17,12 +17,12 @@ class PaymentService
 {
     public function __construct(
         private readonly BusinessActivityLogger $activityLogger,
-        private readonly SubscriptionLifecycleService $subscriptionLifecycle,
+        private readonly ServiceLifecycleService $serviceLifecycle,
     ) {}
 
     public function create(array $data, User $admin): Payment
     {
-        $data['model_type'] ??= Payment::MODEL_TYPE_SUBSCRIPTION_USER;
+        $data['model_type'] ??= Payment::MODEL_TYPE_SERVICE_USER;
         $this->ensureSupportedModelType($data['model_type']);
         $this->ensurePayableBelongsToOrganization($data['model_type'], (int) $data['model_id'], (int) $admin->organization_id);
 
@@ -110,18 +110,18 @@ class PaymentService
             $payment->update(['receipt_number' => sprintf('RCPT-%d-%s-%06d', $payment->organization_id, now()->format('Y'), $payment->id)]);
         }
 
-        if ($payment->model_type !== Payment::MODEL_TYPE_SUBSCRIPTION_USER) {
+        if ($payment->model_type !== Payment::MODEL_TYPE_SERVICE_USER) {
             return;
         }
 
-        $assignment = SubscriptionUser::query()->findOrFail($payment->model_id);
-        $this->subscriptionLifecycle->activate($assignment, $payment);
+        $assignment = ServiceUser::query()->findOrFail($payment->model_id);
+        $this->serviceLifecycle->activate($assignment, $payment);
     }
 
     private function ensurePayableBelongsToOrganization(string $type, int $id, int $organizationId): void
     {
-        $matches = $type === Payment::MODEL_TYPE_SUBSCRIPTION_USER
-            ? DB::table('subscription_user')->join('subscriptions', 'subscriptions.id', '=', 'subscription_user.subscription_id')->where('subscription_user.id', $id)->where('subscriptions.organization_id', $organizationId)->exists()
+        $matches = $type === Payment::MODEL_TYPE_SERVICE_USER
+            ? DB::table('service_user')->join('services', 'services.id', '=', 'service_user.service_id')->where('service_user.id', $id)->where('services.organization_id', $organizationId)->exists()
             : DB::table('event_occurrence_user')->join('event_occurrences', 'event_occurrences.id', '=', 'event_occurrence_user.event_occurrence_id')->where('event_occurrence_user.id', $id)->where('event_occurrences.organization_id', $organizationId)->exists();
 
         if (! $matches) {
@@ -143,8 +143,8 @@ class PaymentService
 
     private function subjectFor(Payment $payment): ?User
     {
-        $pivotTable = $payment->model_type === Payment::MODEL_TYPE_SUBSCRIPTION_USER
-            ? 'subscription_user'
+        $pivotTable = $payment->model_type === Payment::MODEL_TYPE_SERVICE_USER
+            ? 'service_user'
             : 'event_occurrence_user';
         $userId = DB::table($pivotTable)->where('id', $payment->model_id)->value('user_id');
 

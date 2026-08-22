@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Articles\Jobs\TransitionArticlePublicationStatus;
 use App\Articles\Models\Article;
-use App\Subscription\Models\Subscription;
+use App\Service\Models\Service;
 use App\Users\Models\Group;
 use App\Users\Models\Location;
 use App\Users\Models\User;
@@ -27,10 +27,10 @@ class ArticleSegmentationTest extends TestCase
         $user->groups()->attach($group);
         $user->locations()->attach($location);
 
-        $subscription = Subscription::query()->create([
+        $service = Service::query()->create([
             'name' => 'Current', 'price' => 10, 'currency' => 'EUR', 'is_active' => true,
         ]);
-        $user->subscriptions()->attach($subscription, [
+        $user->services()->attach($service, [
             'start_date' => today()->subMonth(), 'expires_at' => today()->addMonth(),
         ]);
 
@@ -55,18 +55,18 @@ class ArticleSegmentationTest extends TestCase
         $this->assertSame(4, $visible->count());
     }
 
-    public function test_expired_segment_excludes_users_who_also_have_an_active_subscription(): void
+    public function test_expired_segment_excludes_users_who_also_have_an_active_service(): void
     {
         $user = User::factory()->create();
         Auth::setUser($user);
-        $expired = Subscription::query()->create(['name' => 'Old', 'price' => 10, 'currency' => 'EUR', 'is_active' => true]);
-        $user->subscriptions()->attach($expired, ['expires_at' => today()->subDay()]);
+        $expired = Service::query()->create(['name' => 'Old', 'price' => 10, 'currency' => 'EUR', 'is_active' => true]);
+        $user->services()->attach($expired, ['expires_at' => today()->subDay()]);
         $article = $this->article($user, 'expired_users');
 
         $this->assertTrue(Article::query()->visibleTo($user)->whereKey($article)->exists());
 
-        $active = Subscription::query()->create(['name' => 'New', 'price' => 10, 'currency' => 'EUR', 'is_active' => true]);
-        $user->subscriptions()->attach($active, ['expires_at' => today()->addDay()]);
+        $active = Service::query()->create(['name' => 'New', 'price' => 10, 'currency' => 'EUR', 'is_active' => true]);
+        $user->services()->attach($active, ['expires_at' => today()->addDay()]);
 
         $this->assertFalse(Article::query()->visibleTo($user)->whereKey($article)->exists());
     }

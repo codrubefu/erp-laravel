@@ -20,7 +20,7 @@ Route::middleware('auth.bearer')->group(function (): void {
     Route::patch('/me/password', [MeController::class, 'updatePassword']);
     Route::get('/me/custom-fields', [MeController::class, 'customFields']);
     Route::get('/me/events', [MeController::class, 'events']);
-    Route::get('/me/subscriptions', [MeController::class, 'subscriptions']);
+    Route::get('/me/services', [MeController::class, 'services']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me/privacy/data', [GdprController::class, 'access']);
     Route::post('/me/privacy/exports', [GdprController::class, 'export']);
@@ -70,7 +70,7 @@ Route::middleware('auth.bearer')->group(function (): void {
     Route::get('/users', [UserController::class, 'index'])->middleware('right:users.view');
     Route::get('/users/search/user-code', [UserController::class, 'searchByUserCode'])->middleware('right:users.view');
     Route::post('/users', [UserController::class, 'store'])->middleware('right:users.manage');
-    Route::patch('/users/subscription/{user}', [UserController::class, 'syncSubscriptions'])->middleware('right:users.manage');
+    Route::patch('/users/service/{user}', [UserController::class, 'syncServices'])->middleware('right:users.manage');
     Route::get('/users/{user}/activity', [UserController::class, 'activity'])->middleware('right:users.view');
     Route::get('/users/{user}/documents', [UserDocumentController::class, 'index'])->middleware('right:user-documents.view');
     Route::post('/users/{user}/documents', [UserDocumentController::class, 'store'])->middleware('right:user-documents.upload');

@@ -13,7 +13,7 @@ class SmsMessageController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $smsMessages = SmsMessage::query()
-            ->with(['user', 'subscription'])
+            ->with(['user', 'service'])
             ->when($request->string('search')->isNotEmpty(), function ($query) use ($request): void {
                 $search = $request->string('search')->toString();
 
@@ -27,13 +27,13 @@ class SmsMessageController extends Controller
                                 ->orWhere('phone', 'like', "%{$search}%")
                                 ->orWhere('user_code', 'like', "%{$search}%");
                         })
-                        ->orWhereHas('subscription', fn ($query) => $query->where('name', 'like', "%{$search}%"));
+                        ->orWhereHas('service', fn ($query) => $query->where('name', 'like', "%{$search}%"));
                 });
             })
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')->toString()))
             ->when($request->filled('type'), fn ($query) => $query->where('type', $request->string('type')->toString()))
             ->when($request->filled('user_id'), fn ($query) => $query->where('user_id', $request->integer('user_id')))
-            ->when($request->filled('subscription_id'), fn ($query) => $query->where('subscription_id', $request->integer('subscription_id')))
+            ->when($request->filled('service_id'), fn ($query) => $query->where('service_id', $request->integer('service_id')))
             ->when($request->filled('destination'), fn ($query) => $query->where('destination', 'like', '%'.$request->string('destination')->toString().'%'))
             ->when($request->filled('sent_from'), fn ($query) => $query->whereDate('sent_at', '>=', $request->string('sent_from')->toString()))
             ->when($request->filled('sent_to'), fn ($query) => $query->whereDate('sent_at', '<=', $request->string('sent_to')->toString()))

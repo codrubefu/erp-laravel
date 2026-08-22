@@ -10,9 +10,9 @@ class NotificationRequested
 {
     use Dispatchable, SerializesModels;
 
-    public const SUBSCRIPTION_ACTIVATED = 'subscription.activated';
-    public const SUBSCRIPTION_EXPIRING = 'subscription.expiring';
-    public const SUBSCRIPTION_EXPIRED = 'subscription.expired';
+    public const SERVICE_ACTIVATED = 'service.activated';
+    public const SERVICE_EXPIRING = 'service.expiring';
+    public const SERVICE_EXPIRED = 'service.expired';
     public const SCHEDULE_CHANGED = 'schedule.changed';
     public const URGENT_ANNOUNCEMENT = 'announcement.urgent';
     public const RESUMED = 'activity.resumed';

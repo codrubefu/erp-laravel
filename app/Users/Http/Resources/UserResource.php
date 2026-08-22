@@ -22,16 +22,16 @@ class UserResource extends JsonResource
             'email_verified_at' => $this->email_verified_at,
             'groups' => $this->whenLoaded('groups'),
             'locations' => $this->whenLoaded('locations'),
-            'subscriptions' => $this->whenLoaded('subscriptions'),
-            'subscription_history' => $this->whenLoaded('subscriptions', function (): array {
-                return $this->subscriptions->map(function ($subscription): array {
-                    $pivot = $subscription->pivot;
+            'services' => $this->whenLoaded('services'),
+            'service_history' => $this->whenLoaded('services', function (): array {
+                return $this->services->map(function ($service): array {
+                    $pivot = $service->pivot;
                     $status = $pivot?->status ?? 'pending';
 
                     return [
                         'id' => $pivot?->id,
-                        'subscription_id' => $subscription->id,
-                        'name' => $subscription->name,
+                        'service_id' => $service->id,
+                        'name' => $service->name,
                         'start_date' => $pivot?->start_date,
                         'expires_at' => $pivot?->expires_at,
                         'status' => $status,
@@ -40,15 +40,15 @@ class UserResource extends JsonResource
                         'resume_at' => $pivot?->resume_at,
                         'status_reason' => $pivot?->status_reason,
                         'activation_payment_id' => $pivot?->activation_payment_id,
-                        'is_active' => $subscription->is_active && $status === 'active',
-                        'is_currently_active' => $subscription->is_active && $status === 'active',
+                        'is_active' => $service->is_active && $status === 'active',
+                        'is_currently_active' => $service->is_active && $status === 'active',
                     ];
                 })->all();
             }),
-            'active_subscriptions' => $this->whenLoaded('activeSubscriptions'),
-            'has_active_subscription' => $this->whenLoaded(
-                'activeSubscriptions',
-                fn () => $this->activeSubscriptions->isNotEmpty()
+            'active_services' => $this->whenLoaded('activeServices'),
+            'has_active_service' => $this->whenLoaded(
+                'activeServices',
+                fn () => $this->activeServices->isNotEmpty()
             ),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

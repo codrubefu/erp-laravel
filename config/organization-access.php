@@ -10,7 +10,7 @@ return [
         'groups' => ['groups.*'],
         'rights' => ['rights.*'],
         'locations' => ['locations.*'],
-        'subscriptions' => ['subscriptions.*', 'sms.view'],
+        'services' => ['services.*', 'sms.view'],
         'articles' => ['articles.*'],
         'events' => ['events.*', 'event_participants.*'],
         'payments' => ['payments.*'],

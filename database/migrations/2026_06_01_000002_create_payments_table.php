@@ -13,7 +13,7 @@ return new class extends Migration
             $table->string('first_name');
             $table->string('last_name');
             $table->unsignedTinyInteger('payment_type_id');
-            $table->string('model_type')->default('subscription_user');
+            $table->string('model_type')->default('service_user');
             $table->unsignedBigInteger('model_id')->nullable();
             $table->decimal('amount', 10, 2);
             $table->dateTime('paid_at');

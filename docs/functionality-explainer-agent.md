@@ -20,7 +20,7 @@ This project is a modular Laravel ERP-style API with:
 - bearer-token authentication
 - rights and groups based authorization
 - users, administrators, clients, locations, and location groups
-- subscriptions and subscription assignment lifecycle
+- services and service assignment lifecycle
 - events, generated occurrences, and participants
 - articles/announcements with audience segmentation and read receipts
 - custom fields per entity type
@@ -38,7 +38,7 @@ This project is a modular Laravel ERP-style API with:
 API routes are split by module and included from `routes/api.php`:
 
 - `routes/user.php`
-- `routes/subscription.php`
+- `routes/service.php`
 - `routes/event.php`
 - `routes/article.php`
 - `routes/custom-fields.php`
@@ -106,7 +106,7 @@ Important behavior:
 
 - `right:a,b` means the user needs at least one of the listed rights.
 - Rights can be disabled per organization through `OrganizationAccessService`.
-- Admin-style APIs generally use rights such as `users.view`, `users.manage`, `subscriptions.manage`, `events.manage`, etc.
+- Admin-style APIs generally use rights such as `users.view`, `users.manage`, `services.manage`, `events.manage`, etc.
 
 ### Multi-Organization Isolation
 
@@ -143,7 +143,7 @@ Main routes:
 - `GET /api/users/{user}`
 - `PUT/PATCH /api/users/{user}`
 - `DELETE /api/users/{user}`
-- `PATCH /api/users/subscription/{user}`
+- `PATCH /api/users/service/{user}`
 - `GET /api/users/{user}/activity`
 
 Functional behavior:
@@ -151,11 +151,11 @@ Functional behavior:
 - Users can be listed, filtered by search, viewed, created, updated, and deleted.
 - Administrators are users with groups, excluding users who only have `profile.view`.
 - Clients are users with no groups or only `profile.view`.
-- Users can have groups, locations, subscriptions, notification consents, push tokens, and user codes.
+- Users can have groups, locations, services, notification consents, push tokens, and user codes.
 - User e-mail, user code, and phone are unique within the organization when present; the same values may be reused in another organization.
 - Users cannot delete their own account.
 - User visibility is affected by location access scope.
-- Subscription sync detaches old subscriptions, attaches new ones, calculates expiration, logs activity, and dispatches subscription activation notifications.
+- Service sync detaches old services, attaches new ones, calculates expiration, logs activity, and dispatches service activation notifications.
 
 ### Profile: `/me`
 
@@ -169,13 +169,13 @@ Routes:
 - `PATCH /api/me/password`
 - `GET /api/me/custom-fields`
 - `GET /api/me/events`
-- `GET /api/me/subscriptions`
+- `GET /api/me/services`
 
 Functional behavior:
 
 - Authenticated users can inspect their own profile.
 - They can update their password.
-- They can retrieve their custom fields, registered events, and subscriptions.
+- They can retrieve their custom fields, registered events, and services.
 
 ### Groups and Rights
 
@@ -215,36 +215,36 @@ Functional behavior:
 - Users can be attached to locations.
 - Location access can restrict which users/data are visible.
 
-### Subscriptions
+### Services
 
 Main controller:
 
-- `app/Subscription/Http/Controllers/Api/SubscriptionController.php`
+- `app/Service/Http/Controllers/Api/ServiceController.php`
 
 Main model:
 
-- `app/Subscription/Models/Subscription.php`
+- `app/Service/Models/Service.php`
 
 Routes:
 
-- `GET /api/subscriptions`
-- `POST /api/subscriptions`
-- `GET /api/subscriptions/{subscription}`
-- `PUT/PATCH /api/subscriptions/{subscription}`
-- `DELETE /api/subscriptions/{subscription}`
-- `POST /api/subscriptions/{subscription}/restore`
-- `PATCH /api/subscriptions/{subscription}/toggle-active`
-- `GET /api/subscription-assignments/{assignment}/payment-note`
+- `GET /api/services`
+- `POST /api/services`
+- `GET /api/services/{service}`
+- `PUT/PATCH /api/services/{service}`
+- `DELETE /api/services/{service}`
+- `POST /api/services/{service}/restore`
+- `PATCH /api/services/{service}/toggle-active`
+- `GET /api/service-assignments/{assignment}/payment-note`
 
 Functional behavior:
 
-- Subscriptions are organization-scoped.
-- Subscriptions have name, description, price, currency, duration in days, maximum users, active flag, timestamps, and soft delete.
-- `billing_interval` and `trial_days` were removed by migration `2026_05_18_000002_remove_billing_interval_and_trial_days_from_subscriptions_table.php`.
-- Users are attached to subscriptions through `subscription_user`.
-- `subscription_user` stores `start_date` and `expires_at`.
-- Active user subscriptions are determined by active subscription status and date range.
-- Payment notes for subscription assignments are generated as PDFs from `storage/note-plata.html` or `storage/nota-plata.html` by `PaymentNoteService`; access is restricted to the authenticated organization.
+- Services are organization-scoped.
+- Services have name, description, price, currency, duration in days, maximum users, active flag, timestamps, and soft delete.
+- `billing_interval` and `trial_days` were removed by migration `2026_05_18_000002_remove_billing_interval_and_trial_days_from_services_table.php`.
+- Users are attached to services through `service_user`.
+- `service_user` stores `start_date` and `expires_at`.
+- Active user services are determined by active service status and date range.
+- Payment notes for service assignments are generated as PDFs from `storage/note-plata.html` or `storage/nota-plata.html` by `PaymentNoteService`; access is restricted to the authenticated organization.
 
 ### Events and Occurrences
 
@@ -279,8 +279,8 @@ Functional behavior:
 - Creating an event generates initial occurrences.
 - Updating schedule-related fields regenerates future open occurrences.
 - Deleting an event removes future occurrences without participants and cancels future occurrences with participants.
-- Events can require active subscriptions and/or payment.
-- Events can require a specific subscription.
+- Events can require active services and/or payment.
+- Events can require a specific service.
 - Participants are attached through `event_occurrence_user`.
 - Participant status can be managed.
 - When schedule changes or an inactive event resumes, notifications are dispatched to affected participants.
@@ -310,7 +310,7 @@ Functional behavior:
 - Articles have title, description, status, publish date, expiration date, priority, audience segment, optional dynamic `segment_id`, and author.
 - Statuses: `draft`, `scheduled`, `published`, `expired`.
 - Audience segments: `all_users`, `active_subscribers`, `expired_users`, `groups`, `locations`.
-- Feed visibility is calculated per user using organization, publication status, dates, segment, group membership, location membership, and subscription status.
+- Feed visibility is calculated per user using organization, publication status, dates, segment, group membership, location membership, and service status.
 - When `segment_id` is present, `Article::scopeVisibleTo()` asks `SegmentService` for current membership. Both the segment and user must belong to the article organization; an ID from another tenant is rejected by create/update validation and never grants feed visibility.
 - `GET /api/articles-feed` records delivery receipts.
 - `POST /api/articles/{article}/view` records view time.
@@ -387,7 +387,7 @@ Main services:
 
 - `app/Payments/Services/PaymentService.php`
 - `app/Payments/Services/ReceiptService.php`
-- `app/Subscription/Services/SubscriptionLifecycleService.php` for subscription assignment activation
+- `app/Service/Services/ServiceLifecycleService.php` for service assignment activation
 
 Routes:
 
@@ -400,20 +400,20 @@ Routes:
 Functional behavior:
 
 - Payments can be cash, card, or bank transfer.
-- Payments can attach to subscription assignments or event participant assignments.
+- Payments can attach to service assignments or event participant assignments.
 - Payable model types:
-  - subscription assignment: `subscription_user`
+  - service assignment: `service_user`
   - event occurrence participant: `event_occurrence_user`
 - Payment creation verifies the payable record belongs to the authenticated organization.
 - Cash payments are immediately confirmed.
 - Non-cash payments start as initiated and are updated by callback.
-- Confirmed subscription payments are delegated to `SubscriptionLifecycleService::activate()`; the payment service does not update `subscription_user` directly.
-- A payment can activate an assignment only when its `status` is exactly `confirmed`, its `organization_id` matches the subscription organization, and its `model_type`/`model_id` point to that exact `subscription_user` row. A populated `paid_at` field alone is not confirmation.
-- Activation locks the assignment and atomically writes its lifecycle `status`, `start_date`, `expires_at`, `activated_at`, and `activation_payment_id`. Expiration follows the subscription's `expiration_rule` (`duration`, `fixed_date`, or `none`), including future starts becoming `reserved`.
-- Confirmed payments receive a receipt number in the same transaction as subscription activation.
+- Confirmed service payments are delegated to `ServiceLifecycleService::activate()`; the payment service does not update `service_user` directly.
+- A payment can activate an assignment only when its `status` is exactly `confirmed`, its `organization_id` matches the service organization, and its `model_type`/`model_id` point to that exact `service_user` row. A populated `paid_at` field alone is not confirmation.
+- Activation locks the assignment and atomically writes its lifecycle `status`, `start_date`, `expires_at`, `activated_at`, and `activation_payment_id`. Expiration follows the service's `expiration_rule` (`duration`, `fixed_date`, or `none`), including future starts becoming `reserved`.
+- Confirmed payments receive a receipt number in the same transaction as service activation.
 - Receipt download is allowed only for confirmed payments with receipt numbers. `ReceiptService` generates the PDF from `storage/chitanta.html` and fills payment number, date, payer, amount, amount in Romanian words, paid model details, and cashier from the persisted payment.
 - Callback processing is idempotent and handles terminal statuses; a duplicate confirmed callback does not activate or notify twice.
-- The `subscription.activated` notification and audit business event are emitted only after the activation transaction commits, so rolled-back activations have no external activation side effects.
+- The `service.activated` notification and audit business event are emitted only after the activation transaction commits, so rolled-back activations have no external activation side effects.
 - Callback signatures use `services.payments.callback_secret`.
 
 ### SMS
@@ -433,10 +433,10 @@ Route:
 Functional behavior:
 
 - SMS messages are logged in `sms_messages`.
-- SMS list supports filters by subscription, user, status, dates, and search.
+- SMS list supports filters by service, user, status, dates, and search.
 - `SmsPortalService` sends messages to the configured SMS portal endpoint.
 - It converts Romanian/non-ASCII text to plain ASCII when required by provider config.
-- The older subscription expiration SMS job stores and updates `SmsMessage` rows.
+- The older service expiration SMS job stores and updates `SmsMessage` rows.
 
 ### Notifications
 
@@ -446,7 +446,7 @@ Main files:
 - `app/Notifications/Listeners/QueueNotificationDeliveries.php`
 - `app/Notifications/Jobs/SendNotificationDelivery.php`
 - `app/Notifications/Services/NotificationSender.php`
-- `app/Notifications/Jobs/DispatchSubscriptionLifecycleNotifications.php`
+- `app/Notifications/Jobs/DispatchServiceLifecycleNotifications.php`
 - `config/notifications.php`
 - `database/migrations/2026_08_06_000001_create_notification_layer.php`
 - `database/migrations/2026_08_09_000001_create_campaigns_and_notification_preferences.php`
@@ -464,13 +464,13 @@ Functional behavior:
 - New deliveries dispatch `SendNotificationDelivery`.
 - `SendNotificationDelivery` creates `notification_attempts`, sends through `NotificationSender`, and updates delivery status.
 - Failed sends are retried by Laravel queue using configured tries/backoff.
-- Templates live in `config/notifications.php` and use placeholders like `:subscription`, `:expires_at`, `:event`, `:message`.
+- Templates live in `config/notifications.php` and use placeholders like `:service`, `:expires_at`, `:event`, `:message`.
 
 Known overlap:
 
-- `DispatchSubscriptionLifecycleNotifications` is the new generic notification job.
-- `App\Subscription\Jobs\SendExpiringSubscriptionSms` is an older SMS-specific job.
-- Both are scheduled in `routes/console.php`, so subscription expiration can be handled by two systems if both remain active.
+- `DispatchServiceLifecycleNotifications` is the new generic notification job.
+- `App\Service\Jobs\SendExpiringServiceSms` is an older SMS-specific job.
+- Both are scheduled in `routes/console.php`, so service expiration can be handled by two systems if both remain active.
 
 ### Audit and Business Activity
 
@@ -485,7 +485,7 @@ Main files:
 Functional behavior:
 
 - Model changes are logged for models using `LogsModelChanges`.
-- Business events include user creation/update/delete, subscription assignment/activation/renewal/suspension, payment recorded, approval granted, card issued, and SMS sent.
+- Business events include user creation/update/delete, service assignment/activation/renewal/suspension, payment recorded, approval granted, card issued, and SMS sent.
 - Sensitive fields such as passwords, tokens, CNP/personal numeric code, authorization values, and secrets are removed from logged payloads.
 - User activity can be retrieved through `GET /api/users/{user}/activity`.
 
@@ -493,8 +493,8 @@ Functional behavior:
 
 Scheduled in `routes/console.php`:
 
-- `DispatchSubscriptionLifecycleNotifications`: daily at 08:00, sends generic subscription lifecycle notifications.
-- `SendExpiringSubscriptionSms`: daily, sends legacy SMS subscription expiration notices.
+- `DispatchServiceLifecycleNotifications`: daily at 08:00, sends generic service lifecycle notifications.
+- `SendExpiringServiceSms`: daily, sends legacy SMS service expiration notices.
 - `TransitionArticlePublicationStatus`: every minute, publishes scheduled articles and expires old articles.
 - Campaign scheduler callback: every minute, queues `DispatchCampaign` for due scheduled campaigns; `CampaignService` expands their current tenant-safe audience.
 
@@ -503,7 +503,7 @@ Console commands:
 - `CreateOrganizationAdmin`: creates an organization/admin bootstrap account and rights.
 - `DeleteOrganisation`: deletes organization-owned data in a controlled order.
 - `SeedUsers`: seeds users.
-- `SendExpiringSubscriptionSms`: command wrapper for the expiring SMS job.
+- `SendExpiringServiceSms`: command wrapper for the expiring SMS job.
 
 ## Data Model Cheat Sheet
 
@@ -519,8 +519,8 @@ Important tables:
 - `locations`
 - `location_user`
 - `location_groups`
-- `subscriptions`
-- `subscription_user`
+- `services`
+- `service_user`
 - `events`
 - `event_occurrences`
 - `event_occurrence_user`
@@ -596,19 +596,19 @@ Migrarea `2026_08_06_000003_create_reporting_layer.php` creează `segments` și 
 
 Dashboard-ul este un sumar read-only pentru prima pagina ERP. Endpoint-ul este `GET /api/dashboard` si accepta filtrele optionale `from`, `to` si `group_by=day|month`; implicit foloseste ultimele 30 de zile si grupare lunara. Accesul este permis pentru utilizatori cu `dashboard.view`, `reports.view` sau `reports.manage`.
 
-Raspunsul include KPI-uri (`active_members`, `flagged_subscriptions`, `total_revenue`, `active_locations`), venit pe perioada, distributie status membri, activitate pe perioada si indicatori pentru automatizari. Datele sunt calculate tenant-safe din `users`, `locations`, `payments`, `subscriptions`, pivotul `subscription_user`, `audit_logs` si `articles`, folosind intotdeauna `organization_id` din utilizatorul autentificat.
+Raspunsul include KPI-uri (`active_members`, `flagged_services`, `total_revenue`, `active_locations`), venit pe perioada, distributie status membri, activitate pe perioada si indicatori pentru automatizari. Datele sunt calculate tenant-safe din `users`, `locations`, `payments`, `services`, pivotul `service_user`, `audit_logs` si `articles`, folosind intotdeauna `organization_id` din utilizatorul autentificat.
 
 Endpoint-ul nu produce side effects: nu creeaza plati, nu trimite SMS-uri/notificari, nu porneste joburi si nu modifica statusuri. Implementarea este in `app/Dashboard/Http/Controllers/Api/DashboardController.php`, `app/Dashboard/Services/DashboardService.php`, `routes/dashboard.php` si fisierele OpenAPI din `app/Dashboard/OpenApi`.
 
-## Note abonamente gratuite si assignment-uri
+## Note servicii gratuite si assignment-uri
 
-Assignment-urile din `subscription_user` pastreaza statusul lifecycle si legatura de plata prin `activation_payment_id`. La sincronizarea abonamentelor unui utilizator, codul trebuie sa detaseze doar abonamentele eliminate si sa actualizeze pivot-ul existent pentru abonamentele pastrate, altfel se pierde istoricul si plata asociata.
+Assignment-urile din `service_user` pastreaza statusul lifecycle si legatura de plata prin `activation_payment_id`. La sincronizarea serviciilor unui utilizator, codul trebuie sa detaseze doar serviciile eliminate si sa actualizeze pivot-ul existent pentru serviciile pastrate, altfel se pierde istoricul si plata asociata.
 
-`POST /api/subscription-assignments/{assignment}/activate` accepta `payment_id` optional: abonamentele cu pret mai mare de 0 necesita o plata cu status explicit `confirmed`, din aceeasi organizatie si legata exact de assignment prin `model_type=subscription_user` si `model_id`; simpla completare a `paid_at` nu confirma plata. Abonamentele gratuite pot fi activate fara plata. La atasare noua, abonamentele gratuite intra direct in `active` sau `reserved` daca data de start este in viitor; abonamentele platite raman `pending`.
+`POST /api/service-assignments/{assignment}/activate` accepta `payment_id` optional: serviciile cu pret mai mare de 0 necesita o plata cu status explicit `confirmed`, din aceeasi organizatie si legata exact de assignment prin `model_type=service_user` si `model_id`; simpla completare a `paid_at` nu confirma plata. Serviciile gratuite pot fi activate fara plata. La atasare noua, serviciile gratuite intra direct in `active` sau `reserved` daca data de start este in viitor; serviciile platite raman `pending`.
 
-Pentru platile cash, confirmarea, numarul chitantei si activarea assignment-ului sunt salvate atomic. Pentru card si transfer bancar, acelasi flux ruleaza la callback-ul confirmat. Activarea seteaza `status`, `start_date`, `expires_at`, `activated_at` si `activation_payment_id` prin `SubscriptionLifecycleService`; notificarea si auditul `subscription.activated` sunt emise numai dupa commit. Callback-urile confirmate duplicate sunt idempotente si nu repeta aceste efecte.
+Pentru platile cash, confirmarea, numarul chitantei si activarea assignment-ului sunt salvate atomic. Pentru card si transfer bancar, acelasi flux ruleaza la callback-ul confirmat. Activarea seteaza `status`, `start_date`, `expires_at`, `activated_at` si `activation_payment_id` prin `ServiceLifecycleService`; notificarea si auditul `service.activated` sunt emise numai dupa commit. Callback-urile confirmate duplicate sunt idempotente si nu repeta aceste efecte.
 
-`subscription_history` din `UserResource` trebuie sa expuna statusul lifecycle real din pivot (`pending`, `active`, `expired`, `suspended`, `consumed`, `reserved`) impreuna cu campurile de audit ale assignment-ului. Nu recalcula istoricul doar din `start_date` si `expires_at`.
+`service_history` din `UserResource` trebuie sa expuna statusul lifecycle real din pivot (`pending`, `active`, `expired`, `suspended`, `consumed`, `reserved`) impreuna cu campurile de audit ale assignment-ului. Nu recalcula istoricul doar din `start_date` si `expires_at`.
 
 ## Consimțăminte și cereri GDPR
 

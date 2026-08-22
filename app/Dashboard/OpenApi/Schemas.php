@@ -14,7 +14,7 @@ use OpenApi\Attributes as OA;
         ], type: 'object'),
         new OA\Property(property: 'stats', properties: [
             new OA\Property(property: 'active_members', type: 'integer', example: 120),
-            new OA\Property(property: 'flagged_subscriptions', type: 'integer', example: 8),
+            new OA\Property(property: 'flagged_services', type: 'integer', example: 8),
             new OA\Property(property: 'total_revenue', type: 'number', format: 'float', example: 14250.5),
             new OA\Property(property: 'active_locations', type: 'integer', example: 3),
         ], type: 'object'),
@@ -32,8 +32,8 @@ use OpenApi\Attributes as OA;
             new OA\Property(property: 'messages', type: 'integer', example: 4),
         ], type: 'object')),
         new OA\Property(property: 'automations', type: 'array', items: new OA\Items(properties: [
-            new OA\Property(property: 'key', type: 'string', example: 'subscription_expiry_notifications'),
-            new OA\Property(property: 'label', type: 'string', example: 'Subscription expiry notifications'),
+            new OA\Property(property: 'key', type: 'string', example: 'service_expiry_notifications'),
+            new OA\Property(property: 'label', type: 'string', example: 'Service expiry notifications'),
             new OA\Property(property: 'enabled', type: 'boolean', example: true),
             new OA\Property(property: 'helper', type: 'string', example: 'Scheduled daily notification workflow.'),
             new OA\Property(property: 'count', type: 'integer', nullable: true, example: 8),

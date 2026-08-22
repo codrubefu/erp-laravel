@@ -6,7 +6,7 @@ use App\CustomFields\Http\Resources\CustomFieldValueResource;
 use App\CustomFields\Services\CustomFieldDefinitionService;
 use App\CustomFields\Services\CustomFieldValueService;
 use App\Events\Http\Resources\EventOccurrenceResource;
-use App\Subscription\Http\Resources\SubscriptionResource;
+use App\Service\Http\Resources\ServiceResource;
 use App\Users\Http\Controllers\Controller;
 use App\Users\Http\Requests\UpdateMePasswordRequest;
 use App\Users\Http\Resources\UserResource;
@@ -74,13 +74,13 @@ class MeController extends Controller
         return EventOccurrenceResource::collection($occurrences);
     }
 
-    public function subscriptions(Request $request): AnonymousResourceCollection
+    public function services(Request $request): AnonymousResourceCollection
     {
-        $subscriptions = $request->user()
-            ->subscriptions()
-            ->orderByDesc('subscription_user.created_at')
+        $services = $request->user()
+            ->services()
+            ->orderByDesc('service_user.created_at')
             ->paginate($request->integer('per_page', 15));
 
-        return SubscriptionResource::collection($subscriptions);
+        return ServiceResource::collection($services);
     }
 }

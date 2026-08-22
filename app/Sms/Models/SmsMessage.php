@@ -2,7 +2,7 @@
 
 namespace App\Sms\Models;
 
-use App\Subscription\Models\Subscription;
+use App\Service\Models\Service;
 use App\Users\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'user_id',
-    'subscription_id',
-    'subscription_user_id',
+    'service_id',
+    'service_user_id',
     'type',
     'destination',
     'message',
@@ -23,16 +23,16 @@ class SmsMessage extends Model
     public const STATUS_PENDING = 'pending';
     public const STATUS_SENT = 'sent';
     public const STATUS_FAILED = 'failed';
-    public const TYPE_SUBSCRIPTION_EXPIRING = 'subscription_expiring';
+    public const TYPE_SERVICE_EXPIRING = 'service_expiring';
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function subscription(): BelongsTo
+    public function service(): BelongsTo
     {
-        return $this->belongsTo(Subscription::class);
+        return $this->belongsTo(Service::class);
     }
 
     protected function casts(): array

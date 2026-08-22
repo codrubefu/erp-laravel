@@ -39,14 +39,14 @@ class SegmentService
         if (isset($criteria['location_id'])) {
             $query->whereHas('locations', fn (Builder $q) => $q->whereKey($criteria['location_id']));
         }
-        if (isset($criteria['subscription_type'])) {
-            $query->whereHas('subscriptions', fn (Builder $q) => $q->where('subscriptions.type', $criteria['subscription_type']));
+        if (isset($criteria['service_type'])) {
+            $query->whereHas('services', fn (Builder $q) => $q->where('services.type', $criteria['service_type']));
         }
         if (($criteria['expired'] ?? false) === true) {
-            $query->whereHas('subscriptionAssignments', fn (Builder $q) => $q->where('expires_at', '<', now()));
+            $query->whereHas('serviceAssignments', fn (Builder $q) => $q->where('expires_at', '<', now()));
         }
         if (isset($criteria['expires_in_days'])) {
-            $query->whereHas('subscriptionAssignments', fn (Builder $q) => $q
+            $query->whereHas('serviceAssignments', fn (Builder $q) => $q
                 ->whereBetween('expires_at', [now(), now()->addDays((int) $criteria['expires_in_days'])]));
         }
 

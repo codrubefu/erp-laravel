@@ -70,15 +70,15 @@ class ReceiptService
     {
         $parts = [];
 
-        if ($payment->model_type === Payment::MODEL_TYPE_SUBSCRIPTION_USER && $payment->model_id) {
-            $assignment = DB::table('subscription_user')
-                ->join('subscriptions', 'subscriptions.id', '=', 'subscription_user.subscription_id')
-                ->where('subscription_user.id', $payment->model_id)
-                ->select('subscriptions.id', 'subscriptions.name', 'subscription_user.start_date', 'subscription_user.expires_at')
+        if ($payment->model_type === Payment::MODEL_TYPE_SERVICE_USER && $payment->model_id) {
+            $assignment = DB::table('service_user')
+                ->join('services', 'services.id', '=', 'service_user.service_id')
+                ->where('service_user.id', $payment->model_id)
+                ->select('services.id', 'services.name', 'service_user.start_date', 'service_user.expires_at')
                 ->first();
 
             if ($assignment) {
-                $parts[] = 'abonament '.$assignment->name.' #'.$assignment->id;
+                $parts[] = 'serviciu '.$assignment->name.' #'.$assignment->id;
                 if ($assignment->start_date) {
                     $parts[] = 'start '.$this->formatDate($assignment->start_date);
                 }

@@ -7,9 +7,9 @@ use App\Users\Models\Organization;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Payments\Models\Payment;
 use App\Articles\Models\Article;
-use App\Subscription\Models\Subscription;
-use App\Subscription\Models\SubscriptionUser;
-use App\Subscription\Services\SubscriptionLifecycleService;
+use App\Service\Models\Service;
+use App\Service\Models\ServiceUser;
+use App\Service\Services\ServiceLifecycleService;
 use App\Events\Models\EventOccurrence;
 use App\Users\Models\Concerns\BelongsToAuthenticatedOrganization;
 use App\Users\Models\Concerns\LogsModelChanges;
@@ -91,27 +91,27 @@ class User extends Authenticatable
         return $this->belongsToMany(Location::class)->withTimestamps();
     }
 
-    public function subscriptions(): BelongsToMany
+    public function services(): BelongsToMany
     {
-        return $this->belongsToMany(Subscription::class)
-            ->using(SubscriptionUser::class)
+        return $this->belongsToMany(Service::class)
+            ->using(ServiceUser::class)
             ->withPivot(['id', 'status', 'start_date', 'expires_at', 'accesses_used', 'activated_at', 'suspended_at', 'resume_at', 'status_reason', 'activation_payment_id'])
             ->withTimestamps();
     }
 
-    public function activeSubscriptions(): BelongsToMany
+    public function activeServices(): BelongsToMany
     {
-        $this->subscriptionAssignments()->with('subscription')->get()
-            ->each(fn (SubscriptionUser $assignment) => app(SubscriptionLifecycleService::class)->refresh($assignment));
+        $this->serviceAssignments()->with('service')->get()
+            ->each(fn (ServiceUser $assignment) => app(ServiceLifecycleService::class)->refresh($assignment));
 
-        return $this->subscriptions()
-            ->where('subscriptions.is_active', true)
+        return $this->services()
+            ->where('services.is_active', true)
             ->wherePivot('status', 'active');
     }
 
-    public function subscriptionAssignments(): HasMany
+    public function serviceAssignments(): HasMany
     {
-        return $this->hasMany(SubscriptionUser::class);
+        return $this->hasMany(ServiceUser::class);
     }
 
     public function eventOccurrences(): BelongsToMany

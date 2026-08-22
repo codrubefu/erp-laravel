@@ -16,7 +16,7 @@ class StorePaymentRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'model_type' => $this->input('model_type', Payment::MODEL_TYPE_SUBSCRIPTION_USER),
+            'model_type' => $this->input('model_type', Payment::MODEL_TYPE_SERVICE_USER),
         ]);
     }
 

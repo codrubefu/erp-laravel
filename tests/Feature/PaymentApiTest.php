@@ -28,7 +28,7 @@ class PaymentApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.payment_type', 'card')
             ->assertJsonPath('data.0.amount', '25.50')
-            ->assertJsonPath('data.0.model_type', Payment::MODEL_TYPE_SUBSCRIPTION_USER)
+            ->assertJsonPath('data.0.model_type', Payment::MODEL_TYPE_SERVICE_USER)
             ->assertJsonPath('data.0.model_id', 77)
             ->assertJsonPath('data.0.admin.id', $admin->id);
     }
@@ -36,7 +36,7 @@ class PaymentApiTest extends TestCase
     public function test_user_with_create_right_can_create_payment_for_authenticated_admin(): void
     {
         [$admin, $token] = $this->authenticatedUserWithRights(['payments.create']);
-        $modelId = $this->subscriptionAssignment($admin);
+        $modelId = $this->serviceAssignment($admin);
 
         $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/payments', [
@@ -48,7 +48,7 @@ class PaymentApiTest extends TestCase
                 'paid_at' => '2026-06-01 10:15:00',
             ])
             ->assertCreated()
-            ->assertJsonPath('data.model_type', Payment::MODEL_TYPE_SUBSCRIPTION_USER)
+            ->assertJsonPath('data.model_type', Payment::MODEL_TYPE_SERVICE_USER)
             ->assertJsonPath('data.payment_type', 'cash')
             ->assertJsonPath('data.model_id', $modelId)
             ->assertJsonPath('data.admin_id', $admin->id);
@@ -57,7 +57,7 @@ class PaymentApiTest extends TestCase
             'first_name' => 'Jane',
             'last_name' => 'Client',
             'payment_type_id' => Payment::TYPE_CASH,
-            'model_type' => Payment::MODEL_TYPE_SUBSCRIPTION_USER,
+            'model_type' => Payment::MODEL_TYPE_SERVICE_USER,
             'model_id' => $modelId,
             'admin_id' => $admin->id,
         ]);
@@ -70,7 +70,7 @@ class PaymentApiTest extends TestCase
         $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/payments', [
                 'payment_type_id' => 9,
-                'model_type' => Payment::MODEL_TYPE_SUBSCRIPTION_USER,
+                'model_type' => Payment::MODEL_TYPE_SERVICE_USER,
                 'amount' => -1,
                 'paid_at' => 'not-a-date',
             ])
@@ -85,10 +85,10 @@ class PaymentApiTest extends TestCase
             ]);
     }
 
-    public function test_user_with_update_right_can_attach_subscription_model_to_payment(): void
+    public function test_user_with_update_right_can_attach_service_model_to_payment(): void
     {
         [$admin, $token] = $this->authenticatedUserWithRights(['payments.update']);
-        $modelId = $this->subscriptionAssignment($admin);
+        $modelId = $this->serviceAssignment($admin);
         $payment = Payment::query()->create($this->paymentData([
             'model_id' => 10,
             'admin_id' => $admin->id,
@@ -97,16 +97,16 @@ class PaymentApiTest extends TestCase
 
         $this->withHeader('Authorization', "Bearer {$token}")
             ->patchJson("/api/payments/{$payment->id}/attach-model", [
-                'model_type' => Payment::MODEL_TYPE_SUBSCRIPTION_USER,
+                'model_type' => Payment::MODEL_TYPE_SERVICE_USER,
                 'model_id' => $modelId,
             ])
             ->assertOk()
-            ->assertJsonPath('data.model_type', Payment::MODEL_TYPE_SUBSCRIPTION_USER)
+            ->assertJsonPath('data.model_type', Payment::MODEL_TYPE_SERVICE_USER)
             ->assertJsonPath('data.model_id', $modelId);
 
         $this->assertDatabaseHas('payments', [
             'id' => $payment->id,
-            'model_type' => Payment::MODEL_TYPE_SUBSCRIPTION_USER,
+            'model_type' => Payment::MODEL_TYPE_SERVICE_USER,
             'model_id' => $modelId,
         ]);
     }
@@ -159,7 +159,7 @@ class PaymentApiTest extends TestCase
             'first_name' => 'John',
             'last_name' => 'Member',
             'payment_type_id' => Payment::TYPE_CARD,
-            'model_type' => Payment::MODEL_TYPE_SUBSCRIPTION_USER,
+            'model_type' => Payment::MODEL_TYPE_SERVICE_USER,
             'model_id' => null,
             'amount' => 25.50,
             'paid_at' => '2026-06-01 12:00:00',
@@ -198,18 +198,18 @@ class PaymentApiTest extends TestCase
         return [$user, $token];
     }
 
-    private function subscriptionAssignment(User $operator): int
+    private function serviceAssignment(User $operator): int
     {
         $member = User::factory()->create(['organization_id' => $operator->organization_id]);
-        $subscriptionId = DB::table('subscriptions')->insertGetId([
+        $serviceId = DB::table('services')->insertGetId([
             'organization_id' => $operator->organization_id,
             'name' => 'Membership', 'description' => 'Test', 'price' => 100, 'currency' => 'RON',
             'duration_days' => 365, 'is_active' => true,
             'created_at' => now(), 'updated_at' => now(),
         ]);
 
-        return DB::table('subscription_user')->insertGetId([
-            'subscription_id' => $subscriptionId, 'user_id' => $member->id,
+        return DB::table('service_user')->insertGetId([
+            'service_id' => $serviceId, 'user_id' => $member->id,
             'created_at' => now(), 'updated_at' => now(),
         ]);
     }

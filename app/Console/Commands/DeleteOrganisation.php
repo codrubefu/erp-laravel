@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use App\Articles\Models\Article;
 use App\Events\Models\Event;
 use App\Events\Models\EventOccurrence;
-use App\Subscription\Models\Subscription;
+use App\Service\Models\Service;
 use App\Users\Models\Group;
 use App\Users\Models\Location;
 use App\Users\Models\Organization;
@@ -42,14 +42,14 @@ class DeleteOrganisation extends Command
 
         $this->info('Organization deleted.');
         $this->table(
-            ['Organization ID', 'Users', 'Groups', 'Locations', 'Articles', 'Subscriptions', 'Events', 'Occurrences', 'Tokens'],
+            ['Organization ID', 'Users', 'Groups', 'Locations', 'Articles', 'Services', 'Events', 'Occurrences', 'Tokens'],
             [[
                 $organization->id,
                 $summary['users'],
                 $summary['groups'],
                 $summary['locations'],
                 $summary['articles'],
-                $summary['subscriptions'],
+                $summary['services'],
                 $summary['events'],
                 $summary['event_occurrences'],
                 $summary['personal_access_tokens'],
@@ -66,7 +66,7 @@ class DeleteOrganisation extends Command
         $groupIds = DB::table('groups')->where('organization_id', $organizationId)->pluck('id');
         $locationIds = DB::table('locations')->where('organization_id', $organizationId)->pluck('id');
         $articleIds = DB::table('articles')->where('organization_id', $organizationId)->pluck('id');
-        $subscriptionIds = DB::table('subscriptions')->where('organization_id', $organizationId)->pluck('id');
+        $serviceIds = DB::table('services')->where('organization_id', $organizationId)->pluck('id');
         $eventIds = DB::table('events')->where('organization_id', $organizationId)->pluck('id');
         $eventOccurrenceIds = DB::table('event_occurrences')->where('organization_id', $organizationId)->pluck('id');
         $personalAccessTokenIds = DB::table('personal_access_tokens')->where('organization_id', $organizationId)->pluck('id');
@@ -76,7 +76,7 @@ class DeleteOrganisation extends Command
             'groups' => $groupIds->count(),
             'locations' => $locationIds->count(),
             'articles' => $articleIds->count(),
-            'subscriptions' => $subscriptionIds->count(),
+            'services' => $serviceIds->count(),
             'events' => $eventIds->count(),
             'event_occurrences' => $eventOccurrenceIds->count(),
             'personal_access_tokens' => $personalAccessTokenIds->count(),
@@ -94,8 +94,8 @@ class DeleteOrganisation extends Command
             ->whereIn('article_id', $articleIds)
             ->orWhereIn('group_id', $groupIds)
             ->delete();
-        DB::table('subscription_user')
-            ->whereIn('subscription_id', $subscriptionIds)
+        DB::table('service_user')
+            ->whereIn('service_id', $serviceIds)
             ->orWhereIn('user_id', $userIds)
             ->delete();
         DB::table('location_user')
@@ -115,7 +115,7 @@ class DeleteOrganisation extends Command
             ->orWhere(fn ($query) => $this->auditLogScope($query, Group::class, $groupIds->all()))
             ->orWhere(fn ($query) => $this->auditLogScope($query, Location::class, $locationIds->all()))
             ->orWhere(fn ($query) => $this->auditLogScope($query, Article::class, $articleIds->all()))
-            ->orWhere(fn ($query) => $this->auditLogScope($query, Subscription::class, $subscriptionIds->all()))
+            ->orWhere(fn ($query) => $this->auditLogScope($query, Service::class, $serviceIds->all()))
             ->orWhere(fn ($query) => $this->auditLogScope($query, Event::class, $eventIds->all()))
             ->orWhere(fn ($query) => $this->auditLogScope($query, EventOccurrence::class, $eventOccurrenceIds->all()))
             ->orWhere(fn ($query) => $this->auditLogScope($query, PersonalAccessToken::class, $personalAccessTokenIds->all()))
@@ -125,7 +125,7 @@ class DeleteOrganisation extends Command
         DB::table('event_occurrences')->whereIn('id', $eventOccurrenceIds)->delete();
         DB::table('events')->whereIn('id', $eventIds)->delete();
         DB::table('articles')->whereIn('id', $articleIds)->delete();
-        DB::table('subscriptions')->whereIn('id', $subscriptionIds)->delete();
+        DB::table('services')->whereIn('id', $serviceIds)->delete();
         DB::table('locations')->whereIn('id', $locationIds)->delete();
         DB::table('groups')->whereIn('id', $groupIds)->delete();
         DB::table('users')->whereIn('id', $userIds)->delete();

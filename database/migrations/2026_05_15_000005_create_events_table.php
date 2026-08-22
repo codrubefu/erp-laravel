@@ -20,8 +20,8 @@ return new class extends Migration
             $table->unsignedTinyInteger('monthly_day')->nullable();
             $table->date('start_date');
             $table->date('end_date')->nullable();
-            $table->boolean('requires_active_subscription')->default(false);
-            $table->foreignId('required_subscription_id')->nullable()->constrained('subscriptions')->nullOnDelete();
+            $table->boolean('requires_active_service')->default(false);
+            $table->foreignId('required_service_id')->nullable()->constrained('services')->nullOnDelete();
             $table->unsignedInteger('max_participants')->nullable();
             $table->enum('status', ['active', 'inactive', 'cancelled'])->default('active');
             $table->timestamps();
@@ -29,7 +29,7 @@ return new class extends Migration
 
             $table->index(['status', 'recurrence_type']);
             $table->index('start_date');
-            $table->index('requires_active_subscription');
+            $table->index('requires_active_service');
         });
     }
 

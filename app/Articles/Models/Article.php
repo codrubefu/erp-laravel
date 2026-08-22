@@ -88,11 +88,11 @@ class Article extends Model
                     })
                     ->orWhere(function (Builder $query) use ($user): void {
                         $query->where('audience_segment', 'active_subscribers')
-                            ->whereExists($this->subscriptionForUserQuery($user, active: true));
+                            ->whereExists($this->serviceForUserQuery($user, active: true));
                     })->orWhere(function (Builder $query) use ($user): void {
                         $query->where('audience_segment', 'expired_users')
-                            ->whereExists($this->subscriptionForUserQuery($user, active: false))
-                            ->whereNotExists($this->subscriptionForUserQuery($user, active: true));
+                            ->whereExists($this->serviceForUserQuery($user, active: false))
+                            ->whereNotExists($this->serviceForUserQuery($user, active: true));
                     })->orWhere(function (Builder $query) use ($user): void {
                         $query->where('audience_segment', 'groups')->whereHas(
                             'groups', fn (Builder $groups) => $groups->whereIn('groups.id', $user->groups()->select('groups.id'))
@@ -105,20 +105,20 @@ class Article extends Model
             });
     }
 
-    private function subscriptionForUserQuery(User $user, bool $active): QueryBuilder
+    private function serviceForUserQuery(User $user, bool $active): QueryBuilder
     {
-        $query = DB::table('subscription_user')
-            ->join('subscriptions', 'subscriptions.id', '=', 'subscription_user.subscription_id')
-            ->where('subscription_user.user_id', $user->id)
-            ->where('subscriptions.organization_id', $user->organization_id)
-            ->where('subscriptions.is_active', true);
+        $query = DB::table('service_user')
+            ->join('services', 'services.id', '=', 'service_user.service_id')
+            ->where('service_user.user_id', $user->id)
+            ->where('services.organization_id', $user->organization_id)
+            ->where('services.is_active', true);
 
         if ($active) {
-            return $query->where(fn ($query) => $query->whereNull('subscription_user.start_date')->orWhere('subscription_user.start_date', '<=', today()))
-                ->where(fn ($query) => $query->whereNull('subscription_user.expires_at')->orWhere('subscription_user.expires_at', '>=', today()));
+            return $query->where(fn ($query) => $query->whereNull('service_user.start_date')->orWhere('service_user.start_date', '<=', today()))
+                ->where(fn ($query) => $query->whereNull('service_user.expires_at')->orWhere('service_user.expires_at', '>=', today()));
         }
 
-        return $query->where('subscription_user.expires_at', '<', today());
+        return $query->where('service_user.expires_at', '<', today());
     }
 
     protected function casts(): array

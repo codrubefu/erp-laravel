@@ -27,7 +27,7 @@ Do not finish feature work without checking whether `docs/functionality-explaine
 This is a Laravel API backend organized by business modules under `app/`:
 
 - `Users`
-- `Subscription`
+- `Service`
 - `Events`
 - `Articles`
 - `CustomFields`
@@ -215,7 +215,7 @@ Rules:
 Use API Resources for model responses:
 
 - `UserResource`
-- `SubscriptionResource`
+- `ServiceResource`
 - `EventResource`
 - `ArticleResource`
 - `PaymentResource`
@@ -240,7 +240,7 @@ Rules:
 
 Important current schema notes:
 
-- `subscriptions` no longer has `billing_interval` or `trial_days`.
+- `services` no longer has `billing_interval` or `trial_days`.
 - article delivery/view receipts are stored in `article_user_receipts`.
 - notifications use `notification_deliveries` and `notification_attempts`.
 - audit logs store `organization_id`, `subject_user_id`, `event_type`, model info, changed values, and actor.
@@ -297,7 +297,7 @@ Rules:
 
 Known caution:
 
-- Subscription expiration currently has both generic notification job and older SMS-specific job scheduled. Avoid adding duplicate sends without resolving the overlap.
+- Service expiration currently has both generic notification job and older SMS-specific job scheduled. Avoid adding duplicate sends without resolving the overlap.
 
 ## SMS Rules
 
@@ -305,7 +305,7 @@ SMS-specific behavior uses:
 
 - `SmsPortalService`
 - `SmsMessage`
-- `SendExpiringSubscriptionSms`
+- `SendExpiringServiceSms`
 
 Rules:
 
@@ -321,17 +321,17 @@ Payments use:
 - `PaymentService`
 - `ReceiptService`
 - `Payment` model
-- `SubscriptionLifecycleService` for subscription activation
+- `ServiceLifecycleService` for service activation
 
 Rules:
 
 - Verify payable records belong to the authenticated organization.
 - Keep callback processing idempotent.
 - Preserve terminal status behavior.
-- Confirmed subscription payments must activate the assignment through `SubscriptionLifecycleService::activate()`; do not update lifecycle fields directly from `PaymentService`.
-- Accept an activation payment only when `status === Payment::STATUS_CONFIRMED`, it belongs to the subscription organization, and `model_type` plus `model_id` identify the exact assignment. Never treat `paid_at` alone as confirmation.
+- Confirmed service payments must activate the assignment through `ServiceLifecycleService::activate()`; do not update lifecycle fields directly from `PaymentService`.
+- Accept an activation payment only when `status === Payment::STATUS_CONFIRMED`, it belongs to the service organization, and `model_type` plus `model_id` identify the exact assignment. Never treat `paid_at` alone as confirmation.
 - Keep payment confirmation, receipt issuance, assignment status, activation timestamps, validity dates, and `activation_payment_id` in one transaction.
-- Dispatch the activation notification and write the `subscription.activated` business audit only after commit.
+- Dispatch the activation notification and write the `service.activated` business audit only after commit.
 - Cash payments are immediately confirmed.
 - Receipt downloads require confirmed status and receipt number.
 - Keep callback route public but throttled and signature-protected.
@@ -346,7 +346,7 @@ Rules:
 - Updating schedule fields must regenerate future open occurrences.
 - Deleting an event should preserve history for occurrences with participants by cancelling rather than deleting them.
 - Notify participants on schedule changes and resumed activity.
-- Preserve eligibility checks for active subscriptions/payment requirements.
+- Preserve eligibility checks for active services/payment requirements.
 
 ## Articles Rules
 
@@ -381,11 +381,11 @@ Audit uses:
 
 Rules:
 
-- Log meaningful business activity for user/subscription/payment lifecycle changes.
+- Log meaningful business activity for user/service/payment lifecycle changes.
 - Sanitize sensitive fields before writing audit payloads.
 - Preserve `organization_id`.
 - Avoid FK violations when logging deleted models; do not set `subject_user_id` to a user row that no longer exists.
-- Use stable event types such as `subscription.assigned`, `payment.recorded`, etc.
+- Use stable event types such as `service.assigned`, `payment.recorded`, etc.
 
 ## Console and Scheduler Rules
 

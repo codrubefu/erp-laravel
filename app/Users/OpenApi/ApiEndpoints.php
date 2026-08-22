@@ -165,8 +165,8 @@ class ApiEndpoints
     }
 
     #[OA\Get(
-        path: '/me/subscriptions',
-        summary: 'List authenticated user subscriptions',
+        path: '/me/services',
+        summary: 'List authenticated user services',
         security: [['bearerAuth' => []]],
         tags: ['Auth'],
         parameters: [
@@ -176,13 +176,13 @@ class ApiEndpoints
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Paginated subscriptions attached to the authenticated user.',
+                description: 'Paginated services attached to the authenticated user.',
                 content: new OA\JsonContent(
                     properties: [
                         new OA\Property(
                             property: 'data',
                             type: 'array',
-                            items: new OA\Items(ref: '#/components/schemas/Subscription'),
+                            items: new OA\Items(ref: '#/components/schemas/Service'),
                         ),
                     ],
                     type: 'object',
@@ -191,7 +191,7 @@ class ApiEndpoints
             new OA\Response(response: 401, description: 'Unauthenticated.'),
         ],
     )]
-    public function meSubscriptions(): void
+    public function meServices(): void
     {
     }
 
@@ -1113,9 +1113,9 @@ class ApiEndpoints
                     enum: [
                         'user.created',
                         'user.updated',
-                        'subscription.assigned',
-                        'subscription.renewed',
-                        'subscription.suspended',
+                        'service.assigned',
+                        'service.renewed',
+                        'service.suspended',
                         'payment.recorded',
                         'approval.granted',
                         'card.issued',
@@ -1178,8 +1178,8 @@ class ApiEndpoints
     }
 
     #[OA\Patch(
-        path: '/users/subscription/{user}',
-        summary: 'Sync subscriptions for a user',
+        path: '/users/service/{user}',
+        summary: 'Sync services for a user',
         security: [['bearerAuth' => []]],
         tags: ['Users'],
         parameters: [
@@ -1187,12 +1187,12 @@ class ApiEndpoints
         ],
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(ref: '#/components/schemas/SyncUserSubscriptionsRequest'),
+            content: new OA\JsonContent(ref: '#/components/schemas/SyncUserServicesRequest'),
         ),
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'User subscriptions synced.',
+                description: 'User services synced.',
                 content: new OA\JsonContent(
                     properties: [
                         new OA\Property(property: 'data', ref: '#/components/schemas/User'),
@@ -1205,7 +1205,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Validation failed.'),
         ],
     )]
-    public function usersSyncSubscriptions(): void
+    public function usersSyncServices(): void
     {
     }
 

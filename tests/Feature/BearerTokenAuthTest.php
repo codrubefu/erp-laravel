@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Events\Models\Event;
 use App\Events\Models\EventOccurrence;
-use App\Subscription\Models\Subscription;
+use App\Service\Models\Service;
 use App\Users\Models\Organization;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -55,7 +55,7 @@ class BearerTokenAuthTest extends TestCase
             ->assertUnauthorized()
             ->assertJsonPath('message', 'Unauthenticated.');
 
-        $this->getJson('/api/me/subscriptions')
+        $this->getJson('/api/me/services')
             ->assertUnauthorized()
             ->assertJsonPath('message', 'Unauthenticated.');
     }
@@ -145,29 +145,29 @@ class BearerTokenAuthTest extends TestCase
             ->assertJsonValidationErrors(['current_password', 'password']);
     }
 
-    public function test_user_can_list_own_subscriptions(): void
+    public function test_user_can_list_own_services(): void
     {
-        $organization = Organization::query()->create(['name' => 'Subscription Me Org', 'slug' => 'subscription-me-org']);
+        $organization = Organization::query()->create(['name' => 'Service Me Org', 'slug' => 'service-me-org']);
         $user = User::factory()->create([
             'organization_id' => $organization->id,
-            'email' => 'subscriptions@example.com',
+            'email' => 'services@example.com',
             'password' => 'password',
         ]);
         $otherUser = User::factory()->create(['organization_id' => $organization->id]);
-        $subscription = Subscription::query()->create([
+        $service = Service::query()->create([
             'organization_id' => $organization->id,
-            'name' => 'Own Subscription',
-            'description' => 'Visible subscription',
+            'name' => 'Own Service',
+            'description' => 'Visible service',
             'price' => 49.99,
             'currency' => 'EUR',
             'duration_days' => 30,
             'max_users' => 10,
             'is_active' => true,
         ]);
-        $otherSubscription = Subscription::query()->create([
+        $otherService = Service::query()->create([
             'organization_id' => $organization->id,
-            'name' => 'Other Subscription',
-            'description' => 'Hidden subscription',
+            'name' => 'Other Service',
+            'description' => 'Hidden service',
             'price' => 99.99,
             'currency' => 'EUR',
             'duration_days' => 30,
@@ -175,28 +175,28 @@ class BearerTokenAuthTest extends TestCase
             'is_active' => true,
         ]);
 
-        $user->subscriptions()->attach($subscription->id, [
+        $user->services()->attach($service->id, [
             'start_date' => '2026-06-01',
             'expires_at' => '2026-07-01',
         ]);
-        $otherUser->subscriptions()->attach($otherSubscription->id, [
+        $otherUser->services()->attach($otherService->id, [
             'start_date' => '2026-06-01',
             'expires_at' => '2026-07-01',
         ]);
 
         $token = $this->postJson('/api/login', [
-            'email' => 'subscriptions@example.com',
+            'email' => 'services@example.com',
             'organization_id' => $organization->id,
             'password' => 'password',
         ])->json('token');
 
         $this->withHeader('Authorization', "Bearer {$token}")
-            ->getJson('/api/me/subscriptions')
+            ->getJson('/api/me/services')
             ->assertOk()
-            ->assertJsonPath('data.0.name', 'Own Subscription')
+            ->assertJsonPath('data.0.name', 'Own Service')
             ->assertJsonPath('data.0.start_date', '2026-06-01')
             ->assertJsonPath('data.0.expires_at', '2026-07-01')
-            ->assertJsonMissing(['name' => 'Other Subscription']);
+            ->assertJsonMissing(['name' => 'Other Service']);
     }
 
     public function test_user_can_list_own_event_occurrences(): void
@@ -330,8 +330,8 @@ class BearerTokenAuthTest extends TestCase
             'monthly_day' => null,
             'start_date' => '2026-06-10',
             'end_date' => null,
-            'requires_active_subscription' => false,
-            'required_subscription_id' => null,
+            'requires_active_service' => false,
+            'required_service_id' => null,
             'requires_payment' => false,
             'payment_amount' => null,
             'payment_type' => null,

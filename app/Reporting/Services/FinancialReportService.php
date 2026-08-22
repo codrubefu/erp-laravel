@@ -18,29 +18,29 @@ class FinancialReportService
         $confirmedTotal = (float) (clone $confirmed)->sum('payments.amount');
         $refundedTotal = (float) (clone $payments)->where('payments.status', Payment::STATUS_REFUNDED)->sum('payments.amount');
 
-        $assignments = DB::table('subscription_user as su')
-            ->join('subscriptions as s', 's.id', '=', 'su.subscription_id')
+        $assignments = DB::table('service_user as su')
+            ->join('services as s', 's.id', '=', 'su.service_id')
             ->join('users as member', 'member.id', '=', 'su.user_id')
             ->where('s.organization_id', $organizationId);
         $memberIds = $this->segmentMemberIds($organizationId, $filters);
         if ($memberIds !== null) {
             $assignments->whereIn('member.id', $memberIds);
         }
-        if (isset($filters['subscription_type'])) {
-            $assignments->where('s.type', $filters['subscription_type']);
+        if (isset($filters['service_type'])) {
+            $assignments->where('s.type', $filters['service_type']);
         }
         if (isset($filters['location_id'])) {
             $assignments->whereExists(fn ($q) => $q->selectRaw('1')->from('location_user as lu')
                 ->whereColumn('lu.user_id', 'member.id')->where('lu.location_id', $filters['location_id']));
         }
         $invoiced = (float) (clone $assignments)->sum('s.price');
-        $subscriptionRevenue = (float) (clone $confirmed)
-            ->where('payments.model_type', Payment::MODEL_TYPE_SUBSCRIPTION_USER)->sum('payments.amount');
+        $serviceRevenue = (float) (clone $confirmed)
+            ->where('payments.model_type', Payment::MODEL_TYPE_SERVICE_USER)->sum('payments.amount');
 
         $renewals = (clone $assignments)->whereExists(fn ($q) => $q->selectRaw('1')
-            ->from('subscription_user as previous')
+            ->from('service_user as previous')
             ->whereColumn('previous.user_id', 'su.user_id')
-            ->whereColumn('previous.subscription_id', 'su.subscription_id')
+            ->whereColumn('previous.service_id', 'su.service_id')
             ->whereColumn('previous.id', '<', 'su.id'))->count();
 
         $period = $filters['group_by'] ?? 'month';
@@ -54,7 +54,7 @@ class FinancialReportService
         return [
             'totals' => ['confirmed' => $confirmedTotal, 'refunded' => $refundedTotal, 'net' => $confirmedTotal - $refundedTotal, 'count' => (clone $payments)->count()],
             'revenue_by_period' => $revenue,
-            'receivables' => ['invoiced' => $invoiced, 'paid' => $subscriptionRevenue, 'outstanding' => max(0, $invoiced - $subscriptionRevenue)],
+            'receivables' => ['invoiced' => $invoiced, 'paid' => $serviceRevenue, 'outstanding' => max(0, $invoiced - $serviceRevenue)],
             'renewals' => $renewals,
             'bank_reconciliation' => [
                 'total' => (float) (clone $bank)->sum('payments.amount'),
@@ -87,17 +87,17 @@ class FinancialReportService
         }
         if (isset($filters['from'])) $query->where('payments.paid_at', '>=', $filters['from'].' 00:00:00');
         if (isset($filters['to'])) $query->where('payments.paid_at', '<=', $filters['to'].' 23:59:59');
-        if (isset($filters['subscription_type'])) {
-            $query->where('payments.model_type', Payment::MODEL_TYPE_SUBSCRIPTION_USER)
-                ->whereExists(fn ($q) => $q->selectRaw('1')->from('subscription_user as su')
-                    ->join('subscriptions as s', 's.id', '=', 'su.subscription_id')
-                    ->whereColumn('su.id', 'payments.model_id')->where('s.type', $filters['subscription_type'])
+        if (isset($filters['service_type'])) {
+            $query->where('payments.model_type', Payment::MODEL_TYPE_SERVICE_USER)
+                ->whereExists(fn ($q) => $q->selectRaw('1')->from('service_user as su')
+                    ->join('services as s', 's.id', '=', 'su.service_id')
+                    ->whereColumn('su.id', 'payments.model_id')->where('s.type', $filters['service_type'])
                     ->where('s.organization_id', $organizationId));
         }
         $memberIds = $this->segmentMemberIds($organizationId, $filters);
         if ($memberIds !== null) {
-            $query->where('payments.model_type', Payment::MODEL_TYPE_SUBSCRIPTION_USER)
-                ->whereExists(fn ($q) => $q->selectRaw('1')->from('subscription_user as segment_su')
+            $query->where('payments.model_type', Payment::MODEL_TYPE_SERVICE_USER)
+                ->whereExists(fn ($q) => $q->selectRaw('1')->from('service_user as segment_su')
                     ->whereColumn('segment_su.id', 'payments.model_id')->whereIn('segment_su.user_id', $memberIds));
         }
         return $query;

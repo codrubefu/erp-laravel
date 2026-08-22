@@ -3,7 +3,7 @@
 namespace App\Dashboard\Services;
 
 use App\Payments\Models\Payment;
-use App\Subscription\Models\Subscription;
+use App\Service\Models\Service;
 use App\Users\Models\AuditLog;
 use App\Users\Models\Location;
 use App\Users\Models\User;
@@ -31,7 +31,7 @@ class DashboardService
             ],
             'stats' => [
                 'active_members' => User::query()->where('organization_id', $organizationId)->where('active', true)->count(),
-                'flagged_subscriptions' => $this->flaggedSubscriptions($organizationId),
+                'flagged_services' => $this->flaggedServices($organizationId),
                 'total_revenue' => (float) (clone $confirmedPayments)->sum('amount'),
                 'active_locations' => Location::query()
                     ->where('organization_id', $organizationId)
@@ -45,10 +45,10 @@ class DashboardService
         ];
     }
 
-    private function flaggedSubscriptions(int $organizationId): int
+    private function flaggedServices(int $organizationId): int
     {
-        return DB::table('subscription_user as su')
-            ->join('subscriptions as s', 's.id', '=', 'su.subscription_id')
+        return DB::table('service_user as su')
+            ->join('services as s', 's.id', '=', 'su.service_id')
             ->where('s.organization_id', $organizationId)
             ->where(function ($query): void {
                 $query->whereIn('su.status', ['expired', 'suspended'])
@@ -78,14 +78,14 @@ class DashboardService
     {
         $active = User::query()->where('organization_id', $organizationId)->where('active', true)->count();
         $inactive = User::query()->where('organization_id', $organizationId)->where('active', false)->count();
-        $expired = DB::table('subscription_user as su')
-            ->join('subscriptions as s', 's.id', '=', 'su.subscription_id')
+        $expired = DB::table('service_user as su')
+            ->join('services as s', 's.id', '=', 'su.service_id')
             ->where('s.organization_id', $organizationId)
             ->where('su.status', 'expired')
             ->distinct('su.user_id')
             ->count('su.user_id');
-        $suspended = DB::table('subscription_user as su')
-            ->join('subscriptions as s', 's.id', '=', 'su.subscription_id')
+        $suspended = DB::table('service_user as su')
+            ->join('services as s', 's.id', '=', 'su.service_id')
             ->where('s.organization_id', $organizationId)
             ->where('su.status', 'suspended')
             ->distinct('su.user_id')
@@ -124,25 +124,25 @@ class DashboardService
     {
         return [
             [
-                'key' => 'subscription_expiry_notifications',
-                'label' => 'Subscription expiry notifications',
+                'key' => 'service_expiry_notifications',
+                'label' => 'Service expiry notifications',
                 'enabled' => true,
                 'helper' => 'Scheduled daily notification workflow.',
-                'count' => $this->flaggedSubscriptions($organizationId),
+                'count' => $this->flaggedServices($organizationId),
             ],
             [
                 'key' => 'payment_activation',
                 'label' => 'Payment activation',
                 'enabled' => true,
-                'helper' => 'Confirmed payments can activate subscription assignments.',
+                'helper' => 'Confirmed payments can activate service assignments.',
                 'count' => Payment::query()->where('organization_id', $organizationId)->where('status', Payment::STATUS_CONFIRMED)->count(),
             ],
             [
                 'key' => 'service_expiry',
                 'label' => 'Service expiry',
                 'enabled' => true,
-                'helper' => 'Subscription lifecycle refresh marks expired and consumed assignments.',
-                'count' => DB::table('subscription_user as su')->join('subscriptions as s', 's.id', '=', 'su.subscription_id')->where('s.organization_id', $organizationId)->count(),
+                'helper' => 'Service lifecycle refresh marks expired and consumed assignments.',
+                'count' => DB::table('service_user as su')->join('services as s', 's.id', '=', 'su.service_id')->where('s.organization_id', $organizationId)->count(),
             ],
             [
                 'key' => 'scheduled_announcements',
@@ -152,11 +152,11 @@ class DashboardService
                 'count' => DB::table('articles')->where('organization_id', $organizationId)->count(),
             ],
             [
-                'key' => 'subscriptions_total',
-                'label' => 'Total defined subscriptions',
+                'key' => 'services_total',
+                'label' => 'Total defined services',
                 'enabled' => true,
-                'helper' => 'Active and inactive subscription definitions.',
-                'count' => Subscription::query()->where('organization_id', $organizationId)->count(),
+                'helper' => 'Active and inactive service definitions.',
+                'count' => Service::query()->where('organization_id', $organizationId)->count(),
             ],
         ];
     }

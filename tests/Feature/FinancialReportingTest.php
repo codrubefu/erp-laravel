@@ -44,7 +44,7 @@ class FinancialReportingTest extends TestCase
     {
         Payment::query()->create([
             'organization_id' => $operator->organization_id, 'first_name' => 'Test', 'last_name' => 'Member',
-            'payment_type_id' => $type, 'status' => $status, 'model_type' => Payment::MODEL_TYPE_SUBSCRIPTION_USER,
+            'payment_type_id' => $type, 'status' => $status, 'model_type' => Payment::MODEL_TYPE_SERVICE_USER,
             'amount' => $amount, 'paid_at' => $date, 'admin_id' => $operator->id,
             'reconciled_at' => $reconciled ? $date : null,
         ]);

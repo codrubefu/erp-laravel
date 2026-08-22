@@ -24,8 +24,8 @@ class EventNotificationLayerTest extends TestCase
             'notification_consents' => ['sms' => true, 'mail' => false, 'push' => false],
         ]);
 
-        NotificationRequested::dispatch($user, NotificationRequested::SUBSCRIPTION_ACTIVATED, 'activation:42', ['subscription' => 'Anuală']);
-        NotificationRequested::dispatch($user, NotificationRequested::SUBSCRIPTION_ACTIVATED, 'activation:42', ['subscription' => 'Anuală']);
+        NotificationRequested::dispatch($user, NotificationRequested::SERVICE_ACTIVATED, 'activation:42', ['service' => 'Anuală']);
+        NotificationRequested::dispatch($user, NotificationRequested::SERVICE_ACTIVATED, 'activation:42', ['service' => 'Anuală']);
 
         $this->assertDatabaseCount('notification_deliveries', 1);
         $this->assertDatabaseHas('notification_deliveries', ['event_key' => 'activation:42', 'channel' => 'sms']);

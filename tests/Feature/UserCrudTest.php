@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Subscription\Models\Subscription;
+use App\Service\Models\Service;
 use App\Payments\Models\Payment;
 use App\Users\Models\Group;
 use App\Users\Models\Location;
@@ -373,15 +373,15 @@ class UserCrudTest extends TestCase
         ]);
     }
 
-    public function test_user_can_have_multiple_active_subscriptions(): void
+    public function test_user_can_have_multiple_active_services(): void
     {
         [, $token] = $this->authenticatedUserWithRights(['users.manage']);
-        $subscriptions = [
-            Subscription::query()->create($this->subscriptionData([
+        $services = [
+            Service::query()->create($this->serviceData([
                 'name' => 'Basic',
                 'is_active' => true,
             ])),
-            Subscription::query()->create($this->subscriptionData([
+            Service::query()->create($this->serviceData([
                 'name' => 'Pro',
                 'is_active' => true,
             ])),
@@ -393,28 +393,28 @@ class UserCrudTest extends TestCase
                 'last_name' => 'User',
                 'email' => 'subscribed@example.com',
                 'password' => 'password',
-                'subscription_ids' => collect($subscriptions)->pluck('id')->all(),
+                'service_ids' => collect($services)->pluck('id')->all(),
             ])
             ->assertCreated()
-            ->assertJsonCount(2, 'data.subscriptions')
-            ->assertJsonCount(2, 'data.active_subscriptions');
+            ->assertJsonCount(2, 'data.services')
+            ->assertJsonCount(2, 'data.active_services');
 
         $userId = $response->json('data.id');
 
-        foreach ($subscriptions as $subscription) {
-            $this->assertDatabaseHas('subscription_user', [
-                'subscription_id' => $subscription->id,
+        foreach ($services as $service) {
+            $this->assertDatabaseHas('service_user', [
+                'service_id' => $service->id,
                 'user_id' => $userId,
             ]);
         }
     }
 
-    public function test_user_subscription_dates_are_stored_and_expiration_is_calculated(): void
+    public function test_user_service_dates_are_stored_and_expiration_is_calculated(): void
     {
         Carbon::setTestNow('2026-05-18 10:00:00');
 
         [, $token] = $this->authenticatedUserWithRights(['users.manage']);
-        $subscription = Subscription::query()->create($this->subscriptionData([
+        $service = Service::query()->create($this->serviceData([
             'name' => 'Monthly',
             'duration_days' => 10,
             'is_active' => true,
@@ -426,21 +426,21 @@ class UserCrudTest extends TestCase
                 'last_name' => 'History',
                 'email' => 'history@example.com',
                 'password' => 'password',
-                'subscriptions' => [
+                'services' => [
                     [
-                        'id' => $subscription->id,
+                        'id' => $service->id,
                         'start_date' => '2026-05-15',
                     ],
                 ],
             ])
             ->assertCreated()
-            ->assertJsonPath('data.has_active_subscription', true)
-            ->assertJsonPath('data.subscription_history.0.start_date', '2026-05-15')
-            ->assertJsonPath('data.subscription_history.0.expires_at', '2026-05-25')
-            ->assertJsonPath('data.subscription_history.0.is_active', true);
+            ->assertJsonPath('data.has_active_service', true)
+            ->assertJsonPath('data.service_history.0.start_date', '2026-05-15')
+            ->assertJsonPath('data.service_history.0.expires_at', '2026-05-25')
+            ->assertJsonPath('data.service_history.0.is_active', true);
 
-        $this->assertDatabaseHas('subscription_user', [
-            'subscription_id' => $subscription->id,
+        $this->assertDatabaseHas('service_user', [
+            'service_id' => $service->id,
             'user_id' => $response->json('data.id'),
             'start_date' => '2026-05-15',
             'expires_at' => '2026-05-25',
@@ -449,12 +449,12 @@ class UserCrudTest extends TestCase
         Carbon::setTestNow();
     }
 
-    public function test_expired_user_subscription_is_not_marked_active(): void
+    public function test_expired_user_service_is_not_marked_active(): void
     {
         Carbon::setTestNow('2026-05-18 10:00:00');
 
         [, $token] = $this->authenticatedUserWithRights(['users.manage']);
-        $subscription = Subscription::query()->create($this->subscriptionData([
+        $service = Service::query()->create($this->serviceData([
             'name' => 'Expired',
             'duration_days' => 5,
             'is_active' => true,
@@ -464,19 +464,19 @@ class UserCrudTest extends TestCase
             ->postJson('/api/users', [
                 'first_name' => 'Expired',
                 'last_name' => 'User',
-                'email' => 'expired-subscription@example.com',
+                'email' => 'expired-service@example.com',
                 'password' => 'password',
-                'subscriptions' => [
+                'services' => [
                     [
-                        'id' => $subscription->id,
+                        'id' => $service->id,
                         'start_date' => '2026-05-01',
                     ],
                 ],
             ])
             ->assertCreated()
-            ->assertJsonPath('data.has_active_subscription', false)
-            ->assertJsonCount(0, 'data.active_subscriptions')
-            ->assertJsonPath('data.subscription_history.0.is_active', false);
+            ->assertJsonPath('data.has_active_service', false)
+            ->assertJsonCount(0, 'data.active_services')
+            ->assertJsonPath('data.service_history.0.is_active', false);
 
         Carbon::setTestNow();
     }
@@ -527,103 +527,103 @@ class UserCrudTest extends TestCase
             ->assertNotFound();
     }
 
-    public function test_user_with_manage_right_can_sync_subscriptions_through_dedicated_route(): void
+    public function test_user_with_manage_right_can_sync_services_through_dedicated_route(): void
     {
         [$admin, $token] = $this->authenticatedUserWithRights(['users.manage']);
         $user = User::factory()->create(['organization_id' => $admin->organization_id]);
-        $oldSubscription = Subscription::query()->create($this->subscriptionData([
+        $oldService = Service::query()->create($this->serviceData([
             'name' => 'Legacy',
             'is_active' => true,
         ]));
-        $newSubscription = Subscription::query()->create($this->subscriptionData([
+        $newService = Service::query()->create($this->serviceData([
             'name' => 'Fresh',
             'is_active' => true,
         ]));
 
-        $user->subscriptions()->attach($oldSubscription);
+        $user->services()->attach($oldService);
 
         $this->withHeader('Authorization', "Bearer {$token}")
-            ->patchJson("/api/users/subscription/{$user->id}", [
-                'subscription_ids' => [$newSubscription->id],
+            ->patchJson("/api/users/service/{$user->id}", [
+                'service_ids' => [$newService->id],
             ])
             ->assertOk()
-            ->assertJsonCount(1, 'data.subscriptions')
-            ->assertJsonPath('data.subscriptions.0.id', $newSubscription->id)
-            ->assertJsonCount(1, 'data.active_subscriptions');
+            ->assertJsonCount(1, 'data.services')
+            ->assertJsonPath('data.services.0.id', $newService->id)
+            ->assertJsonCount(1, 'data.active_services');
 
-        $this->assertDatabaseHas('subscription_user', [
-            'subscription_id' => $newSubscription->id,
+        $this->assertDatabaseHas('service_user', [
+            'service_id' => $newService->id,
             'user_id' => $user->id,
         ]);
-        $this->assertDatabaseMissing('subscription_user', [
-            'subscription_id' => $oldSubscription->id,
+        $this->assertDatabaseMissing('service_user', [
+            'service_id' => $oldService->id,
             'user_id' => $user->id,
         ]);
     }
 
-    public function test_syncing_existing_subscription_preserves_lifecycle_and_payment_link(): void
+    public function test_syncing_existing_service_preserves_lifecycle_and_payment_link(): void
     {
         [$admin, $token] = $this->authenticatedUserWithRights(['users.manage']);
         $user = User::factory()->create(['organization_id' => $admin->organization_id]);
-        $subscription = Subscription::query()->create($this->subscriptionData([
+        $service = Service::query()->create($this->serviceData([
             'name' => 'Paid plan',
             'price' => 100,
             'duration_days' => 30,
             'expiration_rule' => 'duration',
         ]));
 
-        $user->subscriptions()->attach($subscription, [
+        $user->services()->attach($service, [
             'status' => 'active',
             'start_date' => '2026-08-01',
             'expires_at' => '2026-08-31',
             'activated_at' => '2026-08-01 10:00:00',
         ]);
-        $assignmentId = $user->subscriptions()->whereKey($subscription->id)->first()->pivot->id;
+        $assignmentId = $user->services()->whereKey($service->id)->first()->pivot->id;
         $payment = Payment::query()->create([
             'organization_id' => $admin->organization_id,
             'first_name' => 'Ana',
             'last_name' => 'Pop',
             'payment_type_id' => Payment::TYPE_CARD,
             'status' => Payment::STATUS_CONFIRMED,
-            'model_type' => Payment::MODEL_TYPE_SUBSCRIPTION_USER,
+            'model_type' => Payment::MODEL_TYPE_SERVICE_USER,
             'model_id' => $assignmentId,
             'amount' => 100,
             'paid_at' => '2026-08-01 10:00:00',
             'admin_id' => $admin->id,
         ]);
-        DB::table('subscription_user')->where('id', $assignmentId)->update(['activation_payment_id' => $payment->id]);
+        DB::table('service_user')->where('id', $assignmentId)->update(['activation_payment_id' => $payment->id]);
 
         $this->withHeader('Authorization', "Bearer {$token}")
-            ->patchJson("/api/users/subscription/{$user->id}", [
-                'subscriptions' => [
-                    ['id' => $subscription->id, 'start_date' => '2026-08-02'],
+            ->patchJson("/api/users/service/{$user->id}", [
+                'services' => [
+                    ['id' => $service->id, 'start_date' => '2026-08-02'],
                 ],
             ])
             ->assertOk()
-            ->assertJsonPath('data.subscriptions.0.pivot.status', 'active')
-            ->assertJsonPath('data.subscriptions.0.pivot.activation_payment_id', $payment->id);
+            ->assertJsonPath('data.services.0.pivot.status', 'active')
+            ->assertJsonPath('data.services.0.pivot.activation_payment_id', $payment->id);
 
-        $this->assertDatabaseHas('subscription_user', [
+        $this->assertDatabaseHas('service_user', [
             'id' => $assignmentId,
-            'subscription_id' => $subscription->id,
+            'service_id' => $service->id,
             'user_id' => $user->id,
             'status' => 'active',
             'activation_payment_id' => $payment->id,
         ]);
     }
 
-    public function test_subscription_history_uses_lifecycle_status(): void
+    public function test_service_history_uses_lifecycle_status(): void
     {
         [$admin, $token] = $this->authenticatedUserWithRights(['users.view']);
         $user = User::factory()->create(['organization_id' => $admin->organization_id]);
-        $subscription = Subscription::query()->create($this->subscriptionData([
+        $service = Service::query()->create($this->serviceData([
             'name' => 'Paused plan',
             'price' => 0,
             'duration_days' => 30,
             'expiration_rule' => 'duration',
         ]));
 
-        $user->subscriptions()->attach($subscription, [
+        $user->services()->attach($service, [
             'status' => 'suspended',
             'start_date' => now()->subDays(5)->toDateString(),
             'expires_at' => now()->addDays(25)->toDateString(),
@@ -634,10 +634,10 @@ class UserCrudTest extends TestCase
         $this->withHeader('Authorization', "Bearer {$token}")
             ->getJson("/api/users/{$user->id}")
             ->assertOk()
-            ->assertJsonPath('data.subscription_history.0.subscription_id', $subscription->id)
-            ->assertJsonPath('data.subscription_history.0.status', 'suspended')
-            ->assertJsonPath('data.subscription_history.0.is_active', false)
-            ->assertJsonPath('data.subscription_history.0.status_reason', 'Medical leave');
+            ->assertJsonPath('data.service_history.0.service_id', $service->id)
+            ->assertJsonPath('data.service_history.0.status', 'suspended')
+            ->assertJsonPath('data.service_history.0.is_active', false)
+            ->assertJsonPath('data.service_history.0.status_reason', 'Medical leave');
     }
 
     public function test_user_with_manage_right_can_delete_user(): void
@@ -703,10 +703,10 @@ class UserCrudTest extends TestCase
         $user->groups()->attach($group);
     }
 
-    private function subscriptionData(array $overrides = []): array
+    private function serviceData(array $overrides = []): array
     {
         return array_merge([
-            'description' => 'Test subscription',
+            'description' => 'Test service',
             'price' => 99.99,
             'currency' => 'EUR',
             'duration_days' => null,

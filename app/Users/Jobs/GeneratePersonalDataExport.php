@@ -26,7 +26,7 @@ class GeneratePersonalDataExport implements ShouldQueue
             $data = [
                 'profile' => $user->only(['id', 'user_code', 'first_name', 'last_name', 'phone', 'email', 'active', 'created_at', 'updated_at']),
                 'consents' => $user->consentRecords()->orderBy('occurred_at')->get()->makeHidden(['actor_id'])->toArray(),
-                'subscriptions' => $user->subscriptionAssignments()->with('subscription:id,name')->get()->toArray(),
+                'services' => $user->serviceAssignments()->with('service:id,name')->get()->toArray(),
                 'payments' => $user->registeredPayments()->where('organization_id', $export->organization_id)
                     ->get()->makeHidden(['provider_payload'])->toArray(),
             ];

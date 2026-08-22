@@ -5,5 +5,5 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth.bearer')->group(function (): void {
     Route::get('/sms-messages', [SmsMessageController::class, 'index'])
-        ->middleware('right:sms.view,subscriptions.manage');
+        ->middleware('right:sms.view,services.manage');
 });

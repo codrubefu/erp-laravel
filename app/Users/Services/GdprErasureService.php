@@ -41,7 +41,7 @@ class GdprErasureService
             // Financial records stay intact, but direct identifiers and provider data do not.
             DB::table('payments')->where('organization_id', $subject->organization_id)
                 ->where(function ($query) use ($subject): void {
-                    $query->where('admin_id', $subject->id)->orWhereIn('model_id', $subject->subscriptionAssignments()->pluck('id'));
+                    $query->where('admin_id', $subject->id)->orWhereIn('model_id', $subject->serviceAssignments()->pluck('id'));
                 })->update([
                     'first_name' => 'REDACTED', 'last_name' => 'REDACTED', 'provider_payload' => null,
                     'external_reference' => null, 'bank_reference' => null,

@@ -52,7 +52,7 @@ class EventParticipantController extends Controller
     #[OA\Post(
         path: '/event-occurrences/{occurrence}/participants',
         summary: 'Add occurrence participant',
-        description: 'Adds a user to an occurrence after duplicate, capacity, and active-subscription eligibility checks.',
+        description: 'Adds a user to an occurrence after duplicate, capacity, and active-service eligibility checks.',
         security: [['bearerAuth' => []]],
         tags: ['Event Participants'],
         parameters: [new OA\PathParameter(name: 'occurrence', required: true, schema: new OA\Schema(type: 'integer'))],
@@ -71,14 +71,14 @@ class EventParticipantController extends Controller
     {
         $data = $request->validated();
         $user = User::query()->findOrFail($data['user_id']);
-        $occurrence->load('event.requiredSubscription');
+        $occurrence->load('event.requiredService');
 
         if ($occurrence->participants()->whereKey($user->id)->exists()) {
             return $this->error('User is already registered for this occurrence.', 422);
         }
 
         if (! $this->eligibility->canUserJoinOccurrence($user, $occurrence)) {
-            return $this->error('User does not have the required active subscription.', 403);
+            return $this->error('User does not have the required active service.', 403);
         }
 
         $maxParticipants = $occurrence->event->max_participants;
@@ -139,10 +139,10 @@ class EventParticipantController extends Controller
             && in_array($nextStatus, $activeStatuses, true);
 
         if ($isActivatingParticipant) {
-            $occurrence->load('event.requiredSubscription');
+            $occurrence->load('event.requiredService');
 
             if (! $this->eligibility->canUserJoinOccurrence($user, $occurrence)) {
-                return $this->error('User does not have the required active subscription.', 403);
+                return $this->error('User does not have the required active service.', 403);
             }
 
             $maxParticipants = $occurrence->event->max_participants;

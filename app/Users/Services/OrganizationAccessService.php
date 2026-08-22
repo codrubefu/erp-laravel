@@ -76,7 +76,7 @@ class OrganizationAccessService
         return $user->load([
             'groups.rights' => fn ($query) => $this->applyAvailableRightsFilter($query, $user->organization_id),
             'locations',
-            'activeSubscriptions',
+            'activeServices',
         ]);
     }
 

@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Payments\Models\Payment;
-use App\Subscription\Models\Subscription;
+use App\Service\Models\Service;
 use App\Users\Models\Group;
 use App\Users\Models\Location;
 use App\Users\Models\Right;
@@ -27,7 +27,7 @@ class DashboardTest extends TestCase
         [$operator, $token] = $this->loginWith('dashboard.view');
         $location = Location::query()->create(['organization_id' => $operator->organization_id, 'name' => 'HQ']);
         $operator->locations()->attach($location->id);
-        $subscription = Subscription::query()->create([
+        $service = Service::query()->create([
             'organization_id' => $operator->organization_id,
             'name' => 'Monthly',
             'price' => 100,
@@ -35,7 +35,7 @@ class DashboardTest extends TestCase
             'duration_days' => 30,
             'is_active' => true,
         ]);
-        $operator->subscriptions()->attach($subscription->id, [
+        $operator->services()->attach($service->id, [
             'status' => 'suspended',
             'start_date' => now()->subDays(10),
             'expires_at' => now()->addDays(5),
@@ -46,7 +46,7 @@ class DashboardTest extends TestCase
             'last_name' => 'Pop',
             'payment_type_id' => Payment::TYPE_CARD,
             'status' => Payment::STATUS_CONFIRMED,
-            'model_type' => Payment::MODEL_TYPE_SUBSCRIPTION_USER,
+            'model_type' => Payment::MODEL_TYPE_SERVICE_USER,
             'model_id' => 1,
             'amount' => 100,
             'paid_at' => '2026-07-10',
@@ -59,7 +59,7 @@ class DashboardTest extends TestCase
             'last_name' => 'Org',
             'payment_type_id' => Payment::TYPE_CARD,
             'status' => Payment::STATUS_CONFIRMED,
-            'model_type' => Payment::MODEL_TYPE_SUBSCRIPTION_USER,
+            'model_type' => Payment::MODEL_TYPE_SERVICE_USER,
             'amount' => 999,
             'paid_at' => '2026-07-10',
             'admin_id' => $outsider->id,
@@ -70,7 +70,7 @@ class DashboardTest extends TestCase
             ->assertJsonStructure([
                 'data' => [
                     'filters',
-                    'stats' => ['active_members', 'flagged_subscriptions', 'total_revenue', 'active_locations'],
+                    'stats' => ['active_members', 'flagged_services', 'total_revenue', 'active_locations'],
                     'revenue_by_period',
                     'member_status',
                     'activity',
