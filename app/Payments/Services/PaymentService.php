@@ -33,7 +33,7 @@ class PaymentService
             $data['location_id'] = $admin->locations()->withoutGlobalScopes()->value('locations.id');
             $data['external_reference'] ??= (string) Str::uuid();
             $data['provider'] ??= config('services.payments.provider');
-            $data['status'] = $data['payment_type_id'] === Payment::TYPE_CASH
+            $data['status'] = $this->confirmsImmediately((int) $data['payment_type_id'])
                 ? Payment::STATUS_CONFIRMED
                 : Payment::STATUS_INITIATED;
             $data['confirmed_at'] = $data['status'] === Payment::STATUS_CONFIRMED ? now() : null;
@@ -121,6 +121,11 @@ class PaymentService
 
         $assignment = ServiceUser::query()->findOrFail($payment->model_id);
         $this->serviceLifecycle->activate($assignment, $payment);
+    }
+
+    private function confirmsImmediately(int $paymentTypeId): bool
+    {
+        return in_array($paymentTypeId, [Payment::TYPE_CASH, Payment::TYPE_CARD], true);
     }
 
     private function ensurePayableBelongsToOrganization(string $type, int $id, int $organizationId): void

@@ -41,7 +41,7 @@ class ApiEndpoints
     #[OA\Post(
         path: '/payments',
         summary: 'Create a payment',
-        description: 'Creates a payment linked to a payable object from the authenticated organization. Organization, branch and operator are inferred from authentication. Cash is confirmed immediately; for service_user payments, receipt issuance and lifecycle activation are committed atomically. Card and bank payments start as initiated.',
+        description: 'Creates a payment linked to a payable object from the authenticated organization. Organization, branch and operator are inferred from authentication. Cash and card are confirmed immediately; for service_user payments, receipt issuance and lifecycle activation are committed atomically. Bank payments start as initiated.',
         security: [['bearerAuth' => []]],
         tags: ['Payment'],
         requestBody: new OA\RequestBody(

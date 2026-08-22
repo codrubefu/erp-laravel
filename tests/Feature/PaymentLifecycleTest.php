@@ -35,10 +35,28 @@ class PaymentLifecycleTest extends TestCase
         ]);
     }
 
+    public function test_card_confirmation_activates_service_and_issues_receipt(): void
+    {
+        [$operator, $assignmentId] = $this->serviceAssignment();
+
+        $payment = app(PaymentService::class)->create($this->paymentData($assignmentId, Payment::TYPE_CARD), $operator);
+
+        $this->assertSame(Payment::STATUS_CONFIRMED, $payment->status);
+        $this->assertSame('CH000001', $payment->receipt_number);
+        $this->assertDatabaseHas('service_user', [
+            'id' => $assignmentId,
+            'status' => 'active',
+            'activation_payment_id' => $payment->id,
+        ]);
+    }
+
     public function test_bank_callback_activates_service_and_issues_receipt(): void
     {
         [$operator, $assignmentId] = $this->serviceAssignment();
         $payment = app(PaymentService::class)->create($this->paymentData($assignmentId, Payment::TYPE_BANK_TRANSFER), $operator);
+
+        $this->assertSame(Payment::STATUS_INITIATED, $payment->status);
+        $this->assertNull($payment->receipt_number);
 
         $payment = app(PaymentService::class)->processCallback([
             'external_reference' => $payment->external_reference,
