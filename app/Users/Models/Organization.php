@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Database\Factories\OrganizationFactory;
 
-#[Fillable(['name', 'slug', 'description', 'address', 'email', 'phone', 'web', 'cui', 'nr_reg_com', 'capital', 'cont', 'banca', 'receipt_code', 'receipt_number', 'invoice_code', 'invoice_number', 'bill_code', 'bill_number'])]
+#[Fillable(['name', 'slug', 'description', 'address', 'email', 'phone', 'web', 'cui', 'nr_reg_com', 'capital', 'cont', 'bank', 'receipt_code', 'receipt_number', 'invoice_code', 'invoice_number', 'bill_code', 'bill_number'])]
 #[UseFactory(OrganizationFactory::class)]
 class Organization extends Model
 {

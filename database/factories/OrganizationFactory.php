@@ -26,7 +26,7 @@ class OrganizationFactory extends Factory
             'nr_reg_com' => 'J'.fake()->numberBetween(1, 52).'/'.fake()->numberBetween(1, 9999).'/'.fake()->year(),
             'capital' => '200 RON',
             'cont' => fake()->iban('RO'),
-            'banca' => fake()->company().' Bank',
+            'bank' => fake()->company().' Bank',
             'receipt_code' => 'CH',
             'receipt_number' => 0,
             'invoice_code' => 'INV',

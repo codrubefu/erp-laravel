@@ -23,7 +23,7 @@ class OrganizationLookupTest extends TestCase
             'nr_reg_com' => 'J40/1234/2026',
             'capital' => '200 RON',
             'cont' => 'RO49AAAA1B31007593840000',
-            'banca' => 'Banca Test',
+            'bank' => 'Banca Test',
             'receipt_code' => 'CH',
             'receipt_number' => 12,
             'invoice_code' => 'INV',
@@ -45,7 +45,7 @@ class OrganizationLookupTest extends TestCase
             ->assertJsonPath('data.nr_reg_com', 'J40/1234/2026')
             ->assertJsonPath('data.capital', '200 RON')
             ->assertJsonPath('data.cont', 'RO49AAAA1B31007593840000')
-            ->assertJsonPath('data.banca', 'Banca Test')
+            ->assertJsonPath('data.bank', 'Banca Test')
             ->assertJsonPath('data.receipt_code', 'CH')
             ->assertJsonPath('data.receipt_number', 12)
             ->assertJsonPath('data.invoice_code', 'INV')

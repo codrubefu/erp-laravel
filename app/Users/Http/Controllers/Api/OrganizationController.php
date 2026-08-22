@@ -27,7 +27,7 @@ class OrganizationController extends Controller
                 'nr_reg_com' => $organization->nr_reg_com,
                 'capital' => $organization->capital,
                 'cont' => $organization->cont,
-                'banca' => $organization->banca,
+                'bank' => $organization->bank,
                 'receipt_code' => $organization->receipt_code,
                 'receipt_number' => $organization->receipt_number,
                 'invoice_code' => $organization->invoice_code,

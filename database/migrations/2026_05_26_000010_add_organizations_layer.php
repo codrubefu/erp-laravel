@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('nr_reg_com')->nullable();
             $table->string('capital')->nullable();
             $table->string('cont')->nullable();
-            $table->string('banca')->nullable();
+            $table->string('bank')->nullable();
             $table->string('receipt_code')->default('CH');
             $table->unsignedBigInteger('receipt_number')->default(0);
             $table->string('invoice_code')->default('INV');

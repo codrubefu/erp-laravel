@@ -17,7 +17,7 @@ return new class extends Migration
             'nr_reg_com' => ['type' => 'string', 'after' => 'cui'],
             'capital' => ['type' => 'string', 'after' => 'nr_reg_com'],
             'cont' => ['type' => 'string', 'after' => 'capital'],
-            'banca' => ['type' => 'string', 'after' => 'cont'],
+            'bank' => ['type' => 'string', 'after' => 'cont'],
         ];
 
         foreach ($columns as $column => $definition) {
@@ -39,7 +39,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        foreach (array_reverse(['address', 'email', 'phone', 'web', 'cui', 'nr_reg_com', 'capital', 'cont', 'banca']) as $column) {
+        foreach (array_reverse(['address', 'email', 'phone', 'web', 'cui', 'nr_reg_com', 'capital', 'cont', 'bank']) as $column) {
             if (! Schema::hasColumn('organizations', $column)) {
                 continue;
             }
