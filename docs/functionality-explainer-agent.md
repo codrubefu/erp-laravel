@@ -234,6 +234,7 @@ Routes:
 - `DELETE /api/subscriptions/{subscription}`
 - `POST /api/subscriptions/{subscription}/restore`
 - `PATCH /api/subscriptions/{subscription}/toggle-active`
+- `GET /api/subscription-assignments/{assignment}/payment-note`
 
 Functional behavior:
 
@@ -243,6 +244,7 @@ Functional behavior:
 - Users are attached to subscriptions through `subscription_user`.
 - `subscription_user` stores `start_date` and `expires_at`.
 - Active user subscriptions are determined by active subscription status and date range.
+- Payment notes for subscription assignments are generated as PDFs from `storage/note-plata.html` or `storage/nota-plata.html` by `PaymentNoteService`; access is restricted to the authenticated organization.
 
 ### Events and Occurrences
 
@@ -409,7 +411,7 @@ Functional behavior:
 - A payment can activate an assignment only when its `status` is exactly `confirmed`, its `organization_id` matches the subscription organization, and its `model_type`/`model_id` point to that exact `subscription_user` row. A populated `paid_at` field alone is not confirmation.
 - Activation locks the assignment and atomically writes its lifecycle `status`, `start_date`, `expires_at`, `activated_at`, and `activation_payment_id`. Expiration follows the subscription's `expiration_rule` (`duration`, `fixed_date`, or `none`), including future starts becoming `reserved`.
 - Confirmed payments receive a receipt number in the same transaction as subscription activation.
-- Receipt download is allowed only for confirmed payments with receipt numbers.
+- Receipt download is allowed only for confirmed payments with receipt numbers. `ReceiptService` generates the PDF from `storage/chitanta.html` and fills payment number, date, payer, amount, amount in Romanian words, paid model details, and cashier from the persisted payment.
 - Callback processing is idempotent and handles terminal statuses; a duplicate confirmed callback does not activate or notify twice.
 - The `subscription.activated` notification and audit business event are emitted only after the activation transaction commits, so rolled-back activations have no external activation side effects.
 - Callback signatures use `services.payments.callback_secret`.

@@ -28,4 +28,6 @@ Route::middleware('auth.bearer')->group(function (): void {
         ->middleware('right:subscriptions.update,subscriptions.manage');
     Route::post('/subscription-assignments/{assignment}/consume', [SubscriptionController::class, 'consume'])
         ->middleware('right:subscriptions.update,subscriptions.manage');
+    Route::get('/subscription-assignments/{assignment}/payment-note', [SubscriptionController::class, 'paymentNote'])
+        ->middleware('right:subscriptions.view,subscriptions.manage');
 });

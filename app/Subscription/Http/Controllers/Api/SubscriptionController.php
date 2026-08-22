@@ -9,15 +9,20 @@ use App\Subscription\Models\Subscription;
 use App\Payments\Models\Payment;
 use App\Subscription\Models\SubscriptionUser;
 use App\Subscription\Services\SubscriptionLifecycleService;
+use App\Subscription\Services\PaymentNoteService;
 use App\Users\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\Response;
 
 class SubscriptionController extends Controller
 {
-    public function __construct(private readonly SubscriptionLifecycleService $lifecycle)
+    public function __construct(
+        private readonly SubscriptionLifecycleService $lifecycle,
+        private readonly PaymentNoteService $paymentNotes,
+    )
     {
     }
 
@@ -140,5 +145,13 @@ class SubscriptionController extends Controller
     public function consume(SubscriptionUser $assignment): JsonResponse
     {
         return response()->json(['data' => $this->lifecycle->consumeAccess($assignment)]);
+    }
+
+    public function paymentNote(Request $request, SubscriptionUser $assignment): Response
+    {
+        $assignment->loadMissing(['subscription']);
+        abort_unless((int) $assignment->subscription->organization_id === (int) $request->user()->organization_id, 404);
+
+        return $this->paymentNotes->download($assignment);
     }
 }
