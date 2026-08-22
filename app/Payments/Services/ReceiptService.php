@@ -7,14 +7,13 @@ use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\File;
 use Symfony\Component\HttpFoundation\Response;
 
 class ReceiptService
 {
     public function download(Payment $payment): Response
     {
-        $payment->loadMissing(['admin', 'location']);
+        $payment->loadMissing(['admin.organization', 'location']);
 
         $options = new Options();
         $options->set('defaultFont', 'DejaVu Sans');
@@ -35,7 +34,6 @@ class ReceiptService
 
     private function renderHtml(Payment $payment): string
     {
-        $template = File::get(storage_path('chitanta.html'));
         $paidAt = $payment->confirmed_at ?? $payment->paid_at ?? $payment->created_at ?? now();
         $payerName = trim($payment->first_name.' '.$payment->last_name) ?: 'Client #'.$payment->id;
         $amount = number_format((float) $payment->amount, 2, '.', ',');
@@ -43,27 +41,49 @@ class ReceiptService
         $cashier = trim(($payment->admin?->first_name ?? '').' '.($payment->admin?->last_name ?? ''))
             ?: ($payment->admin?->email ?? 'Casier #'.($payment->admin_id ?? '-'));
         $description = $this->description($payment);
+        $receiptNumber = $payment->receipt_number ?? sprintf('CH%09d', $payment->id);
+        $receiptSeries = preg_replace('/\d+$/', '', $receiptNumber) ?: 'CH';
 
-        $html = strtr($template, [
-            '<title>Chitanta RO-TRADITIONAL</title>' => '<title>Chitanta '.$this->e($payment->receipt_number ?? (string) $payment->id).'</title>',
-            'CH202600035' => $this->e($payment->receipt_number ?? sprintf('CH%09d', $payment->id)),
-            '12-Aug-2026' => $this->e($this->formatDate($paidAt)),
-            'Sat Frumusani&nbsp; Frumusani 19' => $this->e($this->payerAddress($payment)),
-            '302.50' => $this->e($amount),
-            'treisutedoileisicincizecibani' => $this->e($amountText),
-            'FA120260100169 din 01-Aug-2026' => $this->e($description),
-            'Marius Rus' => $this->e($cashier),
-            '14-4-1' => $this->e('PAY-'.$payment->id.'-'.$paidAt->format('Ymd')),
-        ]);
+        return view('payments.receipt', [
+            'payment' => $payment,
+            'organization' => $this->organization($payment),
+            'paidAt' => $paidAt,
+            'paidAtFormatted' => $this->formatDate($paidAt),
+            'payerName' => $payerName,
+            'payerAddress' => $this->payerAddress($payment),
+            'amount' => $amount,
+            'amountText' => $amountText,
+            'cashier' => $cashier,
+            'description' => $description,
+            'receiptNumber' => $receiptNumber,
+            'receiptSeries' => $receiptSeries,
+            'archiveCode' => 'PAY-'.$payment->id.'-'.$paidAt->format('Ymd'),
+        ])->render();
+    }
 
-        $payer = $this->e($payerName).'&nbsp;&nbsp; Ref: '.$this->e($payment->external_reference ?? '-');
+    private function organization(Payment $payment): mixed
+    {
+        if ($payment->model_type === Payment::MODEL_TYPE_SERVICE_USER && $payment->model_id) {
+            $organization = DB::table('service_user')
+                ->join('services', 'services.id', '=', 'service_user.service_id')
+                ->join('organizations', 'organizations.id', '=', 'services.organization_id')
+                ->where('service_user.id', $payment->model_id)
+                ->select('organizations.*')
+                ->first();
 
-        return preg_replace(
-            '/RO-TRADITIONAL SRL&nbsp;&nbsp; C\.U\.I\. RO16864160&nbsp;&nbsp;\s*Nr\.Reg\.Com\. J51\/525\/2004/',
-            $payer,
-            $html,
-            1,
-        ) ?? $html;
+            if ($organization) {
+                return $organization;
+            }
+        }
+
+        if ($payment->organization_id) {
+            $organization = DB::table('organizations')->where('id', $payment->organization_id)->first();
+            if ($organization) {
+                return $organization;
+            }
+        }
+
+        return $payment->admin?->organization;
     }
 
     private function description(Payment $payment): string
@@ -174,8 +194,4 @@ class ReceiptService
         return Carbon::parse($date)->format('d-M-Y');
     }
 
-    private function e(string $value): string
-    {
-        return e($value, false);
-    }
 }

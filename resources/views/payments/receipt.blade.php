@@ -2,145 +2,281 @@
 <html lang="ro">
 <head>
     <meta charset="utf-8">
+    <title>Chitanta {{ $receiptNumber }}</title>
     <style>
+
+
+        html {
+            margin: 22px;
+            background: #fff;
+        }
         body {
-            color: #111827;
-            font-family: "DejaVu Sans", sans-serif;
-            font-size: 13px;
-            line-height: 1.5;
-            margin: 36px;
+            margin: 0;
+            color: #111;
+            font-family: "Times New Roman", serif;
+            margin:0;
+            background: #fff;
+        }
+
+        .page {
+            width: 100%;
+            background: #fff;
+            margin: auto;
+        }
+
+        .receipt {
+            border: 2px solid #111 ; 
+            position: relative;
+            padding: 20px;
+            margin-bottom: 6mm;
+        }
+
+        .receipt_org_info {
+            float:left; 
+            width: 40%;
+        }
+
+        .receipt_info {
+            float:right;
+            text-align: left;
+            width: 60%;
+        }
+
+        .clearfix {
+            clear: both;
+        }
+
+        .copyname {
+            position: absolute;
+            right: 4mm;
+            top: 2mm;
+            font-size: 8pt;
+            font-style: italic;
         }
 
         .header {
-            border-bottom: 2px solid #111827;
-            margin-bottom: 28px;
-            padding-bottom: 18px;
+            display: grid;
+            grid-template-columns: 39% 33% 28%;
+            align-items: start;
+        }
+
+        .company {
+            text-align: left;
+            font-weight: bold;
+            font-size: 9.5pt;
+        }
+
+        .company .small {
+            font-weight: normal;
+            font-size: 7pt;
+            line-height: 1.7;
         }
 
         .title {
-            font-size: 26px;
-            font-weight: 700;
-            margin: 0 0 6px;
-            text-transform: uppercase;
+            text-align: left;
+            font-size: 18pt;
+            font-weight: bold;
+            margin-top: 8mm;
         }
 
-        .subtitle {
-            color: #4b5563;
-            margin: 0;
+        .docmeta {
+            font-weight: bold;
+            font-size: 9pt;
+            line-height: 1.6;
+            margin-top: 2mm;
         }
 
-        .grid {
-            display: table;
-            margin-bottom: 24px;
+        .docmeta span {
+            display: inline-block;
+            min-width: 11mm;
+        }
+
+        .bank {
+            font-size: 7.3pt;
+            line-height: 1.5;
+            margin-top: 2mm;
+        }
+
+        .bank b {
+            display: inline-block;
+            min-width: 12mm;
+        }
+
+        .work {
+            font-weight: bold;
+            margin-top: 1mm;
+        }
+
+        .form {
+            font-size: 9pt;
+            margin-top: 4mm;
+            line-height: 1.55;
+        }
+
+        .line {
+            border-collapse: collapse;
             width: 100%;
         }
 
-        .column {
-            display: table-cell;
-            vertical-align: top;
-            width: 50%;
+        .line-label {
+            white-space: nowrap;
+            width: 1%;
+            padding-right: 6px;
+            vertical-align: bottom;
         }
 
-        .label {
-            color: #6b7280;
-            font-size: 11px;
-            letter-spacing: .04em;
-            text-transform: uppercase;
+        .dots {
+            border-bottom: 1px dashed #555;
+            min-height: 17px;
+            position: relative;
+            vertical-align: bottom;
+            width: 99%;
         }
 
         .value {
-            font-size: 15px;
-            font-weight: 700;
-            margin: 3px 0 14px;
+            background: #fff;
+            display: inline-block;
+            line-height: 1.2;
+            max-width: 100%;
+            padding: 0 4px;
+            vertical-align: bottom;
         }
 
-        table {
+
+        .sumgrid {
             border-collapse: collapse;
-            margin-top: 18px;
             width: 100%;
         }
 
-        th,
-        td {
-            border-bottom: 1px solid #d1d5db;
-            padding: 11px 8px;
-            text-align: left;
+        .cash {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 1mm;
         }
 
-        th {
-            background: #f3f4f6;
-            color: #374151;
-            font-size: 11px;
-            text-transform: uppercase;
+        .cashier-name {
+            white-space: nowrap;
+            width: 1%;
+            padding-right: 8px;
+            vertical-align: bottom;
         }
 
-        .amount {
-            font-size: 18px;
-            font-weight: 700;
-            text-align: right;
+        .footerlogo {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -5.5mm;
+            text-align: center;
+            font-size: 7pt;
         }
 
-        .footer {
-            border-top: 1px solid #d1d5db;
-            color: #6b7280;
-            font-size: 11px;
-            margin-top: 36px;
-            padding-top: 14px;
+        .code {
+            position: absolute;
+            right: 2mm;
+            bottom: -4.4mm;
+            font-size: 7pt;
         }
+
+        .archivecode {
+            position: absolute;
+            left: 1mm;
+            bottom: -4.5mm;
+            font-size: 7pt;
+            font-style: italic;
+        }
+
+        @media print {
+            body {
+                background: #fff;
+            }
+
+            .page {
+                margin: 0;
+            }
+        }
+
+    
+
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1 class="title">Chitanta {{ $payment->receipt_number }}</h1>
-        <p class="subtitle">Document generat automat pentru plata confirmata.</p>
-    </div>
-
-    <div class="grid">
-        <div class="column">
-            <div class="label">Platitor</div>
-            <div class="value">{{ trim($payment->first_name.' '.$payment->last_name) }}</div>
-
-            <div class="label">Metoda plata</div>
-            <div class="value">{{ str_replace('_', ' ', $payment->paymentTypeName() ?? '-') }}</div>
-
-            <div class="label">Status</div>
-            <div class="value">{{ $payment->status }}</div>
-        </div>
-        <div class="column">
-            <div class="label">Data confirmarii</div>
-            <div class="value">{{ $payment->confirmed_at?->format('d.m.Y H:i') ?? '-' }}</div>
-
-            <div class="label">Referinta</div>
-            <div class="value">{{ $payment->external_reference ?? '-' }}</div>
-
-            <div class="label">Locatie</div>
-            <div class="value">{{ $payment->location?->name ?? '-' }}</div>
-        </div>
-    </div>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Descriere</th>
-                <th style="text-align: right;">Suma</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>
-                    Plata {{ $payment->model_type ? 'pentru '.$payment->model_type : '' }}
-                    @if ($payment->model_id)
-                        #{{ $payment->model_id }}
-                    @endif
-                </td>
-                <td class="amount">{{ number_format((float) $payment->amount, 2, ',', '.') }} RON</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <div class="footer">
-        Operator: {{ trim(($payment->admin?->first_name ?? '').' '.($payment->admin?->last_name ?? '')) ?: ($payment->admin?->email ?? '-') }}<br>
-        Generat la {{ now()->format('d.m.Y H:i') }}.
+    <div class="page">
+        @foreach (['Exemplar Client', 'Exemplar Contabilitate', 'Exemplar Arhiva'] as $copyName)
+        <section class="receipt">
+            <div class="copyname">{{ $copyName }}</div>
+            <div class="header">
+                <div class="receipt_org_info">
+                    <div class="company">
+                        {{ $organization?->name ?? 'Organizatie' }}
+                        <div class="small">
+                            {{ $organization?->address ?? '-' }}<br>
+                            Email: {{ $organization?->email ?? '-' }}&nbsp;&nbsp; {{ $organization?->web ?? '-' }}<br>
+                            Tel. {{ $organization?->phone ?? '-' }}
+                        </div>
+                    </div>
+                    <div class="bank">
+                        C.U.I. {{ $organization?->cui ?? '-' }}&nbsp;&nbsp; Nr.Reg.Com. {{ $organization?->nr_reg_com ?? '-' }}<br>
+                        <b>Capital social:</b> {{ $organization?->capital ?? '-' }}<br>
+                        <b>Cont:</b> {{ $organization?->cont ?? '-' }}<br>
+                        <b>Banca:</b> {{ $organization?->bank ?? '-' }}
+                        <div class="work">Punct de lucru: {{ $payment->location?->name ?? '-' }}</div>
+                    </div>
+                </div>
+                <div class="receipt_info">
+                    <div class="title">CHITANTA</div>
+                    <div class="docmeta">
+                        <span>Seria:</span> {{ $receiptSeries }}<br>
+                        <span>Nr.:</span> {{ $receiptNumber }}<br>
+                        <span>Data:</span> {{ $paidAtFormatted }}
+                    </div>
+                </div>
+                <div class="clearfix"></div>
+            </div>
+            <div class="form">
+                <table class="line">
+                    <tr>
+                        <td class="line-label">Am primit de la</td>
+                        <td class="dots"><span class="value">{{ $payerName }}</span></td>
+                    </tr>
+                </table>
+                <table class="line">
+                    <tr>
+                        <td class="line-label">Adresa</td>
+                        <td class="dots"><span class="value">{{ $payerAddress }}</span></td>
+                    </tr>
+                </table>
+                <table class="sumgrid">
+                    <tr>
+                        <td class="line-label">Suma de</td>
+                        <td class="dots"><span class="value">{{ $amount }}</span></td>
+                        <td class="line-label">adica</td>
+                        <td class="dots"><span class="value">{{ $amountText }}</span></td>
+                    </tr>
+                </table>
+                <table class="line">
+                    <tr>
+                        <td class="line-label">&nbsp;</td>
+                        <td class="dots"></td>
+                    </tr>
+                </table>
+                <table class="line">
+                    <tr>
+                        <td class="line-label">Reprezentand contravaloare factura nr.</td>
+                        <td class="dots"><span class="value">{{ $description }}</span></td>
+                    </tr>
+                </table>
+                <table class="cash">
+                    <tr>
+                        <td class="line-label">Casier,</td>
+                        <td class="cashier-name">{{ $cashier }}</td>
+                        <td class="dots"></td>
+                    </tr>
+                </table>
+              
+            </div>
+            
+        </section>
+        @endforeach
     </div>
 </body>
 </html>
