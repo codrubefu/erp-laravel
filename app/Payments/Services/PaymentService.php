@@ -6,6 +6,7 @@ use App\Payments\Models\Payment;
 use App\Service\Models\ServiceUser;
 use App\Service\Services\ServiceLifecycleService;
 use App\Users\Models\AuditLog;
+use App\Users\Models\Organization;
 use App\Users\Models\User;
 use App\Users\Services\BusinessActivityLogger;
 use Illuminate\Support\Facades\DB;
@@ -107,7 +108,11 @@ class PaymentService
     private function completeConfirmation(Payment $payment): void
     {
         if ($payment->receipt_number === null) {
-            $payment->update(['receipt_number' => sprintf('RCPT-%d-%s-%06d', $payment->organization_id, now()->format('Y'), $payment->id)]);
+            $organization = Organization::query()->lockForUpdate()->findOrFail($payment->organization_id);
+            $nextNumber = (int) $organization->receipt_number + 1;
+
+            $organization->forceFill(['receipt_number' => $nextNumber])->save();
+            $payment->update(['receipt_number' => sprintf('%s%06d', $organization->receipt_code ?: 'CH', $nextNumber)]);
         }
 
         if ($payment->model_type !== Payment::MODEL_TYPE_SERVICE_USER) {

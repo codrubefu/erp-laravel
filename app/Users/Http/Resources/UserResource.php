@@ -32,6 +32,8 @@ class UserResource extends JsonResource
                         'id' => $pivot?->id,
                         'service_id' => $service->id,
                         'name' => $service->name,
+                        'invoice_number' => $pivot?->invoice_number,
+                        'bill_number' => $pivot?->bill_number,
                         'start_date' => $pivot?->start_date,
                         'expires_at' => $pivot?->expires_at,
                         'status' => $status,

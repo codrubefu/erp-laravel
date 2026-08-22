@@ -4,6 +4,7 @@ namespace App\Users\Http\Controllers\Api;
 
 use App\Notifications\Events\NotificationRequested;
 use App\Service\Models\Service;
+use App\Service\Services\ServiceDocumentSequenceService;
 use App\Users\Http\Controllers\Controller;
 use App\Users\Http\Requests\SyncUserServicesRequest;
 use App\Users\Http\Requests\StoreUserRequest;
@@ -30,6 +31,7 @@ class UserController extends Controller
         private readonly OrganizationAccessService $organizationAccess,
         private readonly BusinessActivityLogger $activityLogger,
         private readonly GdprErasureService $gdprErasureService,
+        private readonly ServiceDocumentSequenceService $documentSequences,
     )
     {
     }
@@ -281,33 +283,38 @@ class UserController extends Controller
         foreach ($assignments as $assignment) {
             $service = Service::query()->findOrFail($assignment['id']);
             $startDate = CarbonImmutable::parse($assignment['start_date'])->startOfDay();
-            $pivotData = [
-                'status' => $this->serviceInitialStatus($service, $startDate),
-                'start_date' => $startDate->toDateString(),
-                'expires_at' => $this->serviceExpiresAt($service, $startDate),
-                'activated_at' => (float) $service->price > 0 ? null : now(),
-            ];
+            $startDateValue = $startDate->toDateString();
+            $expiresAt = $this->serviceExpiresAt($service, $startDate);
 
             if ($previous->has($service->id)) {
                 $previousPivot = $previous->get($service->id)->pivot;
                 $user->services()->updateExistingPivot($service->id, [
-                    'start_date' => $pivotData['start_date'],
-                    'expires_at' => $pivotData['expires_at'],
+                    'start_date' => $startDateValue,
+                    'expires_at' => $expiresAt,
                 ]);
 
                 $previousStartDate = $previousPivot?->start_date === null
                     ? null
                     : CarbonImmutable::parse($previousPivot->start_date)->toDateString();
 
-                if ($previousStartDate !== $startDate->toDateString()) {
+                if ($previousStartDate !== $startDateValue) {
                     $this->activityLogger->record(AuditLog::SERVICE_RENEWED, $user, $service, [], [
                         'service_id' => $service->id,
-                        'start_date' => $startDate->toDateString(),
+                        'start_date' => $startDateValue,
                     ]);
                 }
 
                 continue;
             }
+
+            $pivotData = [
+                'invoice_number' => $this->documentSequences->nextInvoice((int) $service->organization_id),
+                'bill_number' => $this->documentSequences->nextBill((int) $service->organization_id),
+                'status' => $this->serviceInitialStatus($service, $startDate),
+                'start_date' => $startDateValue,
+                'expires_at' => $expiresAt,
+                'activated_at' => (float) $service->price > 0 ? null : now(),
+            ];
 
             $user->services()->attach($service->id, $pivotData);
 

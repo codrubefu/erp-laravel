@@ -54,7 +54,7 @@ class Service extends Model
     {
         return $this->belongsToMany(User::class)
             ->using(ServiceUser::class)
-            ->withPivot(['id', 'status', 'start_date', 'expires_at', 'accesses_used', 'activated_at', 'suspended_at', 'resume_at', 'status_reason', 'activation_payment_id'])
+            ->withPivot(['id', 'invoice_number', 'bill_number', 'status', 'start_date', 'expires_at', 'accesses_used', 'activated_at', 'suspended_at', 'resume_at', 'status_reason', 'activation_payment_id'])
             ->withTimestamps();
     }
 

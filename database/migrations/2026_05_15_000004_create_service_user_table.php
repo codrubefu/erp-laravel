@@ -16,10 +16,14 @@ return new class extends Migration
             $table->id();
             $table->foreignId('service_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->string('invoice_number')->nullable();
+            $table->string('bill_number')->nullable();
             $table->timestamps();
 
             $table->unique(['service_id', 'user_id']);
             $table->index('user_id');
+            $table->index('invoice_number');
+            $table->index('bill_number');
         });
     }
 

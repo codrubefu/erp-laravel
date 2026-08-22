@@ -32,7 +32,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'location_id', type: 'integer', nullable: true, example: 5, description: 'Branch inferred from the authenticated operator context.'),
         new OA\Property(property: 'status', type: 'string', example: 'confirmed', enum: ['initiated', 'pending', 'confirmed', 'failed', 'refunded', 'cancelled']),
         new OA\Property(property: 'external_reference', type: 'string', example: '0198f7d4-aad1-72bd-9d3a-0b154d548b31'),
-        new OA\Property(property: 'receipt_number', type: 'string', nullable: true, example: 'RCPT-3-2026-000008'),
+        new OA\Property(property: 'receipt_number', type: 'string', nullable: true, example: 'CH000001'),
         new OA\Property(property: 'provider', type: 'string', nullable: true, example: 'netopia'),
         new OA\Property(property: 'provider_transaction_id', type: 'string', nullable: true, example: 'txn_83A91'),
         new OA\Property(property: 'model_type', type: 'string', example: 'service_user', default: 'service_user', enum: ['service_user', 'event_occurrence_user'], description: 'Supported payable models: service assignments and event participation assignments.'),

@@ -12,6 +12,21 @@ return new class extends Migration
             $table->id();
             $table->string('name')->unique();
             $table->text('description')->nullable();
+            $table->text('address')->nullable();
+            $table->string('email')->nullable();
+            $table->string('phone')->nullable();
+            $table->string('web')->nullable();
+            $table->string('cui')->nullable();
+            $table->string('nr_reg_com')->nullable();
+            $table->string('capital')->nullable();
+            $table->string('cont')->nullable();
+            $table->string('banca')->nullable();
+            $table->string('receipt_code')->default('CH');
+            $table->unsignedBigInteger('receipt_number')->default(0);
+            $table->string('invoice_code')->default('INV');
+            $table->unsignedBigInteger('invoice_number')->default(0);
+            $table->string('bill_code')->default('BILL');
+            $table->unsignedBigInteger('bill_number')->default(0);
             $table->timestamps();
         });
 

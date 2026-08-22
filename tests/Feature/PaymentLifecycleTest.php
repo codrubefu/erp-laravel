@@ -22,12 +22,16 @@ class PaymentLifecycleTest extends TestCase
         $payment = app(PaymentService::class)->create($this->paymentData($assignmentId, Payment::TYPE_CASH), $operator);
 
         $this->assertSame(Payment::STATUS_CONFIRMED, $payment->status);
-        $this->assertNotNull($payment->receipt_number);
+        $this->assertSame('CH000001', $payment->receipt_number);
         $this->assertDatabaseHas('service_user', [
             'id' => $assignmentId,
             'status' => 'active',
             'start_date' => now()->toDateString(),
             'activation_payment_id' => $payment->id,
+        ]);
+        $this->assertDatabaseHas('organizations', [
+            'id' => $operator->organization_id,
+            'receipt_number' => 1,
         ]);
     }
 

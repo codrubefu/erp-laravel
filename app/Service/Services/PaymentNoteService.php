@@ -43,7 +43,7 @@ class PaymentNoteService
         $amount = number_format((float) $service->price, 2, '.', ',');
         $startDate = $this->formatDate($assignment->start_date ?? $issuedAt);
         $expiresAt = $assignment->expires_at ? $this->formatDate($assignment->expires_at) : 'fara expirare';
-        $noteNumber = sprintf('%09d', $assignment->id);
+        $noteNumber = $assignment->bill_number ?: sprintf('%09d', $assignment->id);
         $cardCode = $user->user_code ?: sprintf('USR%08d', $user->id);
         $orderDetails = sprintf(
             'Comanda service #%d | User #%d | Service #%d | Start: %s | Expira: %s',

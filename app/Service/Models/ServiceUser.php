@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
-    'service_id', 'user_id', 'status', 'start_date', 'expires_at',
+    'service_id', 'user_id', 'invoice_number', 'bill_number', 'status', 'start_date', 'expires_at',
     'accesses_used', 'activated_at', 'suspended_at', 'resume_at',
     'status_reason', 'activation_payment_id',
 ])]

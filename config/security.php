@@ -2,7 +2,7 @@
 
 return [
     'tokens' => [
-        'expiration_minutes' => (int) env('BEARER_TOKEN_EXPIRATION_MINUTES', 60),
+        'expiration_minutes' => (int) env('BEARER_TOKEN_EXPIRATION_MINUTES', 10080),
     ],
 
     'rate_limits' => [

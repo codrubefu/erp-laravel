@@ -25,7 +25,7 @@ return new class extends Migration
 
             $table->index(['organization_id', 'status']);
             $table->unique('external_reference');
-            $table->unique('receipt_number');
+            $table->unique(['organization_id', 'receipt_number'], 'payments_organization_receipt_number_unique');
             $table->unique(['provider', 'provider_transaction_id']);
         });
     }
@@ -34,7 +34,7 @@ return new class extends Migration
     {
         Schema::table('payments', function (Blueprint $table): void {
             $table->dropUnique(['provider', 'provider_transaction_id']);
-            $table->dropUnique(['receipt_number']);
+            $table->dropUnique('payments_organization_receipt_number_unique');
             $table->dropUnique(['external_reference']);
             $table->dropIndex(['organization_id', 'status']);
             $table->dropConstrainedForeignId('location_id');

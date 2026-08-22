@@ -27,6 +27,8 @@ class ServiceResource extends JsonResource
             'max_users' => $this->max_users,
             'is_active' => $this->is_active,
             'assignment_id' => $this->when($this->pivot !== null, $this->pivot?->id),
+            'invoice_number' => $this->when($this->pivot !== null, $this->pivot?->invoice_number),
+            'bill_number' => $this->when($this->pivot !== null, $this->pivot?->bill_number),
             'start_date' => $this->when($this->pivot !== null, $startDate),
             'expires_at' => $this->when($this->pivot !== null, $expiresAt),
             'status' => $this->when($this->pivot !== null, $this->pivot?->status),
