@@ -589,6 +589,77 @@ class UserCrudTest extends TestCase
         ]);
     }
 
+    public function test_user_with_manage_right_can_remove_all_services_through_dedicated_route(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.manage']);
+        $user = User::factory()->create(['organization_id' => $admin->organization_id]);
+        $service = Service::query()->create($this->serviceData([
+            'name' => 'Legacy',
+            'is_active' => true,
+        ]));
+
+        $user->services()->attach($service);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->patchJson("/api/users/service/{$user->id}", [
+                'services' => [],
+            ])
+            ->assertOk()
+            ->assertJsonCount(0, 'data.services')
+            ->assertJsonCount(0, 'data.active_services');
+
+        $this->assertDatabaseMissing('service_user', [
+            'service_id' => $service->id,
+            'user_id' => $user->id,
+        ]);
+    }
+
+    public function test_user_with_manage_right_can_remove_omitted_service_through_dedicated_route(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.manage']);
+        $user = User::factory()->create(['organization_id' => $admin->organization_id]);
+        $serviceToKeepA = Service::query()->create($this->serviceData([
+            'name' => 'Keep A',
+            'is_active' => true,
+        ]));
+        $serviceToRemove = Service::query()->create($this->serviceData([
+            'name' => 'Remove',
+            'is_active' => true,
+        ]));
+        $serviceToKeepB = Service::query()->create($this->serviceData([
+            'name' => 'Keep B',
+            'is_active' => true,
+        ]));
+
+        $user->services()->attach($serviceToKeepA, ['start_date' => '2026-08-30']);
+        $user->services()->attach($serviceToRemove, ['start_date' => '2026-08-25']);
+        $user->services()->attach($serviceToKeepB, ['start_date' => '2026-08-22']);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->patchJson("/api/users/service/{$user->id}", [
+                'services' => [
+                    ['id' => $serviceToKeepA->id, 'start_date' => '2026-08-30'],
+                    ['id' => $serviceToKeepB->id, 'start_date' => '2026-08-22'],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonCount(2, 'data.services')
+            ->assertJsonMissing(['id' => $serviceToRemove->id]);
+
+        $this->assertDatabaseHas('service_user', [
+            'service_id' => $serviceToKeepA->id,
+            'user_id' => $user->id,
+        ]);
+        $this->assertDatabaseHas('service_user', [
+            'service_id' => $serviceToKeepB->id,
+            'user_id' => $user->id,
+        ]);
+        $this->assertDatabaseMissing('service_user', [
+            'service_id' => $serviceToRemove->id,
+            'user_id' => $user->id,
+        ]);
+    }
+
     public function test_syncing_existing_service_preserves_lifecycle_and_payment_link(): void
     {
         [$admin, $token] = $this->authenticatedUserWithRights(['users.manage']);

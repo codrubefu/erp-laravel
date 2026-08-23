@@ -16,7 +16,7 @@ class SyncUserServicesRequest extends FormRequest
         return [
             'service_ids' => ['required_without:services', 'array'],
             'service_ids.*' => ['integer', 'exists:services,id'],
-            'services' => ['required_without:service_ids', 'array'],
+            'services' => ['sometimes', 'array'],
             'services.*.id' => ['required_with:services', 'integer', 'exists:services,id'],
             'services.*.start_date' => ['sometimes', 'date'],
         ];

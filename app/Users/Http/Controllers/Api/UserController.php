@@ -179,7 +179,7 @@ class UserController extends Controller
             if ($hasServiceAssignments) {
                 $previous = $user->services()->get()->keyBy('id');
                 $assignedIds = collect($serviceAssignments)->pluck('id');
-                $user->services()->detach($previous->except($assignedIds->all())->keys()->all());
+                $this->detachMissingServiceAssignments($user, $assignedIds->all());
                 $this->attachServiceAssignments($user, $serviceAssignments, $previous);
                 $previous->except($assignedIds->all())->each(function (Service $service) use ($user): void {
                     $this->activityLogger->record(AuditLog::SERVICE_SUSPENDED, $user, $service, [], [
@@ -200,7 +200,7 @@ class UserController extends Controller
             $previous = $user->services()->get()->keyBy('id');
             $assignments = $this->serviceAssignments($request->validated());
             $assignedIds = collect($assignments)->pluck('id');
-            $user->services()->detach($previous->except($assignedIds->all())->keys()->all());
+            $this->detachMissingServiceAssignments($user, $assignedIds->all());
             $this->attachServiceAssignments($user, $assignments, $previous);
 
             $previous->except($assignedIds->all())->each(function (Service $service) use ($user): void {
@@ -334,6 +334,19 @@ class UserController extends Controller
                 ['service_id' => $service->id, 'start_date' => $startDate->toDateString()],
             );
         }
+    }
+
+    private function detachMissingServiceAssignments(User $user, array $assignedIds): void
+    {
+        $query = $user->serviceAssignments();
+
+        if ($assignedIds === []) {
+            $query->delete();
+
+            return;
+        }
+
+        $query->whereNotIn('service_id', $assignedIds)->delete();
     }
 
     public function activity(Request $request, User $user): AnonymousResourceCollection
