@@ -3,13 +3,16 @@
 namespace App\Events\Http\Controllers\Api;
 
 use App\Events\Http\Requests\AddEventParticipantRequest;
+use App\Events\Http\Requests\BulkAddEventParticipantsRequest;
 use App\Events\Http\Requests\UpdateEventParticipantRequest;
 use App\Events\Http\Resources\EventParticipantResource;
 use App\Events\Models\EventOccurrence;
 use App\Events\Services\EventEligibilityService;
 use App\Users\Http\Controllers\Controller;
+use App\Users\Http\Resources\UserResource;
 use App\Users\Models\User;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use OpenApi\Attributes as OA;
@@ -47,6 +50,58 @@ class EventParticipantController extends Controller
         return EventParticipantResource::collection(
             $occurrence->participants()->orderBy('last_name')->orderBy('first_name')->paginate(request()->integer('per_page', 15))
         );
+    }
+
+    #[OA\Get(
+        path: '/event-occurrences/{occurrence}/eligible-participants',
+        summary: 'List users eligible for quick add',
+        description: 'Returns users that can be added to a concrete event occurrence: visible in the current organization, not already participants, and matching the active-service requirement when the event requires one.',
+        security: [['bearerAuth' => []]],
+        tags: ['Event Participants'],
+        parameters: [
+            new OA\PathParameter(name: 'occurrence', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\QueryParameter(name: 'search', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\QueryParameter(name: 'per_page', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\QueryParameter(name: 'page', required: false, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Eligible users list.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/EventEligibleParticipant'))])),
+            new OA\Response(response: 401, description: 'Unauthenticated.', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 403, description: 'Forbidden.', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 404, description: 'Not found.', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
+    public function eligible(Request $request, EventOccurrence $occurrence): AnonymousResourceCollection
+    {
+        $occurrence->load('event.requiredService');
+        $event = $occurrence->event;
+
+        $users = User::query()
+            ->with('activeServices')
+            ->whereDoesntHave('eventOccurrences', fn ($query) => $query->whereKey($occurrence->id))
+            ->when($event?->requires_active_service, function ($query) use ($event): void {
+                $query->whereHas('activeServices', function ($query) use ($event): void {
+                    if ($event->required_service_id !== null) {
+                        $query->where('services.id', $event->required_service_id);
+                    }
+                });
+            })
+            ->when($request->string('search')->isNotEmpty(), function ($query) use ($request): void {
+                $search = $request->string('search')->toString();
+
+                $query->where(function ($query) use ($search): void {
+                    $query->where('first_name', 'like', "%{$search}%")
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%")
+                        ->orWhere('user_code', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->paginate($request->integer('per_page', 15));
+
+        return UserResource::collection($users);
     }
 
     #[OA\Post(
@@ -100,6 +155,77 @@ class EventParticipantController extends Controller
             'success' => true,
             'message' => 'Participant added successfully.',
             'data' => new EventParticipantResource($participant),
+        ], 201);
+    }
+
+    #[OA\Post(
+        path: '/event-occurrences/{occurrence}/participants/bulk',
+        summary: 'Add multiple occurrence participants',
+        description: 'Adds multiple users to an occurrence after duplicate, capacity, and active-service eligibility checks. The operation is atomic.',
+        security: [['bearerAuth' => []]],
+        tags: ['Event Participants'],
+        parameters: [new OA\PathParameter(name: 'occurrence', required: true, schema: new OA\Schema(type: 'integer'))],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/BulkAddEventParticipantsRequest')),
+        responses: [
+            new OA\Response(response: 201, description: 'Participants added.', content: new OA\JsonContent(ref: '#/components/schemas/BulkAddEventParticipantsResponse')),
+            new OA\Response(response: 400, description: 'Not enough available places for the selected active participant status.', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 401, description: 'Unauthenticated.', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 403, description: 'Forbidden or one of the selected users is not eligible for the active-service requirement.', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 404, description: 'Not found.', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 422, description: 'Validation error or one of the selected users is already registered for this occurrence.', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
+        ],
+    )]
+    public function bulkStore(BulkAddEventParticipantsRequest $request, EventOccurrence $occurrence): JsonResponse
+    {
+        $data = $request->validated();
+        $userIds = $data['user_ids'];
+        $status = $data['status'] ?? 'registered';
+        $occurrence->load('event.requiredService');
+
+        if ($occurrence->participants()->whereKey($userIds)->exists()) {
+            return $this->error('One or more users are already registered for this occurrence.', 422);
+        }
+
+        $users = User::query()->whereKey($userIds)->get();
+
+        if ($users->count() !== count($userIds)) {
+            return $this->error('One or more users were not found.', 404);
+        }
+
+        foreach ($users as $user) {
+            if (! $this->eligibility->canUserJoinOccurrence($user, $occurrence)) {
+                return $this->error('One or more users do not have the required active service.', 403);
+            }
+        }
+
+        $activeStatuses = ['registered', 'attended'];
+        $maxParticipants = $occurrence->event->max_participants;
+        if ($maxParticipants !== null && in_array($status, $activeStatuses, true)) {
+            $availablePlaces = $maxParticipants - $occurrence->activeParticipants()->count();
+            if (count($userIds) > $availablePlaces) {
+                return $this->error('Event occurrence does not have enough available places.', 400);
+            }
+        }
+
+        DB::transaction(function () use ($occurrence, $userIds, $data, $status): void {
+            $attributes = [];
+            foreach ($userIds as $userId) {
+                $attributes[$userId] = [
+                    'status' => $status,
+                    'registered_at' => $data['registered_at'] ?? now(),
+                    'notes' => $data['notes'] ?? null,
+                ];
+            }
+
+            $occurrence->participants()->attach($attributes);
+        });
+
+        $participants = $occurrence->participants()->whereKey($userIds)->orderBy('last_name')->orderBy('first_name')->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Participants added successfully.',
+            'data' => EventParticipantResource::collection($participants),
         ], 201);
     }
 

@@ -39,9 +39,13 @@ Route::middleware('auth.bearer')->group(function (): void {
         ->middleware('right:events.view,events.manage');
     Route::get('/event-occurrences/{occurrence}', [EventOccurrenceController::class, 'show'])
         ->middleware('right:events.view,events.manage');
+    Route::get('/event-occurrences/{occurrence}/eligible-participants', [EventParticipantController::class, 'eligible'])
+        ->middleware('right:event_participants.view,event_participants.manage');
 
     Route::get('/event-occurrences/{occurrence}/participants', [EventParticipantController::class, 'index'])
         ->middleware('right:event_participants.view,event_participants.manage');
+    Route::post('/event-occurrences/{occurrence}/participants/bulk', [EventParticipantController::class, 'bulkStore'])
+        ->middleware('right:event_participants.manage');
     Route::post('/event-occurrences/{occurrence}/participants', [EventParticipantController::class, 'store'])
         ->middleware('right:event_participants.manage');
     Route::put('/event-occurrences/{occurrence}/participants/{user}', [EventParticipantController::class, 'update'])

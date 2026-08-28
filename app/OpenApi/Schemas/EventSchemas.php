@@ -85,6 +85,21 @@ use OpenApi\Attributes as OA;
     type: 'object',
 )]
 #[OA\Schema(
+    schema: 'EventEligibleParticipant',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 35),
+        new OA\Property(property: 'user_code', type: 'string', nullable: true, example: 'USR00000000000000000000000000001'),
+        new OA\Property(property: 'first_name', type: 'string', example: 'John'),
+        new OA\Property(property: 'last_name', type: 'string', example: 'Doe'),
+        new OA\Property(property: 'email', type: 'string', format: 'email', example: 'john@example.com'),
+        new OA\Property(property: 'phone', type: 'string', nullable: true, example: '+40740123456'),
+        new OA\Property(property: 'active', type: 'boolean', example: true),
+        new OA\Property(property: 'has_active_service', type: 'boolean', example: true),
+        new OA\Property(property: 'active_services', type: 'array', items: new OA\Items(type: 'object')),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
     schema: 'StoreEventRequest',
     required: ['title', 'start_time', 'end_time', 'recurrence_type', 'start_date', 'status'],
     properties: [
@@ -136,6 +151,26 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'status', type: 'string', enum: ['registered', 'attended', 'cancelled', 'no_show'], example: 'registered'),
         new OA\Property(property: 'registered_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'notes', type: 'string', nullable: true, example: 'Paid at reception.'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'BulkAddEventParticipantsRequest',
+    required: ['user_ids'],
+    properties: [
+        new OA\Property(property: 'user_ids', type: 'array', items: new OA\Items(type: 'integer'), example: [35, 36, 37]),
+        new OA\Property(property: 'status', type: 'string', enum: ['registered', 'attended', 'cancelled', 'no_show'], example: 'registered'),
+        new OA\Property(property: 'registered_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'notes', type: 'string', nullable: true, example: 'Adaugati rapid din lista de eligibili.'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'BulkAddEventParticipantsResponse',
+    properties: [
+        new OA\Property(property: 'success', type: 'boolean', example: true),
+        new OA\Property(property: 'message', type: 'string', example: 'Participants added successfully.'),
+        new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/EventParticipant')),
     ],
     type: 'object',
 )]

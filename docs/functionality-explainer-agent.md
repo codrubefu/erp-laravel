@@ -276,7 +276,9 @@ Routes:
 - `DELETE /api/events/{event}`
 - `GET /api/events/{event}/occurrences`
 - `GET /api/event-occurrences/{occurrence}`
+- `GET /api/event-occurrences/{occurrence}/eligible-participants`
 - `GET /api/event-occurrences/{occurrence}/participants`
+- `POST /api/event-occurrences/{occurrence}/participants/bulk`
 - `POST /api/event-occurrences/{occurrence}/participants`
 - `PUT/PATCH /api/event-occurrences/{occurrence}/participants/{user}`
 - `DELETE /api/event-occurrences/{occurrence}/participants/{user}`
@@ -293,8 +295,17 @@ Functional behavior:
 - Events can require active services and/or payment.
 - Events can require a specific service.
 - Participants are attached through `event_occurrence_user`.
+- Quick add lists eligible users for a selected occurrence through `GET /api/event-occurrences/{occurrence}/eligible-participants`; the list excludes existing participants and applies active-service requirements before returning results. Multiple selected users can be attached atomically through `POST /api/event-occurrences/{occurrence}/participants/bulk`.
 - Participant status can be managed.
 - When schedule changes or an inactive event resumes, notifications are dispatched to affected participants.
+
+Quick add API details:
+
+- `GET /api/event-occurrences/{occurrence}/eligible-participants` accepts `search`, `page`, and `per_page`. Search matches `first_name`, `last_name`, `email`, `phone`, and `user_code`.
+- Eligible-participants responses are paginated user resources with `active_services` loaded, `has_active_service`, and no users already attached to the occurrence.
+- `POST /api/event-occurrences/{occurrence}/participants/bulk` body: `user_ids` required array of distinct user IDs, optional `status`, optional `registered_at`, optional `notes`.
+- Bulk add defaults `status` to `registered` and `registered_at` to the current timestamp.
+- Bulk add is atomic: duplicates, ineligible users, missing users, or insufficient available places reject the whole request.
 
 ### Articles and Announcements
 
