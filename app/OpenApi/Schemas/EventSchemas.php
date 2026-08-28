@@ -8,6 +8,8 @@ use OpenApi\Attributes as OA;
     schema: 'Event',
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 1),
+        new OA\Property(property: 'category_id', type: 'integer', nullable: true, example: 3),
+        new OA\Property(property: 'category', ref: '#/components/schemas/EventCategory', nullable: true),
         new OA\Property(property: 'title', type: 'string', example: 'Yoga Class'),
         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Weekly yoga session.'),
         new OA\Property(property: 'location', type: 'string', nullable: true, example: 'Room A'),
@@ -27,6 +29,21 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'max_participants', type: 'integer', nullable: true, example: 20),
         new OA\Property(property: 'status', type: 'string', enum: ['active', 'inactive', 'cancelled'], example: 'active'),
         new OA\Property(property: 'occurrences_count', type: 'integer', example: 12),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'deleted_at', type: 'string', format: 'date-time', nullable: true),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'EventCategory',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', example: 3),
+        new OA\Property(property: 'name', type: 'string', example: 'Fitness'),
+        new OA\Property(property: 'color', type: 'string', nullable: true, example: '#2563eb'),
+        new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Fitness and training classes.'),
+        new OA\Property(property: 'is_active', type: 'boolean', example: true),
+        new OA\Property(property: 'events_count', type: 'integer', example: 8),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'deleted_at', type: 'string', format: 'date-time', nullable: true),
@@ -71,6 +88,7 @@ use OpenApi\Attributes as OA;
     required: ['title', 'start_time', 'end_time', 'recurrence_type', 'start_date', 'status'],
     properties: [
         new OA\Property(property: 'title', type: 'string', example: 'Yoga Class'),
+        new OA\Property(property: 'category_id', type: 'integer', nullable: true, example: 3),
         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Weekly yoga session.'),
         new OA\Property(property: 'location', type: 'string', nullable: true, example: 'Room A'),
         new OA\Property(property: 'start_time', type: 'string', example: '10:00'),
@@ -93,6 +111,21 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(
     schema: 'UpdateEventRequest',
     allOf: [new OA\Schema(ref: '#/components/schemas/StoreEventRequest')],
+)]
+#[OA\Schema(
+    schema: 'StoreEventCategoryRequest',
+    required: ['name'],
+    properties: [
+        new OA\Property(property: 'name', type: 'string', example: 'Fitness'),
+        new OA\Property(property: 'color', type: 'string', nullable: true, example: '#2563eb'),
+        new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Fitness and training classes.'),
+        new OA\Property(property: 'is_active', type: 'boolean', example: true),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'UpdateEventCategoryRequest',
+    allOf: [new OA\Schema(ref: '#/components/schemas/StoreEventCategoryRequest')],
 )]
 #[OA\Schema(
     schema: 'AddEventParticipantRequest',

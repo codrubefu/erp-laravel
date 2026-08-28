@@ -25,11 +25,12 @@ class EventController extends Controller
     #[OA\Get(
         path: '/events',
         summary: 'List events',
-        description: 'Returns paginated events with filters for status, recurrence, service requirement, search, and sorting.',
+        description: 'Returns paginated events with filters for category, status, recurrence, service requirement, search, and sorting.',
         security: [['bearerAuth' => []]],
         tags: ['Events'],
         parameters: [
             new OA\QueryParameter(name: 'status', required: false, schema: new OA\Schema(type: 'string', enum: ['active', 'inactive', 'cancelled'])),
+            new OA\QueryParameter(name: 'category_id', required: false, schema: new OA\Schema(type: 'integer')),
             new OA\QueryParameter(name: 'recurrence_type', required: false, schema: new OA\Schema(type: 'string', enum: ['once', 'weekly', 'monthly'])),
             new OA\QueryParameter(name: 'requires_active_service', required: false, schema: new OA\Schema(type: 'boolean')),
             new OA\QueryParameter(name: 'requires_payment', required: false, schema: new OA\Schema(type: 'boolean')),
@@ -56,8 +57,9 @@ class EventController extends Controller
         $direction = $request->string('direction')->toString() === 'asc' ? 'asc' : 'desc';
 
         $events = Event::query()
-            ->with('requiredService')
+            ->with(['category', 'requiredService'])
             ->withCount('occurrences')
+            ->when($request->filled('category_id'), fn ($query) => $query->where('category_id', $request->integer('category_id')))
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')->toString()))
             ->when($request->filled('recurrence_type'), fn ($query) => $query->where('recurrence_type', $request->string('recurrence_type')->toString()))
             ->when($request->filled('requires_active_service'), fn ($query) => $query->where('requires_active_service', $request->boolean('requires_active_service')))
@@ -98,7 +100,7 @@ class EventController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Event created successfully.',
-            'data' => new EventResource($event->load(['requiredService', 'occurrences'])->loadCount('occurrences')),
+            'data' => new EventResource($event->load(['category', 'requiredService', 'occurrences'])->loadCount('occurrences')),
         ], 201);
     }
 
@@ -124,7 +126,7 @@ class EventController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Event retrieved successfully.',
-            'data' => new EventResource($event->load(['requiredService', 'occurrences'])->loadCount('occurrences')),
+            'data' => new EventResource($event->load(['category', 'requiredService', 'occurrences'])->loadCount('occurrences')),
         ]);
     }
 
@@ -195,7 +197,7 @@ class EventController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Event updated successfully.',
-            'data' => new EventResource($event->load(['requiredService', 'occurrences'])->loadCount('occurrences')),
+            'data' => new EventResource($event->load(['category', 'requiredService', 'occurrences'])->loadCount('occurrences')),
         ]);
     }
 

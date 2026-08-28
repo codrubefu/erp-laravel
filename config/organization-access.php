@@ -13,7 +13,7 @@ return [
     ],
 
     'disabled_right_groups' => [
-        1 => ['events', 'event_participants'],
+       // 1 => ['events', 'event_participants'],
     ],
 
     'right_groups' => [

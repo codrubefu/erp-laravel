@@ -11,6 +11,8 @@ class EventResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'category_id' => $this->category_id,
+            'category' => new EventCategoryResource($this->whenLoaded('category')),
             'title' => $this->title,
             'description' => $this->description,
             'location' => $this->location,

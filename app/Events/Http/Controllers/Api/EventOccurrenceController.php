@@ -42,7 +42,7 @@ class EventOccurrenceController extends Controller
     public function index(Request $request, Event $event): AnonymousResourceCollection
     {
         $occurrences = $event->occurrences()
-            ->with('event.requiredService')
+            ->with(['event.category', 'event.requiredService'])
             ->withCount('participants')
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')->toString()))
             ->when($request->filled('event_id'), fn ($query) => $query->where('event_id', $request->integer('event_id')))
@@ -76,7 +76,7 @@ class EventOccurrenceController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Event occurrence retrieved successfully.',
-            'data' => new EventOccurrenceResource($occurrence->load('event.requiredService')->loadCount('participants')),
+            'data' => new EventOccurrenceResource($occurrence->load(['event.category', 'event.requiredService'])->loadCount('participants')),
         ]);
     }
 }

@@ -15,6 +15,15 @@ class UpdateEventRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $timeFields = collect(['start_time', 'end_time'])
+            ->filter(fn (string $field) => is_string($this->input($field)) && preg_match('/^\d{2}:\d{2}:\d{2}$/', $this->input($field)))
+            ->mapWithKeys(fn (string $field) => [$field => substr($this->input($field), 0, 5)])
+            ->all();
+
+        if ($timeFields !== []) {
+            $this->merge($timeFields);
+        }
+
         if ($this->has('requires_payment') && ! $this->boolean('requires_payment')) {
             $this->merge([
                 'payment_amount' => null,
@@ -26,6 +35,11 @@ class UpdateEventRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'category_id' => [
+                'nullable',
+                Rule::exists('event_categories', 'id')
+                    ->where(fn ($query) => $query->where('organization_id', $this->user()?->organization_id)),
+            ],
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'location' => ['nullable', 'string', 'max:255'],

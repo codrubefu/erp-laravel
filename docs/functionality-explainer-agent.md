@@ -252,6 +252,7 @@ Functional behavior:
 Main controllers:
 
 - `app/Events/Http/Controllers/Api/EventController.php`
+- `app/Events/Http/Controllers/Api/EventCategoryController.php`
 - `app/Events/Http/Controllers/Api/EventOccurrenceController.php`
 - `app/Events/Http/Controllers/Api/EventParticipantController.php`
 
@@ -262,6 +263,11 @@ Main services:
 
 Routes:
 
+- `GET /api/event-categories`
+- `POST /api/event-categories`
+- `GET /api/event-categories/{eventCategory}`
+- `PUT/PATCH /api/event-categories/{eventCategory}`
+- `DELETE /api/event-categories/{eventCategory}`
 - `GET /api/events`
 - `POST /api/events`
 - `GET /api/events/{event}`
@@ -277,6 +283,8 @@ Routes:
 Functional behavior:
 
 - Events can be one-time, weekly, or monthly.
+- Events can be assigned to organization-scoped categories and filtered by `category_id`.
+- Deleting a category clears `category_id` on related events before soft deleting the category.
 - Creating an event generates initial occurrences.
 - Updating schedule-related fields regenerates future open occurrences.
 - Deleting an event removes future occurrences without participants and cancels future occurrences with participants.
