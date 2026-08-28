@@ -3,6 +3,7 @@
 use App\Users\Http\Controllers\Api\AuthController;
 use App\Users\Http\Controllers\Api\GroupController;
 use App\Users\Http\Controllers\Api\GdprController;
+use App\Users\Http\Controllers\Api\GradeController;
 use App\Users\Http\Controllers\Api\LocationController;
 use App\Users\Http\Controllers\Api\LocationGroupController;
 use App\Users\Http\Controllers\Api\MeController;
@@ -65,6 +66,14 @@ Route::middleware('auth.bearer')->group(function (): void {
     Route::patch('/locations/{location}', [LocationController::class, 'update'])->middleware('right:locations.manage');
     Route::delete('/locations/{location}', [LocationController::class, 'destroy'])->middleware('right:locations.manage');
 
+    Route::get('/grades', [GradeController::class, 'index'])->middleware('right:grades.view');
+    Route::post('/grades', [GradeController::class, 'store'])->middleware('right:grades.manage');
+    Route::get('/grades/{grade}/users', [GradeController::class, 'users'])->middleware('right:grades.view');
+    Route::get('/grades/{grade}', [GradeController::class, 'show'])->middleware('right:grades.view');
+    Route::put('/grades/{grade}', [GradeController::class, 'update'])->middleware('right:grades.manage');
+    Route::patch('/grades/{grade}', [GradeController::class, 'update'])->middleware('right:grades.manage');
+    Route::delete('/grades/{grade}', [GradeController::class, 'destroy'])->middleware('right:grades.manage');
+
     Route::get('/administrators', [UserController::class, 'administrators'])->middleware('right:users.view');
     Route::get('/clients', [UserController::class, 'clients'])->middleware('right:users.view');
     Route::get('/users', [UserController::class, 'index'])->middleware('right:users.view');
@@ -72,6 +81,12 @@ Route::middleware('auth.bearer')->group(function (): void {
     Route::post('/users', [UserController::class, 'store'])->middleware('right:users.manage');
     Route::patch('/users/service/{user}', [UserController::class, 'syncServices'])->middleware('right:users.manage');
     Route::get('/users/{user}/activity', [UserController::class, 'activity'])->middleware('right:users.view');
+    Route::get('/users/{user}/grades', [GradeController::class, 'userIndex'])->middleware('right:grades.view');
+    Route::post('/users/{user}/grades', [GradeController::class, 'userStore'])->middleware('right:grades.manage');
+    Route::get('/users/{user}/grades/{userGrade}', [GradeController::class, 'userShow'])->middleware('right:grades.view');
+    Route::put('/users/{user}/grades/{userGrade}', [GradeController::class, 'userUpdate'])->middleware('right:grades.manage');
+    Route::patch('/users/{user}/grades/{userGrade}', [GradeController::class, 'userUpdate'])->middleware('right:grades.manage');
+    Route::delete('/users/{user}/grades/{userGrade}', [GradeController::class, 'userDestroy'])->middleware('right:grades.manage');
     Route::get('/users/{user}/documents', [UserDocumentController::class, 'index'])->middleware('right:user-documents.view');
     Route::post('/users/{user}/documents', [UserDocumentController::class, 'store'])->middleware('right:user-documents.upload');
     Route::post('/users/{user}/documents/{document}/replace', [UserDocumentController::class, 'replace'])->middleware('right:user-documents.upload');

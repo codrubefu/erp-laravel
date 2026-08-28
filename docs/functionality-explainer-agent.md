@@ -278,6 +278,30 @@ Routes:
 - `GET /api/event-occurrences/{occurrence}`
 - `GET /api/event-occurrences/{occurrence}/eligible-participants`
 - `GET /api/event-occurrences/{occurrence}/participants`
+
+### Grades
+
+Grades are organization-scoped definitions and a separate historical award record for each user.
+
+Main files:
+
+- `app/Users/Models/Grade.php`
+- `app/Users/Models/UserGrade.php`
+- `app/Users/Http/Controllers/Api/GradeController.php`
+- `database/migrations/2026_08_28_000002_create_grades_table.php`
+- `database/migrations/2026_08_28_000003_create_user_grades_table.php`
+
+Routes:
+
+- `GET/POST /api/grades`
+- `GET/PUT/PATCH/DELETE /api/grades/{grade}`
+- `GET /api/grades/{grade}/users`
+- `GET/POST /api/users/{user}/grades`
+- `GET/PUT/PATCH/DELETE /api/users/{user}/grades/{userGrade}`
+
+Grade definitions contain a name, description and active flag. User awards contain the grade, obtained date and description. Future obtained dates are rejected. The active grade is the most recent non-deleted award, ordered by obtained date and then record ID. Deleting a definition is a soft delete and preserves historical awards.
+
+The `grades.view` right allows reading definitions, history and active-grade user lists. `grades.manage` allows creating, updating and deleting definitions and awards, and implies `grades.view`. All queries use the authenticated organization and existing user visibility rules.
 - `POST /api/event-occurrences/{occurrence}/participants/bulk`
 - `POST /api/event-occurrences/{occurrence}/participants`
 - `PUT/PATCH /api/event-occurrences/{occurrence}/participants/{user}`

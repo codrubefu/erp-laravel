@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Notifications\Models\NotificationPreference;
 use App\Notifications\Models\PushDevice;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -74,6 +75,16 @@ class User extends Authenticatable
     public function documents(): HasMany
     {
         return $this->hasMany(UserDocument::class);
+    }
+
+    public function userGrades(): HasMany
+    {
+        return $this->hasMany(UserGrade::class);
+    }
+
+    public function activeUserGrade(): HasOne
+    {
+        return $this->hasOne(UserGrade::class)->latestOfMany('obtained_at');
     }
 
     public function articles(): HasMany

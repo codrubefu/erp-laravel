@@ -264,6 +264,8 @@ class UserController extends Controller
             'groups.rights' => fn ($query) => $this->organizationAccess->applyAvailableRightsFilter($query, $organizationId),
             'locations',
             'activeServices',
+            'activeUserGrade.grade',
+            'userGrades.grade',
         ];
 
         if ($includeServices) {

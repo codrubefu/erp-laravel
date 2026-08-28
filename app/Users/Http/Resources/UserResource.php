@@ -47,6 +47,8 @@ class UserResource extends JsonResource
                     ];
                 })->all();
             }),
+            'active_grade' => $this->whenLoaded('activeUserGrade', fn () => $this->activeUserGrade?->grade),
+            'grade_history' => UserGradeResource::collection($this->whenLoaded('userGrades')),
             'active_services' => $this->whenLoaded('activeServices'),
             'has_active_service' => $this->whenLoaded(
                 'activeServices',

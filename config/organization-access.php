@@ -26,5 +26,6 @@ return [
         'events' => ['events.*', 'event_participants.*'],
         'payments' => ['payments.*'],
         'custom-fields' => ['custom-fields.*'],
+        'grades' => ['grades.*'],
     ],
 ];
