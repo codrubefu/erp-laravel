@@ -85,6 +85,10 @@ class GroupController extends Controller
 
     public function destroy(Group $group): JsonResponse
     {
+        if ($error = $this->organizationAccess->deleteBlockedByManyToManyResponse($group, ['users', 'rights', 'articles'])) {
+            return response()->json($error, 422);
+        }
+
         if ($group->users()->withoutGlobalScopes()->exists()) {
             return response()->json([
                 'message' => 'Cannot delete a group that still has users.',

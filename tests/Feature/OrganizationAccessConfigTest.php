@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Payments\Models\Payment;
+use App\Articles\Models\Article;
 use App\Users\Models\Group;
+use App\Users\Models\Location;
 use App\Users\Models\Right;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -98,6 +100,61 @@ class OrganizationAccessConfigTest extends TestCase
         $this->withHeader('Authorization', "Bearer {$token}")
             ->getJson('/api/payments')
             ->assertOk();
+    }
+
+    public function test_delete_model_many_to_many_setting_blocks_delete_when_relation_exists(): void
+    {
+        [$user, $token] = $this->authenticatedUserWithRights(['articles.delete']);
+        config()->set("organization-access.settings.{$user->organization_id}.delete_article.article_location", false);
+
+        $article = Article::query()->create([
+            'organization_id' => $user->organization_id,
+            'created_by' => $user->id,
+            'title' => 'Blocked',
+            'description' => 'Blocked article',
+            'status' => 'draft',
+            'audience_segment' => 'locations',
+        ]);
+        $location = Location::query()->create([
+            'organization_id' => $user->organization_id,
+            'name' => 'Main Office',
+        ]);
+        $article->locations()->attach($location);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->deleteJson("/api/articles/{$article->id}")
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Cannot delete Article because it still has related Locations.');
+
+        $this->assertDatabaseHas('articles', [
+            'id' => $article->id,
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function test_delete_model_many_to_many_setting_defaults_to_true_when_missing(): void
+    {
+        [$user, $token] = $this->authenticatedUserWithRights(['articles.delete']);
+
+        $article = Article::query()->create([
+            'organization_id' => $user->organization_id,
+            'created_by' => $user->id,
+            'title' => 'Allowed',
+            'description' => 'Allowed article',
+            'status' => 'draft',
+            'audience_segment' => 'locations',
+        ]);
+        $location = Location::query()->create([
+            'organization_id' => $user->organization_id,
+            'name' => 'Main Office',
+        ]);
+        $article->locations()->attach($location);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->deleteJson("/api/articles/{$article->id}")
+            ->assertNoContent();
+
+        $this->assertSoftDeleted('articles', ['id' => $article->id]);
     }
 
     private function authenticatedUserWithRights(array $rightNames): array

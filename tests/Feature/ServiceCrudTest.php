@@ -99,6 +99,34 @@ class ServiceCrudTest extends TestCase
         ]);
     }
 
+    public function test_delete_service_is_blocked_when_service_user_delete_setting_is_false_and_users_are_assigned(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['services.delete']);
+        config()->set("organization-access.settings.{$admin->organization_id}.delete_service.service_user", false);
+        $member = User::factory()->create(['organization_id' => $admin->organization_id]);
+        $service = Service::query()->create($this->serviceData([
+            'name' => 'Assigned service',
+        ]));
+        $service->users()->attach($member, [
+            'status' => 'active',
+            'start_date' => '2026-08-01',
+        ]);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->deleteJson("/api/services/{$service->id}")
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Cannot delete Service because it still has related Users.');
+
+        $this->assertDatabaseHas('services', [
+            'id' => $service->id,
+            'deleted_at' => null,
+        ]);
+        $this->assertDatabaseHas('service_user', [
+            'service_id' => $service->id,
+            'user_id' => $member->id,
+        ]);
+    }
+
     public function test_manage_right_allows_all_service_actions(): void
     {
         [, $token] = $this->authenticatedUserWithRights(['services.manage']);

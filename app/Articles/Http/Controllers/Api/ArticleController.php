@@ -8,6 +8,7 @@ use App\Articles\Http\Resources\ArticleResource;
 use App\Articles\Models\Article;
 use App\Articles\Models\ArticleReceipt;
 use App\Users\Http\Controllers\Controller;
+use App\Users\Services\OrganizationAccessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -15,6 +16,10 @@ use Illuminate\Support\Facades\DB;
 
 class ArticleController extends Controller
 {
+    public function __construct(private readonly OrganizationAccessService $organizationAccess)
+    {
+    }
+
     public function feed(Request $request): AnonymousResourceCollection
     {
         $user = $request->user();
@@ -132,6 +137,10 @@ class ArticleController extends Controller
 
     public function destroy(Article $article): JsonResponse
     {
+        if ($error = $this->organizationAccess->deleteBlockedByManyToManyResponse($article, ['groups', 'locations'])) {
+            return response()->json($error, 422);
+        }
+
         $article->delete();
 
         return response()->json(status: 204);

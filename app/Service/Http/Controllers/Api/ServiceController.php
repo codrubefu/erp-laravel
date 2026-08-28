@@ -13,6 +13,7 @@ use App\Service\Services\PaymentNoteService;
 use App\Service\Services\ServiceDocumentSequenceService;
 use App\Service\Services\ServiceInvoiceService;
 use App\Users\Http\Controllers\Controller;
+use App\Users\Services\OrganizationAccessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -26,6 +27,7 @@ class ServiceController extends Controller
         private readonly PaymentNoteService $paymentNotes,
         private readonly ServiceDocumentSequenceService $documentSequences,
         private readonly ServiceInvoiceService $invoices,
+        private readonly OrganizationAccessService $organizationAccess,
     )
     {
     }
@@ -95,6 +97,10 @@ class ServiceController extends Controller
 
     public function destroy(Service $service): JsonResponse
     {
+        if ($error = $this->organizationAccess->deleteBlockedByManyToManyResponse($service, ['users'])) {
+            return response()->json($error, 422);
+        }
+
         $service->delete();
 
         return response()->json(status: 204);

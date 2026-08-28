@@ -7,6 +7,7 @@ use App\Users\Http\Requests\StoreLocationRequest;
 use App\Users\Http\Requests\UpdateLocationRequest;
 use App\Users\Http\Resources\LocationResource;
 use App\Users\Models\Location;
+use App\Users\Services\OrganizationAccessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -14,6 +15,10 @@ use Illuminate\Support\Facades\DB;
 
 class LocationController extends Controller
 {
+    public function __construct(private readonly OrganizationAccessService $organizationAccess)
+    {
+    }
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $locations = Location::query()
@@ -75,6 +80,10 @@ class LocationController extends Controller
 
     public function destroy(Location $location): JsonResponse
     {
+        if ($error = $this->organizationAccess->deleteBlockedByManyToManyResponse($location, ['users', 'articles'])) {
+            return response()->json($error, 422);
+        }
+
         DB::transaction(function () use ($location): void {
             $location->users()->detach();
             $location->delete();

@@ -68,6 +68,14 @@ class RightController extends Controller
 
     public function destroy(Right $right): JsonResponse
     {
+        if ($error = $this->organizationAccess->deleteBlockedByManyToManyResponse(
+            $right,
+            ['groups'],
+            request()->user()?->organization_id,
+        )) {
+            return response()->json($error, 422);
+        }
+
         if ($right->groups()->exists()) {
             return response()->json([
                 'message' => 'Cannot delete a right assigned to groups.',

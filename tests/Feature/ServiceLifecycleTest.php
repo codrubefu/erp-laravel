@@ -60,6 +60,17 @@ class ServiceLifecycleTest extends TestCase
         $this->assertSame('expired', $service->refresh($assignment, now()->addDays(3)->addSecond())->status);
     }
 
+    public function test_lifecycle_can_refresh_assignment_when_service_is_soft_deleted(): void
+    {
+        Carbon::setTestNow('2026-08-06 10:00:00');
+        $assignment = $this->assignment(['duration_days' => 1, 'grace_period_days' => 2]);
+        $service = app(ServiceLifecycleService::class);
+        $assignment = $service->activate($assignment, $this->payment($assignment));
+        $assignment->service->delete();
+
+        $this->assertSame('expired', $service->refresh($assignment, now()->addDays(3)->addSecond())->status);
+    }
+
     public function test_access_limit_consumes_assignment_on_last_access(): void
     {
         Carbon::setTestNow('2026-08-06 10:00:00');

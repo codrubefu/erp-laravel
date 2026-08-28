@@ -1,6 +1,17 @@
 <?php
 
 return [
+    'settings' => [
+        1 => [
+            'delete_user' => [
+                'service_user' => false,
+            ],
+            'delete_service' => [
+                'service_user' => false,
+            ],
+        ],
+    ],
+
     'disabled_right_groups' => [
         1 => ['events', 'event_participants'],
     ],

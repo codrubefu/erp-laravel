@@ -22,7 +22,7 @@ class ServiceUser extends Pivot
 
     public function service(): BelongsTo
     {
-        return $this->belongsTo(Service::class);
+        return $this->belongsTo(Service::class)->withTrashed();
     }
 
     public function user(): BelongsTo

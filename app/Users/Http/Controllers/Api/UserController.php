@@ -223,6 +223,13 @@ class UserController extends Controller
             ], 422);
         }
 
+        if ($error = $this->organizationAccess->deleteBlockedByManyToManyResponse(
+            $user,
+            ['groups', 'locations', 'services', 'eventOccurrences'],
+        )) {
+            return response()->json($error, 422);
+        }
+
         $gdprRequest = GdprRequest::query()->create([
             'organization_id' => $user->organization_id, 'user_id' => $user->id, 'type' => 'erasure',
             'status' => 'pending', 'requested_by' => $request->user()->id,
