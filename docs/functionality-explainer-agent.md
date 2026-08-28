@@ -268,6 +268,7 @@ Routes:
 - `GET /api/event-categories/{eventCategory}`
 - `PUT/PATCH /api/event-categories/{eventCategory}`
 - `DELETE /api/event-categories/{eventCategory}`
+- `GET /api/event-occurrences`
 - `GET /api/events`
 - `POST /api/events`
 - `GET /api/events/{event}`
@@ -284,6 +285,7 @@ Functional behavior:
 
 - Events can be one-time, weekly, or monthly.
 - Events can be assigned to organization-scoped categories and filtered by `category_id`.
+- Calendar UIs can load all occurrences through `GET /api/event-occurrences` using `date_from`, `date_to`, `status`, and `category_id`.
 - Deleting a category clears `category_id` on related events before soft deleting the category.
 - Creating an event generates initial occurrences.
 - Updating schedule-related fields regenerates future open occurrences.

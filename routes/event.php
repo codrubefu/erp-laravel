@@ -35,6 +35,8 @@ Route::middleware('auth.bearer')->group(function (): void {
 
     Route::get('/events/{event}/occurrences', [EventOccurrenceController::class, 'index'])
         ->middleware('right:events.view,events.manage');
+    Route::get('/event-occurrences', [EventOccurrenceController::class, 'all'])
+        ->middleware('right:events.view,events.manage');
     Route::get('/event-occurrences/{occurrence}', [EventOccurrenceController::class, 'show'])
         ->middleware('right:events.view,events.manage');
 

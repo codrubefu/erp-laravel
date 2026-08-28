@@ -14,6 +14,43 @@ use OpenApi\Attributes as OA;
 class EventOccurrenceController extends Controller
 {
     #[OA\Get(
+        path: '/event-occurrences',
+        summary: 'List all event occurrences',
+        description: 'Returns paginated occurrences across all events for calendar views with date/status filters.',
+        security: [['bearerAuth' => []]],
+        tags: ['Event Occurrences'],
+        parameters: [
+            new OA\QueryParameter(name: 'date_from', required: false, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\QueryParameter(name: 'date_to', required: false, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\QueryParameter(name: 'status', required: false, schema: new OA\Schema(type: 'string', enum: ['scheduled', 'cancelled', 'completed'])),
+            new OA\QueryParameter(name: 'category_id', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\QueryParameter(name: 'per_page', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\QueryParameter(name: 'page', required: false, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Occurrences list.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/EventOccurrence'))])),
+            new OA\Response(response: 400, description: 'Bad request.', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 401, description: 'Unauthenticated.', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 403, description: 'Forbidden.', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 422, description: 'Validation error.', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
+        ],
+    )]
+    public function all(Request $request): AnonymousResourceCollection
+    {
+        $occurrences = EventOccurrence::query()
+            ->with(['event.category', 'event.requiredService'])
+            ->withCount('participants')
+            ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')->toString()))
+            ->when($request->filled('category_id'), fn ($query) => $query->whereHas('event', fn ($eventQuery) => $eventQuery->where('category_id', $request->integer('category_id'))))
+            ->when($request->filled('date_from'), fn ($query) => $query->whereDate('occurrence_date', '>=', $request->date('date_from')->toDateString()))
+            ->when($request->filled('date_to'), fn ($query) => $query->whereDate('occurrence_date', '<=', $request->date('date_to')->toDateString()))
+            ->orderBy('start_datetime')
+            ->paginate($request->integer('per_page', 200));
+
+        return EventOccurrenceResource::collection($occurrences);
+    }
+
+    #[OA\Get(
         path: '/events/{event}/occurrences',
         summary: 'List event occurrences',
         description: 'Returns paginated occurrences for an event with date/status filters and participant counts.',

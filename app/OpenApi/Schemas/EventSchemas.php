@@ -55,6 +55,7 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 1),
         new OA\Property(property: 'event_id', type: 'integer', example: 1),
+        new OA\Property(property: 'event', ref: '#/components/schemas/Event', nullable: true),
         new OA\Property(property: 'occurrence_date', type: 'string', format: 'date', example: '2026-06-01'),
         new OA\Property(property: 'start_datetime', type: 'string', format: 'date-time', example: '2026-06-01 10:00:00'),
         new OA\Property(property: 'end_datetime', type: 'string', format: 'date-time', example: '2026-06-01 11:00:00'),

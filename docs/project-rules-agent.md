@@ -345,6 +345,7 @@ Rules:
 - Creating an event must generate initial occurrences.
 - Event categories are organization-scoped and use the existing `events.view` / `events.manage` rights.
 - Deleting an event category should not delete events; clear their `category_id` and soft delete the category.
+- Calendar views must load occurrences through the global `GET /api/event-occurrences` endpoint with bounded `date_from` and `date_to` filters instead of querying every event individually.
 - Updating schedule fields must regenerate future open occurrences.
 - Deleting an event should preserve history for occurrences with participants by cancelling rather than deleting them.
 - Notify participants on schedule changes and resumed activity.
