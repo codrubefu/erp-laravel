@@ -10,6 +10,7 @@ use App\Users\Http\Requests\SyncUserServicesRequest;
 use App\Users\Http\Requests\StoreUserRequest;
 use App\Users\Http\Requests\UpdateUserRequest;
 use App\Users\Http\Resources\ActivityResource;
+use App\Events\Http\Resources\EventOccurrenceResource;
 use App\Users\Http\Resources\UserResource;
 use App\Users\Models\AuditLog;
 use App\Users\Models\Scopes\LocationAccessScope;
@@ -145,6 +146,18 @@ class UserController extends Controller
         $this->abortIfUserIsNotVisible($user);
 
         return new UserResource($this->loadUserForResponse($user, request()->user()?->organization_id, true));
+    }
+
+    public function events(Request $request, User $user): AnonymousResourceCollection
+    {
+        $this->abortIfUserIsNotVisible($user);
+
+        return EventOccurrenceResource::collection(
+            $user->eventOccurrences()
+                ->with(['event.category', 'event.requiredService'])
+                ->orderByDesc('start_datetime')
+                ->paginate($request->integer('per_page', 15))
+        );
     }
 
     public function update(UpdateUserRequest $request, User $user): UserResource

@@ -186,6 +186,71 @@ class EventParticipantCrudTest extends TestCase
         ]);
     }
 
+    public function test_adding_event_participant_consumes_one_required_service_access(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['event_participants.manage']);
+        $participant = User::factory()->create(['organization_id' => $admin->organization_id]);
+        $service = Service::query()->create($this->serviceData($admin->organization_id, [
+            'max_accesses' => 3,
+        ]));
+        $participant->services()->attach($service->id, [
+            'status' => 'active',
+            'start_date' => now()->subDay(),
+            'accesses_used' => 0,
+            'activated_at' => now()->subDay(),
+        ]);
+        $event = Event::query()->create($this->eventData([
+            'requires_active_service' => true,
+            'required_service_id' => $service->id,
+        ]));
+        $occurrence = $this->occurrence($event);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson("/api/event-occurrences/{$occurrence->id}/participants", ['user_id' => $participant->id])
+            ->assertCreated();
+
+        $this->assertDatabaseHas('service_user', [
+            'user_id' => $participant->id,
+            'service_id' => $service->id,
+            'accesses_used' => 1,
+            'status' => 'active',
+        ]);
+    }
+
+    public function test_bulk_event_participants_consume_one_access_per_user(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['event_participants.manage']);
+        $first = User::factory()->create(['organization_id' => $admin->organization_id]);
+        $second = User::factory()->create(['organization_id' => $admin->organization_id]);
+        $service = Service::query()->create($this->serviceData($admin->organization_id, ['max_accesses' => 2]));
+        foreach ([$first, $second] as $participant) {
+            $participant->services()->attach($service->id, [
+                'status' => 'active',
+                'start_date' => now()->subDay(),
+                'accesses_used' => 0,
+                'activated_at' => now()->subDay(),
+            ]);
+        }
+        $event = Event::query()->create($this->eventData([
+            'requires_active_service' => true,
+            'required_service_id' => $service->id,
+            'max_participants' => 2,
+        ]));
+        $occurrence = $this->occurrence($event);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson("/api/event-occurrences/{$occurrence->id}/participants/bulk", ['user_ids' => [$first->id, $second->id]])
+            ->assertCreated();
+
+        foreach ([$first, $second] as $participant) {
+            $this->assertDatabaseHas('service_user', [
+                'user_id' => $participant->id,
+                'service_id' => $service->id,
+                'accesses_used' => 1,
+            ]);
+        }
+    }
+
     public function test_user_with_manage_right_can_bulk_add_occurrence_participants(): void
     {
         [$admin, $token] = $this->authenticatedUserWithRights(['event_participants.manage']);

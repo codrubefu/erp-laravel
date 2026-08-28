@@ -279,6 +279,8 @@ Routes:
 - `GET /api/event-occurrences/{occurrence}/eligible-participants`
 - `GET /api/event-occurrences/{occurrence}/participants`
 
+When an event has a required service with a finite `max_accesses` limit, adding a participant consumes exactly one access from that user's active assignment. Single and bulk participant additions consume inside the same database transaction as the participant pivot insert, so a failed addition rolls back the consumption. Duplicate registrations remain rejected before consumption. The current participant schema does not restore an access when a participant is removed; restoration would require a usage ledger linking the participant to the consumed service assignment.
+
 ### Grades
 
 Grades are organization-scoped definitions and a separate historical award record for each user.

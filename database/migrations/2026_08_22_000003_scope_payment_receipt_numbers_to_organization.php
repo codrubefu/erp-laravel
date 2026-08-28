@@ -8,21 +8,27 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('payments', function (Blueprint $table): void {
-            try {
-                $table->dropUnique(['receipt_number']);
-            } catch (Throwable) {
-            }
+        $indexes = collect(Schema::getIndexes('payments'));
 
-            $table->unique(['organization_id', 'receipt_number'], 'payments_organization_receipt_number_unique');
-        });
+        if ($indexes->contains(fn (array $index): bool => $index['name'] === 'payments_receipt_number_unique')) {
+            Schema::table('payments', fn (Blueprint $table): Blueprint => $table->dropUnique('payments_receipt_number_unique'));
+        }
+
+        if (! $indexes->contains(fn (array $index): bool => $index['name'] === 'payments_organization_receipt_number_unique')) {
+            Schema::table('payments', fn (Blueprint $table): Blueprint => $table->unique(['organization_id', 'receipt_number'], 'payments_organization_receipt_number_unique'));
+        }
     }
 
     public function down(): void
     {
-        Schema::table('payments', function (Blueprint $table): void {
-            $table->dropUnique('payments_organization_receipt_number_unique');
-            $table->unique('receipt_number');
-        });
+        $indexes = collect(Schema::getIndexes('payments'));
+
+        if ($indexes->contains(fn (array $index): bool => $index['name'] === 'payments_organization_receipt_number_unique')) {
+            Schema::table('payments', fn (Blueprint $table): Blueprint => $table->dropUnique('payments_organization_receipt_number_unique'));
+        }
+
+        if (! $indexes->contains(fn (array $index): bool => $index['name'] === 'payments_receipt_number_unique')) {
+            Schema::table('payments', fn (Blueprint $table): Blueprint => $table->unique('receipt_number'));
+        }
     }
 };

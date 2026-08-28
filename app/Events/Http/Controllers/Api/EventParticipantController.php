@@ -8,6 +8,7 @@ use App\Events\Http\Requests\UpdateEventParticipantRequest;
 use App\Events\Http\Resources\EventParticipantResource;
 use App\Events\Models\EventOccurrence;
 use App\Events\Services\EventEligibilityService;
+use App\Service\Services\ServiceLifecycleService;
 use App\Users\Http\Controllers\Controller;
 use App\Users\Http\Resources\UserResource;
 use App\Users\Models\User;
@@ -19,7 +20,10 @@ use OpenApi\Attributes as OA;
 
 class EventParticipantController extends Controller
 {
-    public function __construct(private readonly EventEligibilityService $eligibility)
+    public function __construct(
+        private readonly EventEligibilityService $eligibility,
+        private readonly ServiceLifecycleService $serviceLifecycle,
+    )
     {
     }
 
@@ -107,7 +111,7 @@ class EventParticipantController extends Controller
     #[OA\Post(
         path: '/event-occurrences/{occurrence}/participants',
         summary: 'Add occurrence participant',
-        description: 'Adds a user to an occurrence after duplicate, capacity, and active-service eligibility checks.',
+        description: 'Adds a user to an occurrence after duplicate, capacity, and active-service eligibility checks. When the event requires a limited service, one access is consumed atomically from the user service assignment.',
         security: [['bearerAuth' => []]],
         tags: ['Event Participants'],
         parameters: [new OA\PathParameter(name: 'occurrence', required: true, schema: new OA\Schema(type: 'integer'))],
@@ -142,6 +146,7 @@ class EventParticipantController extends Controller
         }
 
         DB::transaction(function () use ($occurrence, $user, $data): void {
+            $this->serviceLifecycle->consumeEventAccess($user, $occurrence->event);
             $occurrence->participants()->attach($user->id, [
                 'status' => $data['status'] ?? 'registered',
                 'registered_at' => $data['registered_at'] ?? now(),
@@ -161,7 +166,7 @@ class EventParticipantController extends Controller
     #[OA\Post(
         path: '/event-occurrences/{occurrence}/participants/bulk',
         summary: 'Add multiple occurrence participants',
-        description: 'Adds multiple users to an occurrence after duplicate, capacity, and active-service eligibility checks. The operation is atomic.',
+        description: 'Adds multiple users to an occurrence after duplicate, capacity, and active-service eligibility checks. When the event requires a limited service, one access is consumed per user. The operation is atomic.',
         security: [['bearerAuth' => []]],
         tags: ['Event Participants'],
         parameters: [new OA\PathParameter(name: 'occurrence', required: true, schema: new OA\Schema(type: 'integer'))],
@@ -207,9 +212,13 @@ class EventParticipantController extends Controller
             }
         }
 
-        DB::transaction(function () use ($occurrence, $userIds, $data, $status): void {
+        DB::transaction(function () use ($occurrence, $userIds, $users, $data, $status): void {
             $attributes = [];
             foreach ($userIds as $userId) {
+                $user = $users->firstWhere('id', $userId);
+                if ($user !== null) {
+                    $this->serviceLifecycle->consumeEventAccess($user, $occurrence->event);
+                }
                 $attributes[$userId] = [
                     'status' => $status,
                     'registered_at' => $data['registered_at'] ?? now(),

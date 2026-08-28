@@ -5,6 +5,7 @@ namespace App\Service\Services;
 use App\Notifications\Events\NotificationRequested;
 use App\Payments\Models\Payment;
 use App\Service\Models\ServiceUser;
+use App\Events\Models\Event;
 use App\Users\Models\AuditLog;
 use App\Users\Models\User;
 use App\Users\Services\BusinessActivityLogger;
@@ -160,6 +161,27 @@ class ServiceLifecycleService
 
             return $this->refresh($assignment, $at);
         });
+    }
+
+    public function consumeEventAccess(User $user, Event $event, ?CarbonInterface $at = null): ?ServiceUser
+    {
+        $serviceId = $event->required_service_id;
+        if ($serviceId === null) {
+            return null;
+        }
+
+        $assignment = ServiceUser::query()
+            ->where('user_id', $user->id)
+            ->where('service_id', $serviceId)
+            ->whereHas('service', fn ($query) => $query->where('max_accesses', '>', 0))
+            ->latest('id')
+            ->first();
+
+        if ($assignment === null) {
+            throw ValidationException::withMessages(['service' => 'The required service assignment was not found.']);
+        }
+
+        return $this->consumeAccess($assignment, $at);
     }
 
     private function isExpired(ServiceUser $assignment, CarbonInterface $at): bool

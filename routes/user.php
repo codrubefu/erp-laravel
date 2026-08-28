@@ -81,6 +81,7 @@ Route::middleware('auth.bearer')->group(function (): void {
     Route::post('/users', [UserController::class, 'store'])->middleware('right:users.manage');
     Route::patch('/users/service/{user}', [UserController::class, 'syncServices'])->middleware('right:users.manage');
     Route::get('/users/{user}/activity', [UserController::class, 'activity'])->middleware('right:users.view');
+    Route::get('/users/{user}/events', [UserController::class, 'events'])->middleware('right:users.view');
     Route::get('/users/{user}/grades', [GradeController::class, 'userIndex'])->middleware('right:grades.view');
     Route::post('/users/{user}/grades', [GradeController::class, 'userStore'])->middleware('right:grades.manage');
     Route::get('/users/{user}/grades/{userGrade}', [GradeController::class, 'userShow'])->middleware('right:grades.view');

@@ -20,6 +20,8 @@ class ServiceUser extends Pivot
 
     protected $table = 'service_user';
 
+    public $incrementing = true;
+
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class)->withTrashed();
