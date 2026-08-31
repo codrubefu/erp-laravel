@@ -7,12 +7,10 @@ use App\Reporting\Http\Requests\ReportFilterRequest;
 use App\Reporting\Http\Requests\ServiceExpirationReportRequest;
 use App\Reporting\Jobs\GenerateReportExport;
 use App\Reporting\Models\ReportExport;
-use App\Reporting\Services\FinancialDocumentReportService;
-use App\Reporting\Services\FinancialReportService;
-use App\Reporting\Services\ServiceExpirationReportService;
 use App\Reporting\Services\EventParticipationReportService;
 use App\Reporting\Services\FinancialDocumentReportService;
 use App\Reporting\Services\FinancialReportService;
+use App\Reporting\Services\ServiceExpirationReportService;
 use App\Users\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -42,6 +40,8 @@ class ReportController extends Controller
             }
             fclose($stream);
         }, 'service-expirations.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
     public function eventParticipation(EventParticipationReportRequest $request, EventParticipationReportService $reports): JsonResponse
     {
         $filters = $request->validated();
