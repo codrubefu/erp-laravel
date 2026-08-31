@@ -8,6 +8,7 @@ use App\Users\Models\Group;
 use App\Users\Models\Right;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -149,6 +150,61 @@ class FinancialReportingTest extends TestCase
             ->get('/api/reports/financial-documents/download?from=2026-08-01&to=2026-08-31')
             ->assertOk()
             ->assertHeader('Content-Type', 'application/zip');
+    }
+
+    public function test_receivables_return_one_aged_row_per_obligation_and_support_filters(): void
+    {
+        Carbon::setTestNow('2026-08-29 12:00:00');
+        [$operator, $token] = $this->loginWith('reports.view');
+        $member = User::factory()->create([
+            'organization_id' => $operator->organization_id,
+            'first_name' => 'Ana',
+            'last_name' => 'Popescu',
+        ]);
+        $otherMember = User::factory()->create(['organization_id' => $operator->organization_id]);
+        $service = Service::query()->create([
+            'organization_id' => $operator->organization_id,
+            'name' => 'Curs',
+            'description' => 'Curs',
+            'price' => 100,
+            'currency' => 'RON',
+            'duration_days' => null,
+            'max_users' => 20,
+            'is_active' => true,
+        ]);
+        $service->users()->attach([$member->id, $otherMember->id]);
+        $assignmentId = (int) DB::table('service_user')->where('service_id', $service->id)
+            ->where('user_id', $member->id)->value('id');
+        DB::table('service_user')->where('id', $assignmentId)->update(['created_at' => '2026-07-20 09:00:00']);
+
+        foreach ([25, 15] as $amount) {
+            Payment::query()->create([
+                'organization_id' => $operator->organization_id,
+                'first_name' => 'Ana',
+                'last_name' => 'Popescu',
+                'payment_type_id' => Payment::TYPE_CASH,
+                'status' => Payment::STATUS_CONFIRMED,
+                'model_type' => Payment::MODEL_TYPE_SERVICE_USER,
+                'model_id' => $assignmentId,
+                'amount' => $amount,
+                'paid_at' => '2026-08-01',
+                'admin_id' => $operator->id,
+            ]);
+        }
+
+        $this->withToken($token)
+            ->getJson("/api/reports/financial/receivables?service_id={$service->id}&member_id={$member->id}")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.obligation_id', $assignmentId)
+            ->assertJsonPath('data.0.member_name', 'Ana Popescu')
+            ->assertJsonPath('data.0.invoiced_amount', 100)
+            ->assertJsonPath('data.0.paid_amount', 40)
+            ->assertJsonPath('data.0.balance', 60)
+            ->assertJsonPath('data.0.days_overdue', 40)
+            ->assertJsonPath('data.0.aging_bucket', '31-60');
+
+        Carbon::setTestNow();
     }
 
     private function payment(User $operator, float $amount, string $status, int $type, string $date, bool $reconciled = false): void
