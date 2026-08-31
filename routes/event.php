@@ -4,6 +4,7 @@ use App\Events\Http\Controllers\Api\EventController;
 use App\Events\Http\Controllers\Api\EventCategoryController;
 use App\Events\Http\Controllers\Api\EventOccurrenceController;
 use App\Events\Http\Controllers\Api\EventParticipantController;
+use App\CheckIns\Http\Controllers\Api\CheckInController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth.bearer')->group(function (): void {
@@ -56,4 +57,11 @@ Route::middleware('auth.bearer')->group(function (): void {
         ->middleware('right:event_participants.manage');
     Route::delete('/event-occurrences/{occurrence}/participants/{user}', [EventParticipantController::class, 'destroy'])
         ->middleware('right:event_participants.manage');
+
+    Route::get('/check-ins/occurrences/current', [CheckInController::class, 'currentOccurrences'])
+        ->middleware('right:event_participants.manage,checkins.manage');
+    Route::post('/check-ins/search', [CheckInController::class, 'search'])
+        ->middleware('right:event_participants.manage,checkins.manage');
+    Route::post('/check-ins/confirm', [CheckInController::class, 'confirm'])
+        ->middleware('right:event_participants.manage,checkins.manage');
 });

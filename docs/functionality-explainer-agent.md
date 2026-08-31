@@ -650,6 +650,18 @@ Raspunsul include KPI-uri (`active_members`, `flagged_services`, `total_revenue`
 
 Endpoint-ul nu produce side effects: nu creeaza plati, nu trimite SMS-uri/notificari, nu porneste joburi si nu modifica statusuri. Implementarea este in `app/Dashboard/Http/Controllers/Api/DashboardController.php`, `app/Dashboard/Services/DashboardService.php`, `routes/dashboard.php` si fisierele OpenAPI din `app/Dashboard/OpenApi`.
 
+## Check-in rapid la receptie
+
+API-ul ofera un flux operational pentru receptie peste membrii si aparitiile de eveniment existente. `GET /api/check-ins/occurrences/current` listeaza toate aparitiile programate pentru ziua curenta, astfel incat operatorul poate alege clasa chiar daca membrul ajunge mai devreme sau intarzie. `POST /api/check-ins/search` cauta un membru dupa cod, telefon sau email si poate primi `occurrence_id` pentru verdict contextual. `POST /api/check-ins/confirm` marcheaza prezenta pentru o aparitie concreta.
+
+Endpoint-urile cer bearer auth si dreptul `checkins.manage` sau `event_participants.manage`. Exceptia explicita peste un verdict invalid foloseste `allow_override=true` si cere dreptul suplimentar `checkins.override`.
+
+Implementarea principala este in `app/CheckIns/Http/Controllers/Api/CheckInController.php`, request-urile din `app/CheckIns/Http/Requests`, `app/CheckIns/Http/Resources/CheckInResource.php` si `app/CheckIns/Services/CheckInService.php`; rutele sunt in `routes/event.php`. Drepturile sunt seeduite in `database/seeders/DatabaseSeeder.php`.
+
+Check-in-ul legat de o clasa reutilizeaza pivotul `event_occurrence_user` si salveaza participantul cu status `attended`. Daca evenimentul cere un serviciu cu limita de intrari, consumul trece prin `ServiceLifecycleService::consumeEventAccess()` in aceeasi tranzactie cu atasarea participantului. Cand operatorul foloseste `allow_override=true` peste un acces invalid, prezenta se marcheaza ca exceptie si nu se consuma intrare dintr-un abonament lipsa sau neeligibil. Raspunsul include membrul gasit, verdictul (`allowed`, `override_allowed`, `refused`, `requires_payment`, `document_expired`, `already_present`, `not_found`), abonamentul activ, serviciile eligibile, motivul refuzului, clasa si ultimul check-in relevant.
+
+Datele sunt tenant-safe prin scope-urile modelelor `User` si `EventOccurrence`, iar cautarea membrilor pastreaza si filtrarea de locatie aplicata pe `User`. Check-in-urile acceptate si refuzate scriu audit/business activity cu tipurile `checkin.accepted` si `checkin.refused` in `audit_logs`.
+
 ## Note servicii gratuite si assignment-uri
 
 Assignment-urile din `service_user` pastreaza statusul lifecycle si legatura de plata prin `activation_payment_id`. La sincronizarea serviciilor unui utilizator, codul trebuie sa detaseze doar serviciile eliminate si sa actualizeze pivot-ul existent pentru serviciile pastrate, altfel se pierde istoricul si plata asociata.

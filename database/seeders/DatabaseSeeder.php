@@ -48,6 +48,8 @@ class DatabaseSeeder extends Seeder
             ['name' => 'events.manage', 'label' => 'Manage events', 'description' => 'Create, update, and delete events.'],
             ['name' => 'event_participants.view', 'label' => 'View event participants', 'description' => 'Read event occurrence participants.'],
             ['name' => 'event_participants.manage', 'label' => 'Manage event participants', 'description' => 'Add and remove event occurrence participants.'],
+            ['name' => 'checkins.manage', 'label' => 'Manage check-ins', 'description' => 'Search members and confirm reception check-ins.'],
+            ['name' => 'checkins.override', 'label' => 'Override check-ins', 'description' => 'Allow explicit reception check-in overrides for invalid access.'],
             ['name' => 'payments.view', 'label' => 'View payments', 'description' => 'Read payment records.'],
             ['name' => 'payments.create', 'label' => 'Create payments', 'description' => 'Register payments.'],
             ['name' => 'payments.update', 'label' => 'Update payments', 'description' => 'Update payment payable model links.'],
