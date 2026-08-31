@@ -11,6 +11,8 @@ class EventParticipantResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'pivot_id' => $this->pivot?->id,
+            'user_id' => $this->id,
             'first_name' => $this->first_name,
             'last_name' => $this->last_name,
             'email' => $this->email,

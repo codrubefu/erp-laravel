@@ -10,6 +10,7 @@ use App\Users\Models\Organization;
 use App\Users\Models\Right;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class EventParticipantCrudTest extends TestCase
@@ -88,6 +89,10 @@ class EventParticipantCrudTest extends TestCase
             'registered_at' => '2026-06-01 09:00:00',
             'notes' => 'Inscris initial.',
         ]);
+        $pivotId = DB::table('event_occurrence_user')
+            ->where('event_occurrence_id', $occurrence->id)
+            ->where('user_id', $participant->id)
+            ->value('id');
 
         $this->withHeader('Authorization', "Bearer {$token}")
             ->patchJson("/api/event-occurrences/{$occurrence->id}/participants/{$participant->id}", [
@@ -95,6 +100,8 @@ class EventParticipantCrudTest extends TestCase
                 'notes' => 'A intarziat',
             ])
             ->assertOk()
+            ->assertJsonPath('data.pivot_id', $pivotId)
+            ->assertJsonPath('data.user_id', $participant->id)
             ->assertJsonPath('data.status', 'attended')
             ->assertJsonPath('data.notes', 'A intarziat');
 

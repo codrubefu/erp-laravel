@@ -36,6 +36,7 @@ class EventParticipationReportingTest extends TestCase
         $this->withToken($token)->getJson('/api/reports/event-participation?from=2026-09-10&to=2026-09-10')
             ->assertOk()
             ->assertJsonCount(1, 'data.groups')
+            ->assertJsonPath('data.groups.0.event.id', $first->event_id)
             ->assertJsonPath('data.groups.0.category.name', 'Yoga')
             ->assertJsonPath('data.groups.0.location', 'Studio A')
             ->assertJsonPath('data.groups.0.day', '2026-09-10')

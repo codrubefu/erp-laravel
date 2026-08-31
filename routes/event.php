@@ -41,6 +41,8 @@ Route::middleware('auth.bearer')->group(function (): void {
         ->middleware('right:events.view,events.manage');
     Route::get('/event-occurrences/{occurrence}/eligible-participants', [EventParticipantController::class, 'eligible'])
         ->middleware('right:event_participants.view,event_participants.manage');
+    Route::get('/event-occurrences/{occurrence}/participants/download/pdf', [EventParticipantController::class, 'downloadPdf'])
+        ->middleware('right:event_participants.view,event_participants.manage');
 
     Route::get('/event-occurrences/{occurrence}/participants', [EventParticipantController::class, 'index'])
         ->middleware('right:event_participants.view,event_participants.manage');

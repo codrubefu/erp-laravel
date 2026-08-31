@@ -8,6 +8,7 @@ use App\Events\Http\Requests\UpdateEventParticipantRequest;
 use App\Events\Http\Resources\EventParticipantResource;
 use App\Events\Models\EventOccurrence;
 use App\Events\Services\EventEligibilityService;
+use App\Events\Services\OccurrenceAttendancePdfService;
 use App\Service\Services\ServiceLifecycleService;
 use App\Users\Http\Controllers\Controller;
 use App\Users\Http\Resources\UserResource;
@@ -17,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use OpenApi\Attributes as OA;
+use Symfony\Component\HttpFoundation\Response;
 
 class EventParticipantController extends Controller
 {
@@ -54,6 +56,13 @@ class EventParticipantController extends Controller
         return EventParticipantResource::collection(
             $occurrence->participants()->orderBy('last_name')->orderBy('first_name')->paginate(request()->integer('per_page', 15))
         );
+    }
+
+    public function downloadPdf(Request $request, EventOccurrence $occurrence, OccurrenceAttendancePdfService $pdf): Response
+    {
+        abort_unless((int) $occurrence->organization_id === (int) $request->user()->organization_id, 404);
+
+        return $pdf->download($occurrence);
     }
 
     #[OA\Get(

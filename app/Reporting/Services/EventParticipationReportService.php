@@ -17,15 +17,16 @@ class EventParticipationReportService
             ->whereNull('event.deleted_at')
             ->select([
                 'occurrence.id', 'occurrence.occurrence_date', 'occurrence.start_datetime',
-                'occurrence.end_datetime', 'event.category_id', 'category.name as category_name',
+                'occurrence.end_datetime', 'event.id as event_id', 'event.title as event_title',
+                'event.category_id', 'category.name as category_name',
                 'event.location', 'event.max_participants',
             ])
             ->selectRaw("SUM(CASE WHEN participant.status IN ('registered', 'attended') THEN 1 ELSE 0 END) as registrations")
             ->selectRaw("SUM(CASE WHEN participant.status = 'attended' THEN 1 ELSE 0 END) as attendances")
             ->groupBy([
                 'occurrence.id', 'occurrence.occurrence_date', 'occurrence.start_datetime',
-                'occurrence.end_datetime', 'event.category_id', 'category.name', 'event.location',
-                'event.max_participants',
+                'occurrence.end_datetime', 'event.id', 'event.title', 'event.category_id',
+                'category.name', 'event.location', 'event.max_participants',
             ]);
 
         if (isset($filters['from'])) {
@@ -50,7 +51,7 @@ class EventParticipationReportService
         $threshold = (float) ($filters['underutilized_below'] ?? 50);
         $groups = $query->orderBy('occurrence.occurrence_date')->orderBy('occurrence.start_datetime')->get()
             ->groupBy(fn ($row) => implode('|', [
-                $row->category_id ?? 'none', $row->location ?? '', $row->occurrence_date,
+                $row->event_id, $row->category_id ?? 'none', $row->location ?? '', $row->occurrence_date,
                 substr((string) $row->start_datetime, 11, 5), substr((string) $row->end_datetime, 11, 5),
             ]))
             ->map(function ($sessions) use ($threshold): array {
@@ -62,6 +63,7 @@ class EventParticipationReportService
                 $occupancy = $capacity === null ? null : round($registrations / $capacity * 100, 2);
 
                 return [
+                    'event' => ['id' => (int) $first->event_id, 'title' => $first->event_title],
                     'category' => ['id' => $first->category_id === null ? null : (int) $first->category_id, 'name' => $first->category_name],
                     'location' => $first->location,
                     'day' => $first->occurrence_date,
