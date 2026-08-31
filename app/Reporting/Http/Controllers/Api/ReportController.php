@@ -2,11 +2,13 @@
 
 namespace App\Reporting\Http\Controllers\Api;
 
+use App\Reporting\Http\Requests\EventParticipationReportRequest;
 use App\Reporting\Http\Requests\ReportFilterRequest;
 use App\Reporting\Jobs\GenerateReportExport;
 use App\Reporting\Models\ReportExport;
-use App\Reporting\Services\FinancialReportService;
+use App\Reporting\Services\EventParticipationReportService;
 use App\Reporting\Services\FinancialDocumentReportService;
+use App\Reporting\Services\FinancialReportService;
 use App\Users\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +20,14 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ReportController extends Controller
 {
+    public function eventParticipation(EventParticipationReportRequest $request, EventParticipationReportService $reports): JsonResponse
+    {
+        $filters = $request->validated();
+        $this->assertTenant($request, $filters);
+
+        return response()->json(['data' => $reports->aggregate($request->user()->organization_id, $filters)]);
+    }
+
     public function aggregate(ReportFilterRequest $request, FinancialReportService $reports): JsonResponse
     {
         $this->assertTenant($request, $request->validated());

@@ -7,6 +7,32 @@ use OpenApi\Attributes as OA;
 class ApiEndpoints
 {
     #[OA\Get(
+        path: '/reports/event-participation',
+        summary: 'Aggregate event participation and occupancy',
+        description: 'Groups organization event occurrences by category, location, day and time interval. Occupancy is based on active registrations (registered and attended); actual participation counts attended records.',
+        security: [['bearerAuth' => []]],
+        tags: ['Reporting'],
+        parameters: [
+            new OA\QueryParameter(name: 'from', required: false, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\QueryParameter(name: 'to', required: false, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\QueryParameter(name: 'category_id', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\QueryParameter(name: 'location', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\QueryParameter(name: 'time_from', required: false, schema: new OA\Schema(type: 'string', format: 'time', example: '09:00')),
+            new OA\QueryParameter(name: 'time_to', required: false, schema: new OA\Schema(type: 'string', format: 'time', example: '17:00')),
+            new OA\QueryParameter(name: 'underutilized_below', required: false, schema: new OA\Schema(type: 'number', minimum: 0, maximum: 100, default: 50)),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Aggregated capacity, registrations, attendances, occupancy percentage and utilization status.'),
+            new OA\Response(response: 401, description: 'Unauthenticated.'),
+            new OA\Response(response: 403, description: 'Missing reports.view right or a cross-organization filter was requested.'),
+            new OA\Response(response: 422, description: 'Invalid report filters.'),
+        ],
+    )]
+    public function eventParticipationReport(): void
+    {
+    }
+
+    #[OA\Get(
         path: '/reports/financial',
         summary: 'Aggregate the financial report',
         description: 'Runs an organization-scoped financial aggregation. This expensive operation is rate limited by client IP, authenticated organization and user identity.',
