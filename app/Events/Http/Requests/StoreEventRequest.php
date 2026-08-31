@@ -40,6 +40,9 @@ class StoreEventRequest extends FormRequest
                 Rule::exists('event_categories', 'id')
                     ->where(fn ($query) => $query->where('organization_id', $this->user()?->organization_id)),
             ],
+            'location_id' => ['nullable', Rule::exists('locations', 'id')->where(fn ($query) => $query->where('organization_id', $this->user()?->organization_id))],
+            'instructor_id' => ['nullable', Rule::exists('users', 'id')->where(fn ($query) => $query->where('organization_id', $this->user()?->organization_id))],
+            'group_id' => ['nullable', Rule::exists('groups', 'id')->where(fn ($query) => $query->where('organization_id', $this->user()?->organization_id))],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'location' => ['nullable', 'string', 'max:255'],
