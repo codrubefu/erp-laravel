@@ -4,8 +4,12 @@ namespace App\Reporting\Http\Controllers\Api;
 
 use App\Reporting\Http\Requests\EventParticipationReportRequest;
 use App\Reporting\Http\Requests\ReportFilterRequest;
+use App\Reporting\Http\Requests\ServiceExpirationReportRequest;
 use App\Reporting\Jobs\GenerateReportExport;
 use App\Reporting\Models\ReportExport;
+use App\Reporting\Services\FinancialDocumentReportService;
+use App\Reporting\Services\FinancialReportService;
+use App\Reporting\Services\ServiceExpirationReportService;
 use App\Reporting\Services\EventParticipationReportService;
 use App\Reporting\Services\FinancialDocumentReportService;
 use App\Reporting\Services\FinancialReportService;
@@ -20,6 +24,24 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ReportController extends Controller
 {
+    public function serviceExpirations(ServiceExpirationReportRequest $request, ServiceExpirationReportService $reports): JsonResponse
+    {
+        return response()->json(['data' => $reports->report($request->user()->organization_id, $request->validated())]);
+    }
+
+    public function exportServiceExpirations(ServiceExpirationReportRequest $request, ServiceExpirationReportService $reports): StreamedResponse
+    {
+        $rows = $reports->rows($request->user()->organization_id, $request->validated());
+        $headers = ['assignment_id', 'user_id', 'member_name', 'phone', 'service_id', 'service_name', 'service_type', 'status', 'start_date', 'expires_at', 'days_until_expiration', 'last_notification_at', 'category'];
+
+        return response()->streamDownload(function () use ($headers, $rows): void {
+            $stream = fopen('php://output', 'w');
+            fputcsv($stream, $headers);
+            foreach ($rows as $row) {
+                fputcsv($stream, array_values($row));
+            }
+            fclose($stream);
+        }, 'service-expirations.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     public function eventParticipation(EventParticipationReportRequest $request, EventParticipationReportService $reports): JsonResponse
     {
         $filters = $request->validated();
