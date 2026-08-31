@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
-    'category_id','title','description','location','start_time','end_time','recurrence_type','recurrence_days','monthly_day','start_date','end_date','requires_active_service','required_service_id','requires_payment','payment_amount','payment_type','max_participants','status','organization_id',
+    'category_id','location_id','instructor_id','group_id','title','description','location','start_time','end_time','recurrence_type','recurrence_days','monthly_day','start_date','end_date','requires_active_service','required_service_id','requires_payment','payment_amount','payment_type','max_participants','status','organization_id',
 ])]
 class Event extends Model
 {
