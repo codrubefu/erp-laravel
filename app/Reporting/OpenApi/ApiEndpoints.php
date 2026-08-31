@@ -31,6 +31,31 @@ class ApiEndpoints
     {
     }
 
+    #[OA\Get(
+        path: '/reports/financial/receivables',
+        summary: 'List service payment obligations and their aging',
+        description: 'Returns one organization-scoped row per service assignment, including invoiced, paid and outstanding amounts, overdue days and aging bucket.',
+        security: [['bearerAuth' => []]],
+        tags: ['Reporting'],
+        parameters: [
+            new OA\QueryParameter(name: 'from', required: false, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\QueryParameter(name: 'to', required: false, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\QueryParameter(name: 'location_id', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\QueryParameter(name: 'service_id', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\QueryParameter(name: 'member_id', required: false, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Organization-scoped receivable rows.'),
+            new OA\Response(response: 401, description: 'Unauthenticated.'),
+            new OA\Response(response: 403, description: 'Missing reports.view right.'),
+            new OA\Response(response: 422, description: 'Invalid report filters.'),
+            new OA\Response(response: 429, description: 'Expensive-endpoint rate limit exceeded.'),
+        ],
+    )]
+    public function financialReceivables(): void
+    {
+    }
+
     #[OA\Post(
         path: '/reports/financial/exports',
         summary: 'Queue a financial report export',

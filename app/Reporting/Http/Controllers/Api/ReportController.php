@@ -57,6 +57,14 @@ class ReportController extends Controller
         return response()->json(['data' => $documents->rows($request->user()->organization_id, $filters)]);
     }
 
+    public function receivables(ReportFilterRequest $request, FinancialReportService $reports): JsonResponse
+    {
+        $filters = $request->validated();
+        $this->assertTenant($request, $filters);
+
+        return response()->json(['data' => $reports->receivableRows($request->user()->organization_id, $filters)]);
+    }
+
     public function downloadFinancialDocument(
         Request $request,
         FinancialDocumentReportService $documents,

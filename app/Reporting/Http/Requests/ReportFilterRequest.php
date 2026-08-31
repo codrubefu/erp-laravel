@@ -17,6 +17,8 @@ class ReportFilterRequest extends FormRequest
             'payment_type_id' => ['sometimes', 'integer', Rule::in(array_keys(Payment::PAYMENT_TYPES))],
             'status' => ['sometimes', Rule::in(Payment::STATUSES)],
             'service_type' => ['sometimes', 'string', 'max:100'],
+            'service_id' => ['sometimes', 'integer'],
+            'member_id' => ['sometimes', 'integer'],
             'group_by' => ['sometimes', Rule::in(['day', 'month'])],
             'segment_id' => ['sometimes', 'integer'],
         ];
