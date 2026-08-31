@@ -42,6 +42,54 @@ class FinancialReportingTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_report_can_group_subscription_finances_by_service_and_service_type(): void
+    {
+        [$operator, $token] = $this->loginWith('reports.view');
+        $member = User::factory()->create(['organization_id' => $operator->organization_id]);
+        $service = Service::query()->create([
+            'organization_id' => $operator->organization_id,
+            'name' => 'Annual membership',
+            'description' => 'Membership',
+            'type' => 'membership',
+            'price' => 120,
+            'currency' => 'RON',
+            'max_users' => 20,
+            'is_active' => true,
+        ]);
+        $service->users()->attach($member);
+        $assignmentId = $service->users()->whereKey($member->id)->first()->pivot->id;
+
+        foreach ([[100, Payment::STATUS_CONFIRMED], [20, Payment::STATUS_REFUNDED]] as [$amount, $status]) {
+            Payment::query()->create([
+                'organization_id' => $operator->organization_id,
+                'first_name' => 'Test',
+                'last_name' => 'Member',
+                'payment_type_id' => Payment::TYPE_CARD,
+                'status' => $status,
+                'model_type' => Payment::MODEL_TYPE_SERVICE_USER,
+                'model_id' => $assignmentId,
+                'amount' => $amount,
+                'paid_at' => '2026-08-10',
+                'admin_id' => $operator->id,
+            ]);
+        }
+
+        $this->withToken($token)->getJson('/api/reports/financial?group_by=service&service_id='.$service->id)
+            ->assertOk()
+            ->assertJsonPath('data.revenue_by_service.0.service_name', 'Annual membership')
+            ->assertJsonPath('data.revenue_by_service.0.subscriptions', 1)
+            ->assertJsonPath('data.revenue_by_service.0.invoiced', 120)
+            ->assertJsonPath('data.revenue_by_service.0.confirmed', 100)
+            ->assertJsonPath('data.revenue_by_service.0.refunded', 20)
+            ->assertJsonPath('data.revenue_by_service.0.outstanding', 40)
+            ->assertJsonPath('data.revenue_by_service.0.average_revenue_per_member', 80);
+
+        $this->withToken($token)->getJson('/api/reports/financial?group_by=service_type')
+            ->assertOk()
+            ->assertJsonPath('data.revenue_by_service_type.0.service_type', 'membership')
+            ->assertJsonMissingPath('data.revenue_by_service_type.0.service_id');
+    }
+
     public function test_financial_documents_report_lists_and_downloads_documents_for_period(): void
     {
         [$operator, $token] = $this->loginWith('reports.manage');
