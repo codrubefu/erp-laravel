@@ -29,6 +29,9 @@ class FinancialReportService
         if (isset($filters['service_type'])) {
             $assignments->where('s.type', $filters['service_type']);
         }
+        if (isset($filters['service_id'])) {
+            $assignments->where('s.id', $filters['service_id']);
+        }
         if (isset($filters['location_id'])) {
             $assignments->whereExists(fn ($q) => $q->selectRaw('1')->from('location_user as lu')
                 ->whereColumn('lu.user_id', 'member.id')->where('lu.location_id', $filters['location_id']));
@@ -43,17 +46,24 @@ class FinancialReportService
             ->whereColumn('previous.service_id', 'su.service_id')
             ->whereColumn('previous.id', '<', 'su.id'))->count();
 
-        $period = $filters['group_by'] ?? 'month';
-        $dateExpression = $this->periodExpression($period);
-        $revenue = (clone $confirmed)->selectRaw($dateExpression.' as period')
-            ->selectRaw('SUM(payments.amount) as total')->groupBy('period')->orderBy('period')->get()
-            ->map(fn ($row) => ['period' => $row->period, 'total' => (float) $row->total])->all();
+        $groupBy = $filters['group_by'] ?? 'month';
+        $revenue = [];
+        $serviceBreakdown = [];
+        if (in_array($groupBy, ['service', 'service_type'], true)) {
+            $serviceBreakdown = $this->serviceBreakdown($organizationId, $filters, $groupBy);
+        } else {
+            $dateExpression = $this->periodExpression($groupBy);
+            $revenue = (clone $confirmed)->selectRaw($dateExpression.' as period')
+                ->selectRaw('SUM(payments.amount) as total')->groupBy('period')->orderBy('period')->get()
+                ->map(fn ($row) => ['period' => $row->period, 'total' => (float) $row->total])->all();
+        }
 
         $bank = (clone $confirmed)->where('payments.payment_type_id', Payment::TYPE_BANK_TRANSFER);
 
         return [
             'totals' => ['confirmed' => $confirmedTotal, 'refunded' => $refundedTotal, 'net' => $confirmedTotal - $refundedTotal, 'count' => (clone $payments)->count()],
             'revenue_by_period' => $revenue,
+            $groupBy === 'service_type' ? 'revenue_by_service_type' : 'revenue_by_service' => $serviceBreakdown,
             'receivables' => ['invoiced' => $invoiced, 'paid' => $serviceRevenue, 'outstanding' => max(0, $invoiced - $serviceRevenue)],
             'renewals' => $renewals,
             'bank_reconciliation' => [
@@ -94,6 +104,14 @@ class FinancialReportService
                     ->whereColumn('su.id', 'payments.model_id')->where('s.type', $filters['service_type'])
                     ->where('s.organization_id', $organizationId));
         }
+        if (isset($filters['service_id'])) {
+            $query->where('payments.model_type', Payment::MODEL_TYPE_SERVICE_USER)
+                ->whereExists(fn ($q) => $q->selectRaw('1')->from('service_user as filtered_su')
+                    ->join('services as filtered_s', 'filtered_s.id', '=', 'filtered_su.service_id')
+                    ->whereColumn('filtered_su.id', 'payments.model_id')
+                    ->where('filtered_s.id', $filters['service_id'])
+                    ->where('filtered_s.organization_id', $organizationId));
+        }
         $memberIds = $this->segmentMemberIds($organizationId, $filters);
         if ($memberIds !== null) {
             $query->where('payments.model_type', Payment::MODEL_TYPE_SERVICE_USER)
@@ -101,6 +119,68 @@ class FinancialReportService
                     ->whereColumn('segment_su.id', 'payments.model_id')->whereIn('segment_su.user_id', $memberIds));
         }
         return $query;
+    }
+
+    private function serviceBreakdown(int $organizationId, array $filters, string $groupBy): array
+    {
+        $paymentTotals = $this->payments($organizationId, $filters)
+            ->where('payments.model_type', Payment::MODEL_TYPE_SERVICE_USER)
+            ->selectRaw('payments.model_id as assignment_id')
+            ->selectRaw('SUM(CASE WHEN payments.status = ? THEN payments.amount ELSE 0 END) as confirmed', [Payment::STATUS_CONFIRMED])
+            ->selectRaw('SUM(CASE WHEN payments.status = ? THEN payments.amount ELSE 0 END) as refunded', [Payment::STATUS_REFUNDED])
+            ->groupBy('payments.model_id');
+
+        $query = DB::table('service_user as su')
+            ->join('services as s', 's.id', '=', 'su.service_id')
+            ->join('users as member', 'member.id', '=', 'su.user_id')
+            ->leftJoinSub($paymentTotals, 'payment_totals', fn ($join) => $join->on('payment_totals.assignment_id', '=', 'su.id'))
+            ->where('s.organization_id', $organizationId);
+
+        if (isset($filters['service_id'])) {
+            $query->where('s.id', $filters['service_id']);
+        }
+        if (isset($filters['service_type'])) {
+            $query->where('s.type', $filters['service_type']);
+        }
+        if (($memberIds = $this->segmentMemberIds($organizationId, $filters)) !== null) {
+            $query->whereIn('member.id', $memberIds);
+        }
+        if (isset($filters['location_id'])) {
+            $query->whereExists(fn ($q) => $q->selectRaw('1')->from('location_user as lu')
+                ->whereColumn('lu.user_id', 'member.id')->where('lu.location_id', $filters['location_id']));
+        }
+
+        $columns = $groupBy === 'service'
+            ? ['s.id', 's.name', 's.type']
+            : ['s.type'];
+
+        return $query->select($columns)
+            ->selectRaw('COUNT(su.id) as subscriptions')
+            ->selectRaw('COUNT(DISTINCT su.user_id) as members')
+            ->selectRaw('SUM(s.price) as invoiced')
+            ->selectRaw('SUM(COALESCE(payment_totals.confirmed, 0)) as confirmed')
+            ->selectRaw('SUM(COALESCE(payment_totals.refunded, 0)) as refunded')
+            ->groupBy(...$columns)
+            ->orderBy($groupBy === 'service' ? 's.name' : 's.type')
+            ->get()
+            ->map(function ($row) use ($groupBy): array {
+                $invoiced = (float) $row->invoiced;
+                $confirmed = (float) $row->confirmed;
+                $refunded = (float) $row->refunded;
+                $members = (int) $row->members;
+
+                return array_filter([
+                    'service_id' => $groupBy === 'service' ? (int) $row->id : null,
+                    'service_name' => $groupBy === 'service' ? $row->name : null,
+                    'service_type' => $row->type,
+                    'subscriptions' => (int) $row->subscriptions,
+                    'invoiced' => $invoiced,
+                    'confirmed' => $confirmed,
+                    'refunded' => $refunded,
+                    'outstanding' => max(0, $invoiced - $confirmed + $refunded),
+                    'average_revenue_per_member' => $members > 0 ? ($confirmed - $refunded) / $members : 0.0,
+                ], fn ($value) => $value !== null);
+            })->all();
     }
 
     private function periodExpression(string $period): string
