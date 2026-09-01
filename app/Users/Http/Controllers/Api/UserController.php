@@ -140,7 +140,9 @@ class UserController extends Controller
             return $user;
         });
 
-        $this->sendPasswordSetupEmail($user);
+        if (filled($user->email)) {
+            $this->sendPasswordSetupEmail($user);
+        }
 
         return (new UserResource($this->loadUserForResponse($user, $request->user()?->organization_id, true)))
             ->response()

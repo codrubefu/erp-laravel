@@ -38,12 +38,23 @@ class UpdateUserRequest extends FormRequest
             'active' => ['sometimes', 'boolean'],
             'email' => [
                 'sometimes',
-                'required',
+                'required_without:parent_user_id',
+                'nullable',
                 'email',
                 'max:255',
                 Rule::unique('users', 'email')
                     ->where('organization_id', $user?->organization_id)
                     ->ignore($user?->id),
+            ],
+            'parent_user_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where('organization_id', $user?->organization_id),
+                function (string $attribute, mixed $value, \Closure $fail) use ($user): void {
+                    if ($user && (int) $value === (int) $user->id) {
+                        $fail('A user cannot be their own parent.');
+                    }
+                },
             ],
             'password' => ['sometimes', 'nullable', 'string', 'min:8'],
             'notification_consents' => ['sometimes', 'array:sms,mail,push'],

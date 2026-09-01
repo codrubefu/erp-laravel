@@ -31,7 +31,7 @@ class PasswordResetController extends Controller
             ->where('organization_id', $data['organization_id'])
             ->first();
 
-        if ($user && $user->active) {
+        if ($user && $user->active && filled($user->email)) {
             $token = $this->passwordSetupTokens->generate($user);
 
             Mail::to($user->email)->queue(new PasswordSetupMail($user, $token, isNewAccount: false));

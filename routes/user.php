@@ -26,6 +26,10 @@ Route::middleware('auth.bearer')->group(function (): void {
     Route::get('/me/custom-fields', [MeController::class, 'customFields']);
     Route::get('/me/events', [MeController::class, 'events']);
     Route::get('/me/services', [MeController::class, 'services']);
+    Route::get('/me/children', [MeController::class, 'children']);
+    Route::get('/me/grades', [MeController::class, 'grades']);
+    Route::get('/me/documents', [MeController::class, 'documents']);
+    Route::get('/me/documents/{document}/download', [MeController::class, 'downloadDocument']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me/privacy/data', [GdprController::class, 'access']);
     Route::post('/me/privacy/exports', [GdprController::class, 'export']);

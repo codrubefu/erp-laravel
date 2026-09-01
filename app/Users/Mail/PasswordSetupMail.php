@@ -24,7 +24,7 @@ class PasswordSetupMail extends Mailable implements ShouldQueue
 
         $this->link = self::toOrigin((string) $frontendUrl)
             .'/set-password?token='.$token
-            .'&email='.urlencode($user->email);
+            .'&email='.urlencode((string) $user->email);
     }
 
     /**

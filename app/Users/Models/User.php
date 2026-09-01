@@ -30,7 +30,7 @@ use App\Notifications\Models\PushDevice;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['user_code', 'first_name', 'last_name', 'phone', 'active', 'email', 'password', 'organization_id', 'notification_consents', 'push_token'])]
+#[Fillable(['user_code', 'first_name', 'last_name', 'phone', 'active', 'email', 'password', 'organization_id', 'notification_consents', 'push_token', 'parent_user_id'])]
 #[Hidden(['password', 'remember_token'])]
 #[UseFactory(UserFactory::class)]
 class User extends Authenticatable
@@ -43,6 +43,16 @@ class User extends Authenticatable
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'parent_user_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(User::class, 'parent_user_id');
     }
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;

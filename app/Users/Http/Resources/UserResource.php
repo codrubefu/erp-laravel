@@ -11,6 +11,7 @@ class UserResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'parent_user_id' => $this->parent_user_id,
             'user_code' => $this->user_code,
             'first_name' => $this->first_name,
             'last_name' => $this->last_name,
@@ -34,8 +35,8 @@ class UserResource extends JsonResource
                         'name' => $service->name,
                         'invoice_number' => $pivot?->invoice_number,
                         'bill_number' => $pivot?->bill_number,
-                        'start_date' => $pivot?->start_date,
-                        'expires_at' => $pivot?->expires_at,
+                        'start_date' => $pivot?->start_date?->toDateString(),
+                        'expires_at' => $pivot?->expires_at?->toDateString(),
                         'status' => $status,
                         'accesses_used' => $pivot?->accesses_used,
                         'suspended_at' => $pivot?->suspended_at,

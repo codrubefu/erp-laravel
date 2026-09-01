@@ -32,10 +32,16 @@ class StoreUserRequest extends FormRequest
             ],
             'active' => ['sometimes', 'boolean'],
             'email' => [
-                'required',
+                'required_without:parent_user_id',
+                'nullable',
                 'email',
                 'max:255',
                 Rule::unique('users', 'email')->where('organization_id', $this->user()?->organization_id),
+            ],
+            'parent_user_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where('organization_id', $this->user()?->organization_id),
             ],
             'password' => ['sometimes', 'nullable', 'string', PasswordPolicy::for($this->is('api/administrators*') ? 'administrator' : 'operator')],
             'notification_consents' => ['sometimes', 'array:sms,mail,push'],
