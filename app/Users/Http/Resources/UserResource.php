@@ -21,6 +21,7 @@ class UserResource extends JsonResource
             'active' => $this->active,
             'email' => $this->email,
             'email_verified_at' => $this->email_verified_at,
+            'parent' => new UserResource($this->whenLoaded('parent')),
             'groups' => $this->whenLoaded('groups'),
             'locations' => $this->whenLoaded('locations'),
             'services' => $this->whenLoaded('services'),

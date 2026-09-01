@@ -198,6 +198,34 @@ class UserCrudTest extends TestCase
             ->assertJsonMissing(['email' => 'administrator@example.com']);
     }
 
+    public function test_clients_endpoint_includes_parent_user_for_list_display(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.view']);
+        $parent = User::factory()->create([
+            'organization_id' => $admin->organization_id,
+            'first_name' => 'Parent',
+            'last_name' => 'Tutor',
+            'email' => 'parent@example.com',
+        ]);
+        $child = User::factory()->create([
+            'organization_id' => $admin->organization_id,
+            'parent_user_id' => $parent->id,
+            'first_name' => 'Child',
+            'last_name' => 'Member',
+            'email' => null,
+        ]);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/clients')
+            ->assertOk()
+            ->assertJsonFragment([
+                'id' => $child->id,
+                'parent_user_id' => $parent->id,
+            ])
+            ->assertJsonPath('data.0.parent.first_name', 'Parent')
+            ->assertJsonPath('data.0.parent.last_name', 'Tutor');
+    }
+
     public function test_administrators_endpoint_excludes_users_with_only_profile_view_right_and_without_groups(): void
     {
         [$admin, $token] = $this->authenticatedUserWithRights(['users.view']);

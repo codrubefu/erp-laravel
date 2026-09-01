@@ -289,6 +289,7 @@ class UserController extends Controller
     private function userRelationsForResponse(?int $organizationId, bool $includeServices = false): array
     {
         $relations = [
+            'parent' => fn ($query) => $query->withoutGlobalScope(LocationAccessScope::class),
             'groups.rights' => fn ($query) => $this->organizationAccess->applyAvailableRightsFilter($query, $organizationId),
             'locations',
             'activeServices',

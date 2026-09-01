@@ -153,6 +153,7 @@ Functional behavior:
 - Administrators are users with groups, excluding users who only have `profile.view`.
 - Clients are users with no groups or only `profile.view`.
 - Users can have groups, locations, services, notification consents, push tokens, and user codes.
+- User list/detail responses include the loaded `parent` relation when present, so clients can display the guardian/tutor name without extra per-row requests.
 - User e-mail, user code, and phone are unique within the organization when present; the same values may be reused in another organization.
 - Users cannot delete their own account.
 - User visibility is affected by location access scope.
@@ -314,7 +315,8 @@ Functional behavior:
 
 - Events can be one-time, weekly, or monthly.
 - Events can be assigned to organization-scoped categories and filtered by `category_id`.
-- Calendar UIs can load all occurrences through `GET /api/event-occurrences` using `date_from`, `date_to`, `status`, and `category_id`.
+- Calendar UIs can load all occurrences through `GET /api/event-occurrences` using `date_from`, `date_to`, `status`, and `category_id`. This read-only calendar endpoint, `GET /api/event-occurrences/{occurrence}`, `GET /api/events/{event}`, and `GET /api/events/{event}/occurrences` require bearer authentication but no `events.view` right, so every logged-in user can inspect the schedule and event details.
+- Administrative event lists, categories, mutations, participants, check-in, and attendance exports still require their existing `events.*`, `event_participants.*`, or `checkins.*` rights.
 - Deleting a category clears `category_id` on related events before soft deleting the category.
 - Creating an event generates initial occurrences.
 - Updating schedule-related fields regenerates future open occurrences.

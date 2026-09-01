@@ -25,8 +25,7 @@ Route::middleware('auth.bearer')->group(function (): void {
         ->middleware('right:events.view,events.manage');
     Route::post('/events', [EventController::class, 'store'])
         ->middleware('right:events.manage');
-    Route::get('/events/{event}', [EventController::class, 'show'])
-        ->middleware('right:events.view,events.manage');
+    Route::get('/events/{event}', [EventController::class, 'show']);
     Route::put('/events/{event}', [EventController::class, 'update'])
         ->middleware('right:events.manage');
     Route::patch('/events/{event}', [EventController::class, 'update'])
@@ -34,12 +33,9 @@ Route::middleware('auth.bearer')->group(function (): void {
     Route::delete('/events/{event}', [EventController::class, 'destroy'])
         ->middleware('right:events.manage');
 
-    Route::get('/events/{event}/occurrences', [EventOccurrenceController::class, 'index'])
-        ->middleware('right:events.view,events.manage');
-    Route::get('/event-occurrences', [EventOccurrenceController::class, 'all'])
-        ->middleware('right:events.view,events.manage');
-    Route::get('/event-occurrences/{occurrence}', [EventOccurrenceController::class, 'show'])
-        ->middleware('right:events.view,events.manage');
+    Route::get('/events/{event}/occurrences', [EventOccurrenceController::class, 'index']);
+    Route::get('/event-occurrences', [EventOccurrenceController::class, 'all']);
+    Route::get('/event-occurrences/{occurrence}', [EventOccurrenceController::class, 'show']);
     Route::get('/event-occurrences/{occurrence}/eligible-participants', [EventParticipantController::class, 'eligible'])
         ->middleware('right:event_participants.view,event_participants.manage');
     Route::get('/event-occurrences/{occurrence}/participants/download/pdf', [EventParticipantController::class, 'downloadPdf'])

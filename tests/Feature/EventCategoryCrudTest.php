@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Events\Models\Event;
+use App\Events\Models\EventOccurrence;
 use App\Users\Models\Group;
 use App\Users\Models\Organization;
 use App\Users\Models\Right;
@@ -85,6 +86,54 @@ class EventCategoryCrudTest extends TestCase
 
         $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/event-categories', ['name' => 'Readonly'])
+            ->assertForbidden();
+    }
+
+    public function test_authenticated_user_without_event_right_can_view_calendar_occurrences_and_event_details(): void
+    {
+        $organization = Organization::factory()->create();
+        $user = User::factory()->create([
+            'organization_id' => $organization->id,
+            'email' => 'calendar@example.com',
+            'password' => 'password',
+        ]);
+        $event = Event::query()->create($this->eventData([
+            'organization_id' => $organization->id,
+            'title' => 'Clasa vizibila',
+        ]));
+        $occurrence = EventOccurrence::query()->create([
+            'organization_id' => $organization->id,
+            'event_id' => $event->id,
+            'occurrence_date' => '2026-06-10',
+            'start_datetime' => '2026-06-10 10:00:00',
+            'end_datetime' => '2026-06-10 11:00:00',
+            'status' => 'scheduled',
+        ]);
+
+        $token = $this->postJson('/api/login', [
+            'email' => 'calendar@example.com',
+            'organization_id' => $user->organization_id,
+            'password' => 'password',
+        ])->json('token');
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/event-occurrences?date_from=2026-06-10&date_to=2026-06-10')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $occurrence->id)
+            ->assertJsonPath('data.0.event.title', 'Clasa vizibila');
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson("/api/event-occurrences/{$occurrence->id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $occurrence->id);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson("/api/events/{$event->id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $event->id);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/events')
             ->assertForbidden();
     }
 
