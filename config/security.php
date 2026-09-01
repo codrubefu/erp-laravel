@@ -17,18 +17,16 @@ return [
         'operator' => [
             'min' => (int) env('OPERATOR_PASSWORD_MIN_LENGTH', 8),
             'letters' => env('OPERATOR_PASSWORD_LETTERS', false),
-            'mixed_case' => env('OPERATOR_PASSWORD_MIXED_CASE', false),
-            'numbers' => env('OPERATOR_PASSWORD_NUMBERS', false),
+            'mixed_case' => env('OPERATOR_PASSWORD_MIXED_CASE', true),
+            'numbers' => env('OPERATOR_PASSWORD_NUMBERS', true),
             'symbols' => env('OPERATOR_PASSWORD_SYMBOLS', false),
-            'uncompromised' => (int) env('OPERATOR_PASSWORD_UNCOMPROMISED_THRESHOLD', 0),
         ],
         'administrator' => [
-            'min' => (int) env('ADMIN_PASSWORD_MIN_LENGTH', 12),
-            'letters' => env('ADMIN_PASSWORD_LETTERS', true),
+            'min' => (int) env('ADMIN_PASSWORD_MIN_LENGTH', 8),
+            'letters' => env('ADMIN_PASSWORD_LETTERS', false),
             'mixed_case' => env('ADMIN_PASSWORD_MIXED_CASE', true),
             'numbers' => env('ADMIN_PASSWORD_NUMBERS', true),
-            'symbols' => env('ADMIN_PASSWORD_SYMBOLS', true),
-            'uncompromised' => (int) env('ADMIN_PASSWORD_UNCOMPROMISED_THRESHOLD', 0),
+            'symbols' => env('ADMIN_PASSWORD_SYMBOLS', false),
         ],
     ],
 ];

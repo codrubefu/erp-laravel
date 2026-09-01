@@ -15,6 +15,7 @@ class OrganizationLookupTest extends TestCase
         $organization = Organization::query()->create([
             'name' => 'Acme SRL',
             'slug' => 'acme',
+            'url' => 'https://acme.test',
             'address' => 'Str. Exemplu 1, Bucuresti',
             'email' => 'office@acme.test',
             'phone' => '0712345678',
@@ -36,6 +37,7 @@ class OrganizationLookupTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.id', $organization->id)
             ->assertJsonPath('data.slug', 'acme')
+            ->assertJsonPath('data.url', 'https://acme.test')
             ->assertJsonPath('data.name', 'Acme SRL')
             ->assertJsonPath('data.address', 'Str. Exemplu 1, Bucuresti')
             ->assertJsonPath('data.email', 'office@acme.test')

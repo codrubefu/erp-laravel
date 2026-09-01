@@ -10,6 +10,19 @@ services:
     depends_on:
       - db
 
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: erp-laravel-queue
+    working_dir: /var/www
+    command: php artisan queue:work --tries=3 --sleep=3
+    restart: unless-stopped
+    volumes:
+      - ./:/var/www
+    depends_on:
+      - db
+
   web:
     image: nginx:stable-alpine
     container_name: erp-laravel-web

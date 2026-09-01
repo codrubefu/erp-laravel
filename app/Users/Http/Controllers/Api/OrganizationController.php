@@ -18,6 +18,7 @@ class OrganizationController extends Controller
             'data' => [
                 'id' => $organization->id,
                 'slug' => $organization->slug,
+                'url' => $organization->url,
                 'name' => $organization->name,
                 'address' => $organization->address,
                 'email' => $organization->email,

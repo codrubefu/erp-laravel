@@ -17,6 +17,6 @@ class PasswordPolicy
             }
         }
 
-        return $rule->uncompromised((int) ($settings['uncompromised'] ?? 0));
+        return $rule;
     }
 }

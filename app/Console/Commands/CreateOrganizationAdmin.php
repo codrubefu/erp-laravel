@@ -18,6 +18,7 @@ class CreateOrganizationAdmin extends Command
     protected $signature = 'create:organisation
         {--organization= : Organization name}
         {--slug= : Organization slug}
+        {--url= : Organization frontend URL, used to build links sent by e-mail}
         {--description= : Organization description}
         {--email= : Administrator email}
         {--first-name= : Administrator first name}
@@ -33,6 +34,7 @@ class CreateOrganizationAdmin extends Command
         $data = [
             'organization' => $organizationName,
             'slug' => $this->option('slug') ?: $this->ask('Organization slug', Str::slug($organizationName)),
+            'url' => $this->option('url'),
             'description' => $this->option('description') ?: $this->ask('Organization description'),
             'email' => $this->option('email') ?: $this->ask('Administrator email'),
             'first_name' => $this->option('first-name') ?: $this->ask('Administrator first name'),
@@ -43,6 +45,7 @@ class CreateOrganizationAdmin extends Command
         $validator = Validator::make($data, [
             'organization' => ['required', 'string', 'max:255', Rule::unique('organizations', 'name')],
             'slug' => ['required', 'string', 'max:255', Rule::unique('organizations', 'slug')],
+            'url' => ['nullable', 'string', 'max:255', 'url'],
             'description' => ['nullable', 'string'],
             'email' => ['required', 'email', 'max:255'],
             'first_name' => ['required', 'string', 'max:255'],
@@ -62,6 +65,7 @@ class CreateOrganizationAdmin extends Command
             $organization = Organization::query()->create([
                 'name' => $data['organization'],
                 'slug' => $data['slug'],
+                'url' => $data['url'],
                 'description' => $data['description'],
             ]);
 

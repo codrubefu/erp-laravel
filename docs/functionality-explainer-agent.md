@@ -722,22 +722,26 @@ Mecanism de token, separat de brokerul standard Laravel (`password_reset_tokens`
 
 E-mailul (`App\Users\Mail\PasswordSetupMail`, cu view `resources/views/emails/users/password-setup.blade.php`) este trimis direct prin `Mail`, **fără** să treacă prin sistemul generic `NotificationRequested` → `NotificationDelivery`. Motivul: acela e condiționat de consimțământul userului pe canalul `mail`, gândit pentru notificări opționale (activare cotizație etc.), iar setarea/resetarea parolei este un e-mail tranzacțional obligatoriu — fără el userul nu se poate autentifica deloc (parola e nullable la creare).
 
-Linkul din e-mail duce spre UI, nu spre acest API: `rtrim(config('app.frontend_url'), '/') . '/set-password?token=...&email=...'`. `frontend_url` e o cheie nouă în `config/app.php`, citită din env `FRONTEND_URL` (implicit cade pe `APP_URL` dacă nu e setată) — trebuie configurată cu domeniul real al frontend-ului în fiecare mediu.
+Linkul din e-mail duce spre UI, nu spre acest API, și este construit din URL-ul propriu al organizației, nu dintr-o singură valoare globală: `rtrim($user->organization?->url ?: config('app.frontend_url'), '/') . '/set-password?token=...&email=...'`. Fiecare organizație are acum o coloană `url` (migrația `2026_09_01_000002_add_url_to_organizations_table.php`, nullable, în `Fillable` pe `Organization`) — pentru că `erp-ui` e servit pe origini diferite per organizație (vezi `erp-ui/public/json/organizations.json`), iar link-ul trimis unui user trebuie să deschidă exact origine-a organizației lui, nu un singur domeniu implicit. `frontend_url` din `config/app.php` (env `FRONTEND_URL`, implicit cade pe `APP_URL`) rămâne doar fallback, folosit când organizația nu are încă `url` completat. Singurul loc unde se setează în prezent `organizations.url` este comanda `artisan create:organisation --url=...` (opțiune nouă, opțională, validată cu regula `url`); nu există endpoint HTTP de creare/editare organizații.
+
+`GET /api/organizations/slug/{slug}` (`OrganizationController::showBySlug`) expune și el `url`, la fel ca restul câmpurilor publice ale organizației (`web`, `email`, etc.).
 
 Cod relevant:
 
 - `app/Users/Http/Controllers/Api/UserController.php` (`store()` → `sendPasswordSetupEmail()`)
 - `app/Users/Http/Controllers/Api/PasswordResetController.php`
+- `app/Users/Http/Controllers/Api/OrganizationController.php` (`showBySlug()`)
 - `app/Users/Http/Requests/ForgotPasswordRequest.php`, `app/Users/Http/Requests/ResetPasswordRequest.php`
 - `app/Users/Services/PasswordSetupTokenService.php`
-- `app/Users/Models/PasswordSetupToken.php`
+- `app/Users/Models/PasswordSetupToken.php`, `app/Users/Models/Organization.php`
 - `app/Users/Mail/PasswordSetupMail.php`
-- `tests/Feature/PasswordResetTest.php`, plus `test_creating_user_sends_password_setup_email` în `tests/Feature/UserCrudTest.php`
+- `app/Console/Commands/CreateOrganizationAdmin.php`
+- `app/Users/OpenApi/PasswordResetApiEndpoints.php`
+- `tests/Feature/PasswordResetTest.php`, plus `test_creating_user_sends_password_setup_email` în `tests/Feature/UserCrudTest.php`, `tests/Feature/OrganizationLookupTest.php`, `tests/Feature/CreateOrganizationAdminCommandTest.php`
 
 Observații:
 
-- Nu există încă adnotări OpenAPI pentru `/api/password/forgot` și `/api/password/reset`.
-- `.env`/`.env.example` conțin acum `FRONTEND_URL` și `PASSWORD_SETUP_TOKEN_EXPIRATION_MINUTES`; valoarea din `.env` local e doar un placeholder egal cu `APP_URL` până se configurează domeniul real al frontend-ului.
+- `.env`/`.env.example` conțin `FRONTEND_URL` și `PASSWORD_SETUP_TOKEN_EXPIRATION_MINUTES`; valoarea din `.env` local e doar un placeholder egal cu `APP_URL`, folosit acum doar ca fallback pentru organizațiile fără `url` propriu.
 
 ## Setări SMTP per organizație (`smtp_settings`)
 

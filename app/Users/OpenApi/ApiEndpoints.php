@@ -56,6 +56,7 @@ class ApiEndpoints
                             properties: [
                                 new OA\Property(property: 'id', type: 'integer', example: 1),
                                 new OA\Property(property: 'slug', type: 'string', example: 'acme'),
+                                new OA\Property(property: 'url', type: 'string', nullable: true, description: 'Frontend URL for this organization; used to build links sent by e-mail.', example: 'https://acme.example.com'),
                                 new OA\Property(property: 'name', type: 'string', example: 'Acme SRL'),
                                 new OA\Property(property: 'address', type: 'string', nullable: true, example: 'Str. Exemplu 1, Bucuresti'),
                                 new OA\Property(property: 'email', type: 'string', nullable: true, example: 'office@acme.test'),

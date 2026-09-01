@@ -148,6 +148,39 @@ class PasswordResetTest extends TestCase
         $this->assertNull(app(OrganizationMailerService::class)->mailerNameFor($organization));
     }
 
+    public function test_password_setup_mail_links_to_the_organizations_own_url_when_set(): void
+    {
+        $organization = Organization::query()->create(['name' => 'Org With URL', 'slug' => 'org-with-url', 'url' => 'https://org-with-url.example.com']);
+        $user = User::factory()->create(['organization_id' => $organization->id]);
+        $token = app(PasswordSetupTokenService::class)->generate($user);
+
+        $mail = new PasswordSetupMail($user, $token, isNewAccount: false);
+
+        $this->assertStringStartsWith('https://org-with-url.example.com/set-password?', $mail->link);
+    }
+
+    public function test_password_setup_mail_strips_any_path_from_the_organization_url(): void
+    {
+        $organization = Organization::query()->create(['name' => 'Org With Bad URL', 'slug' => 'org-with-bad-url', 'url' => 'http://localhost:5173/erp/members']);
+        $user = User::factory()->create(['organization_id' => $organization->id]);
+        $token = app(PasswordSetupTokenService::class)->generate($user);
+
+        $mail = new PasswordSetupMail($user, $token, isNewAccount: false);
+
+        $this->assertStringStartsWith('http://localhost:5173/set-password?', $mail->link);
+    }
+
+    public function test_password_setup_mail_falls_back_to_frontend_url_when_organization_has_none(): void
+    {
+        $organization = Organization::query()->create(['name' => 'Org Without URL', 'slug' => 'org-without-url']);
+        $user = User::factory()->create(['organization_id' => $organization->id]);
+        $token = app(PasswordSetupTokenService::class)->generate($user);
+
+        $mail = new PasswordSetupMail($user, $token, isNewAccount: false);
+
+        $this->assertStringStartsWith(rtrim((string) config('app.frontend_url'), '/').'/set-password?', $mail->link);
+    }
+
     public function test_password_reset_tokens_are_isolated_per_organization_for_duplicate_emails(): void
     {
         $orgA = Organization::query()->create(['name' => 'Org A', 'slug' => 'org-a']);
