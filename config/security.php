@@ -3,6 +3,7 @@
 return [
     'tokens' => [
         'expiration_minutes' => (int) env('BEARER_TOKEN_EXPIRATION_MINUTES', 10080),
+        'password_setup_expiration_minutes' => (int) env('PASSWORD_SETUP_TOKEN_EXPIRATION_MINUTES', 1440),
     ],
 
     'rate_limits' => [

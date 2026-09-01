@@ -62,6 +62,11 @@ class User extends Authenticatable
         return $this->hasMany(PersonalAccessToken::class);
     }
 
+    public function passwordSetupTokens(): HasMany
+    {
+        return $this->hasMany(PasswordSetupToken::class);
+    }
+
     public function consentRecords(): HasMany
     {
         return $this->hasMany(ConsentRecord::class);

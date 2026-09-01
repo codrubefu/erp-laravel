@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Service\Models\Service;
 use App\Payments\Models\Payment;
+use App\Users\Mail\PasswordSetupMail;
 use App\Users\Models\Group;
 use App\Users\Models\Location;
 use App\Users\Models\Organization;
@@ -12,6 +13,7 @@ use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class UserCrudTest extends TestCase
@@ -263,6 +265,26 @@ class UserCrudTest extends TestCase
             'email' => 'no-password@example.com',
             'password' => null,
         ]);
+    }
+
+    public function test_creating_user_sends_password_setup_email(): void
+    {
+        Mail::fake();
+
+        [, $token] = $this->authenticatedUserWithRights(['users.manage']);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/users', [
+                'first_name' => 'New',
+                'last_name' => 'User',
+                'email' => 'password-setup@example.com',
+                'password' => 'Xk9#mQ2vLp7wnR4z',
+            ])
+            ->assertCreated();
+
+        Mail::assertQueued(PasswordSetupMail::class, function (PasswordSetupMail $mail) {
+            return $mail->hasTo('password-setup@example.com') && $mail->isNewAccount === true;
+        });
     }
 
     public function test_user_email_must_be_unique_within_same_organization(): void

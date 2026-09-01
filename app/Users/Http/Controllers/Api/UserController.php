@@ -19,12 +19,15 @@ use App\Users\Services\BusinessActivityLogger;
 use App\Users\Services\OrganizationAccessService;
 use App\Users\Models\GdprRequest;
 use App\Users\Services\GdprErasureService;
+use App\Users\Mail\PasswordSetupMail;
+use App\Users\Services\PasswordSetupTokenService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class UserController extends Controller
 {
@@ -33,6 +36,7 @@ class UserController extends Controller
         private readonly BusinessActivityLogger $activityLogger,
         private readonly GdprErasureService $gdprErasureService,
         private readonly ServiceDocumentSequenceService $documentSequences,
+        private readonly PasswordSetupTokenService $passwordSetupTokens,
     )
     {
     }
@@ -136,9 +140,18 @@ class UserController extends Controller
             return $user;
         });
 
+        $this->sendPasswordSetupEmail($user);
+
         return (new UserResource($this->loadUserForResponse($user, $request->user()?->organization_id, true)))
             ->response()
             ->setStatusCode(201);
+    }
+
+    private function sendPasswordSetupEmail(User $user): void
+    {
+        $token = $this->passwordSetupTokens->generate($user);
+
+        Mail::to($user->email)->queue(new PasswordSetupMail($user, $token, isNewAccount: true));
     }
 
     public function show(User $user): UserResource

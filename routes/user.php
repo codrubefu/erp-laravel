@@ -8,12 +8,16 @@ use App\Users\Http\Controllers\Api\LocationController;
 use App\Users\Http\Controllers\Api\LocationGroupController;
 use App\Users\Http\Controllers\Api\MeController;
 use App\Users\Http\Controllers\Api\OrganizationController;
+use App\Users\Http\Controllers\Api\PasswordResetController;
 use App\Users\Http\Controllers\Api\RightController;
+use App\Users\Http\Controllers\Api\SmtpSettingController;
 use App\Users\Http\Controllers\Api\UserController;
 use App\Users\Http\Controllers\Api\UserDocumentController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+Route::post('/password/forgot', [PasswordResetController::class, 'sendResetLink'])->middleware('throttle:login');
+Route::post('/password/reset', [PasswordResetController::class, 'reset'])->middleware('throttle:login');
 Route::get('/organizations/slug/{slug}', [OrganizationController::class, 'showBySlug']);
 
 Route::middleware('auth.bearer')->group(function (): void {
@@ -65,6 +69,12 @@ Route::middleware('auth.bearer')->group(function (): void {
     Route::put('/locations/{location}', [LocationController::class, 'update'])->middleware('right:locations.manage');
     Route::patch('/locations/{location}', [LocationController::class, 'update'])->middleware('right:locations.manage');
     Route::delete('/locations/{location}', [LocationController::class, 'destroy'])->middleware('right:locations.manage');
+
+    Route::get('/smtp-settings', [SmtpSettingController::class, 'show'])->middleware('right:smtp_settings.view');
+    Route::post('/smtp-settings', [SmtpSettingController::class, 'store'])->middleware('right:smtp_settings.manage');
+    Route::put('/smtp-settings', [SmtpSettingController::class, 'update'])->middleware('right:smtp_settings.manage');
+    Route::patch('/smtp-settings', [SmtpSettingController::class, 'update'])->middleware('right:smtp_settings.manage');
+    Route::delete('/smtp-settings', [SmtpSettingController::class, 'destroy'])->middleware('right:smtp_settings.manage');
 
     Route::get('/grades', [GradeController::class, 'index'])->middleware('right:grades.view');
     Route::post('/grades', [GradeController::class, 'store'])->middleware('right:grades.manage');

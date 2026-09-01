@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Database\Factories\OrganizationFactory;
 
 #[Fillable(['name', 'slug', 'description', 'address', 'email', 'phone', 'web', 'cui', 'nr_reg_com', 'capital', 'cont', 'bank', 'receipt_code', 'receipt_number', 'invoice_code', 'invoice_number', 'bill_code', 'bill_number'])]
@@ -37,5 +38,10 @@ class Organization extends Model
     public function locationGroups(): HasMany
     {
         return $this->hasMany(LocationGroup::class);
+    }
+
+    public function smtpSetting(): HasOne
+    {
+        return $this->hasOne(SmtpSetting::class);
     }
 }

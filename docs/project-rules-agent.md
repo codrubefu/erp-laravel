@@ -112,6 +112,8 @@ Route::middleware('auth.bearer')->group(...)
 Public endpoints are exceptions and must be intentional. Current examples:
 
 - `POST /api/login`
+- `POST /api/password/forgot` with throttling (`login` limiter)
+- `POST /api/password/reset` with throttling (`login` limiter)
 - `GET /api/organizations/slug/{slug}`
 - `POST /api/payments/callback` with throttling
 
@@ -150,6 +152,8 @@ Security rules:
 - New expensive or public callback endpoints must define an appropriate named limiter, document HTTP 429 in OpenAPI, and be added to `docs/functionality-explainer-agent.md`.
 - Password validation must use the beneficiary-configurable Laravel `Password` policies for the correct operator or administrator account type.
 - Production changes must preserve the controls in `docs/deployment-security.md`, especially HTTPS, explicit trusted proxies, secret-manager injection, secure cookies/headers, and branch access through VPN.
+- Password-setup/reset tokens use the dedicated `password_setup_tokens` table (keyed by `user_id` via `PasswordSetupTokenService`), not Laravel's default `password_reset_tokens` broker — that table is keyed by `email`, which is not globally unique in this multi-tenant schema. Do not reintroduce the default `Password` broker for this flow without solving that collision.
+- `POST /api/password/forgot` must respond identically whether or not the account exists, to avoid user enumeration (same pattern as `login` not distinguishing "unknown user" from "wrong password").
 
 ## Authorization and Rights Rules
 
@@ -244,6 +248,7 @@ Important current schema notes:
 - article delivery/view receipts are stored in `article_user_receipts`.
 - notifications use `notification_deliveries` and `notification_attempts`.
 - audit logs store `organization_id`, `subject_user_id`, `event_type`, model info, changed values, and actor.
+- per-organization outgoing mail server settings live in `smtp_settings` (one row per organization, `organization_id` unique); see `OrganizationMailerService`.
 
 ## Testing Rules
 
@@ -298,6 +303,17 @@ Rules:
 Known caution:
 
 - Service expiration currently has both generic notification job and older SMS-specific job scheduled. Avoid adding duplicate sends without resolving the overlap.
+
+Exception — mandatory transactional account e-mails:
+
+- Password-setup and password-reset e-mails (`App\Users\Mail\PasswordSetupMail`, sent by `UserController::store()` and `PasswordResetController`) are sent directly via `Mail`, bypassing `NotificationRequested`/consent. These are required for account access (password is nullable until set), not optional notifications, so they must not be gated behind mail-channel consent. Follow this same exception only for similarly mandatory account/security e-mails, not for business notifications.
+
+Per-organization outgoing mail (SMTP settings):
+
+- An organization may configure its own outgoing mail server in `smtp_settings` (one row per organization). Use `App\Users\Services\OrganizationMailerService::mailerNameFor($organization)` to resolve the mailer name to send through — it registers a dynamic `smtp` mailer via `config(['mail.mailers.organization_{id}' => ...])` and returns its name, or `null` when the organization has no active/usable settings (fall back to `config('mail.default')` in that case). `OrganizationMailerService::apply($mailable, $organization)` does this for a `Mailable` in one call (sets `->mailer()` and `->from()`).
+- Any new code that sends e-mail to a user should resolve the mailer through this service rather than assuming the system default mailer, matching `PasswordSetupMail::build()` and `NotificationSender::mail()`.
+- Because queued mail runs in a separate worker process, apply the organization mailer **inside** the `Mailable::build()` method (or immediately before sending for non-Mailable sends), not only at dispatch time — runtime `config()` set in the HTTP request process does not carry over to the queue worker.
+- Never log or expose the SMTP password in plain text. `SmtpSetting::password` uses Eloquent's `encrypted` cast and is hidden from model serialization; API responses (`SmtpSettingResource`) expose only a `has_password` boolean.
 
 ## SMS Rules
 

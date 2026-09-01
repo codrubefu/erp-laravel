@@ -583,6 +583,8 @@ Important tables:
 - `audit_logs`
 - `notification_deliveries`
 - `notification_attempts`
+- `password_setup_tokens`
+- `smtp_settings`
 
 ## Explanation Style
 
@@ -699,3 +701,71 @@ Procesarea unei cereri de ștergere este implementată de `GdprErasureService`. 
 Documentele membrilor folosesc tabela `user_documents`, storage privat pe disk-ul `local`, rute sub `/api/users/{user}/documents` si drepturile `user-documents.view`, `user-documents.upload`, `user-documents.delete`. Upload/replace valideaza MIME/extensie si limita de 10 MB si ruleaza scanarea antivirus configurabila prin `CLAMAV_BINARY`. Download-ul se face prin URL temporar semnat si bearer token, iar upload/download/replace/delete sunt auditate.
 
 Tabelele principale sunt `consent_records`, `gdpr_requests` și `gdpr_exports`, împreună cu tabelele clasificate de workflow: `article_user_receipts`, `custom_field_values`, `user_documents`, `notification_deliveries`, `audit_logs`, `payments`, `personal_access_tokens`, `group_user`, `location_user` și `users`. Implementarea se află în `GdprController`, `GeneratePersonalDataExport`, `GdprErasureService`, modelele GDPR din `app/Users/Models`, `routes/user.php` și fișierele `app/Users/OpenApi`. `LogsModelChanges` exclude explicit CNP, parole, tokenuri, payload-uri și secrete din snapshot-urile de audit.
+
+## Setare parolă la creare user și "forgot password"
+
+La crearea unui user (`POST /api/users`, `/api/clients`, `/api/administrators` — toate rulează prin `UserController::store()`), API-ul trimite întotdeauna un e-mail cu un link de setare a parolei, indiferent dacă administratorul a completat deja o parolă în formular (câmpul `password` e nullable). Acest lucru permite fluxul standard „cont creat de admin, userul își setează singur parola".
+
+Există și un flux public de recuperare a parolei pentru useri existenți care au uitat parola:
+
+- `POST /api/password/forgot` — primește `email` și `organization_id`, caută userul activ pe acea combinație (la fel ca `login`, pentru dezambiguizare multi-tenant) și, dacă există, trimite același tip de e-mail. Răspunde cu un mesaj generic identic indiferent dacă userul a fost găsit, ca să nu permită enumerarea conturilor.
+- `POST /api/password/reset` — primește `email`, `organization_id`, `token` și noua parolă (validată cu `PasswordPolicy`, aleasă după dreptul userului țintă: `administrator` sau `operator`), consumă tokenul și schimbă parola.
+
+Ambele rute sunt publice (fără `auth.bearer`) și throttled cu limiter-ul `login` existent, în `routes/user.php`, lângă `/login`.
+
+Mecanism de token, separat de brokerul standard Laravel (`password_reset_tokens` e cheiat pe `email`, iar aici e-mailul se poate repeta între organizații, deci nu e sigur pentru multi-tenant):
+
+- Tabela `password_setup_tokens` (migrația `2026_09_01_000000_create_password_setup_tokens_table.php`) leagă tokenul de `user_id`, nu de e-mail.
+- `PasswordSetupTokenService` generează un token random de 64 caractere, îl stochează hashuit (sha256, ca la `PersonalAccessToken`), invalidează orice token neconsumat anterior al aceluiași user, și îl expiră după `config('security.tokens.password_setup_expiration_minutes')` (env `PASSWORD_SETUP_TOKEN_EXPIRATION_MINUTES`, implicit 1440 minute = 24h).
+- Tokenul este single-use: la reset reușit se marchează `used_at` și nu mai poate fi refolosit.
+- Schimbarea parolei declanșează hook-ul existent din `User::booted()`, care șterge toate `accessTokens` ale userului — sesiunile vechi sunt revocate automat.
+
+E-mailul (`App\Users\Mail\PasswordSetupMail`, cu view `resources/views/emails/users/password-setup.blade.php`) este trimis direct prin `Mail`, **fără** să treacă prin sistemul generic `NotificationRequested` → `NotificationDelivery`. Motivul: acela e condiționat de consimțământul userului pe canalul `mail`, gândit pentru notificări opționale (activare cotizație etc.), iar setarea/resetarea parolei este un e-mail tranzacțional obligatoriu — fără el userul nu se poate autentifica deloc (parola e nullable la creare).
+
+Linkul din e-mail duce spre UI, nu spre acest API: `rtrim(config('app.frontend_url'), '/') . '/set-password?token=...&email=...'`. `frontend_url` e o cheie nouă în `config/app.php`, citită din env `FRONTEND_URL` (implicit cade pe `APP_URL` dacă nu e setată) — trebuie configurată cu domeniul real al frontend-ului în fiecare mediu.
+
+Cod relevant:
+
+- `app/Users/Http/Controllers/Api/UserController.php` (`store()` → `sendPasswordSetupEmail()`)
+- `app/Users/Http/Controllers/Api/PasswordResetController.php`
+- `app/Users/Http/Requests/ForgotPasswordRequest.php`, `app/Users/Http/Requests/ResetPasswordRequest.php`
+- `app/Users/Services/PasswordSetupTokenService.php`
+- `app/Users/Models/PasswordSetupToken.php`
+- `app/Users/Mail/PasswordSetupMail.php`
+- `tests/Feature/PasswordResetTest.php`, plus `test_creating_user_sends_password_setup_email` în `tests/Feature/UserCrudTest.php`
+
+Observații:
+
+- Nu există încă adnotări OpenAPI pentru `/api/password/forgot` și `/api/password/reset`.
+- `.env`/`.env.example` conțin acum `FRONTEND_URL` și `PASSWORD_SETUP_TOKEN_EXPIRATION_MINUTES`; valoarea din `.env` local e doar un placeholder egal cu `APP_URL` până se configurează domeniul real al frontend-ului.
+
+## Setări SMTP per organizație (`smtp_settings`)
+
+Fiecare organizație poate avea propria configurație de server de ieșire pentru e-mail (tabela `smtp_settings`), folosită în locul mailerului implicit din `.env` (`MAIL_*`) când există și e activă.
+
+CRUD complet, tip „singleton" (o singură înregistrare per organizație, fără `{id}` în URL, la fel ca `/api/me`):
+
+- `GET /api/smtp-settings` — citește setările organizației curente (drept `smtp_settings.view`); `404` dacă nu sunt configurate.
+- `POST /api/smtp-settings` — creează setările (drept `smtp_settings.manage`); `422` dacă organizația are deja o configurație (folosește update în loc).
+- `PUT`/`PATCH /api/smtp-settings` — actualizează (drept `smtp_settings.manage`); un `password` gol/omis păstrează parola existentă, nu o șterge.
+- `DELETE /api/smtp-settings` — șterge configurația (drept `smtp_settings.manage`); organizația revine automat la mailerul implicit al sistemului.
+
+Câmpuri: `host`, `port`, `username`, `password` (criptat în DB cu cast Eloquent `encrypted`, niciodată expus în JSON — resursa expune doar `has_password`, un boolean), `encryption` (`tls`/`ssl`/`null`), `from_address`, `from_name`, `active`. Modelul folosește `organization_id` unic (o singură configurație per organizație) și moștenește scoping-ul standard prin `BelongsToAuthenticatedOrganization`/`SetsOrganizationFromAuthenticatedUser`, deci accesul e izolat per tenant ca la restul resurselor organization-scoped.
+
+Folosire efectivă la trimiterea de e-mailuri: `App\Users\Services\OrganizationMailerService::mailerNameFor(Organization $organization)` înregistrează la runtime (`config(['mail.mailers.organization_{id}' => ...])`) un mailer Laravel dinamic de tip `smtp` construit din `smtp_settings`, doar dacă înregistrarea există, e `active`, și are `host`/`from_address` completate; altfel întoarce `null` și apelantul cade pe mailerul implicit din `config('mail.default')`. Sunt cablate două puncte de trimitere:
+
+- `App\Users\Mail\PasswordSetupMail::build()` — apelează `OrganizationMailerService::apply()`, care setează `->mailer(...)` și `->from(...)` pe Mailable înainte de trimitere/queue. Configurarea mailerului rulează din nou de fiecare dată când jobul de queue procesează efectiv mail-ul (în `build()`), nu doar la momentul dispatch-ului — necesar pentru că un worker de queue pornește într-un proces nou, care nu moștenește `config()` setat la runtime în procesul HTTP original.
+- `App\Notifications\Services\NotificationSender::mail()` (canalul `mail` din pipeline-ul generic de notificări) — alege mailerul organizației userului destinatar în același fel, cu fallback la `config('mail.default')`.
+
+Cod relevant:
+
+- `app/Users/Models/SmtpSetting.php`, `database/migrations/2026_09_01_000001_create_smtp_settings_table.php`
+- `app/Users/Http/Controllers/Api/SmtpSettingController.php`, `Http/Requests/StoreSmtpSettingRequest.php`, `Http/Requests/UpdateSmtpSettingRequest.php`, `Http/Resources/SmtpSettingResource.php`
+- `app/Users/Services/OrganizationMailerService.php`
+- `app/Users/OpenApi/SmtpSettingApiEndpoints.php`, `app/Users/OpenApi/SmtpSettingSchemas.php`
+- `tests/Feature/SmtpSettingCrudTest.php`, plus mailer-wiring tests în `tests/Feature/PasswordResetTest.php`
+
+Observații:
+
+- Drepturile `smtp_settings.view`/`smtp_settings.manage` sunt seedate în `DatabaseSeeder`; grupul `manager` primește doar `smtp_settings.view`.
+- SMS-urile (canalul `sms`) nu sunt afectate — folosesc în continuare `SmsPortalService`/`config/services.php`, nu `smtp_settings`.
