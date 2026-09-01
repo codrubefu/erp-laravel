@@ -14,6 +14,7 @@ use App\Users\Http\Resources\UserGradeResource;
 use App\Users\Http\Resources\UserResource;
 use App\Users\Models\User;
 use App\Users\Models\UserDocument;
+use App\Users\Models\Scopes\LocationAccessScope;
 use App\Users\Services\OrganizationAccessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -41,6 +42,7 @@ class MeController extends Controller
         }
 
         return User::query()
+            ->withoutGlobalScope(LocationAccessScope::class)
             ->where('id', (int) $childId)
             ->where('parent_user_id', $request->user()->id)
             ->where('organization_id', $request->user()->organization_id)
@@ -56,7 +58,15 @@ class MeController extends Controller
 
     public function children(Request $request): AnonymousResourceCollection
     {
-        return UserResource::collection($request->user()->children);
+        return UserResource::collection(
+            User::query()
+                ->withoutGlobalScope(LocationAccessScope::class)
+                ->where('parent_user_id', $request->user()->id)
+                ->where('organization_id', $request->user()->organization_id)
+                ->orderBy('first_name')
+                ->orderBy('last_name')
+                ->get()
+        );
     }
 
     public function updatePassword(UpdateMePasswordRequest $request): JsonResponse

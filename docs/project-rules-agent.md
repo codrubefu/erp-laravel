@@ -167,6 +167,7 @@ Important rules:
 
 - Protect admin APIs with the relevant `right:*` middleware.
 - Reuse existing right naming conventions: `module.view`, `module.manage`, `module.create`, `module.update`, `module.delete`, `module.restore`.
+- Preserve the default self-profile rule: if a user has no explicit rights through any group, `User::hasRight()` / `User::hasAnyRight()` must treat them as having `profile.view` only.
 - If adding new rights, seed them and update OpenAPI/docs/tests.
 - Respect `OrganizationAccessService`; some organizations can have right groups disabled.
 - Do not bypass rights checks in controllers unless the route is explicitly public.

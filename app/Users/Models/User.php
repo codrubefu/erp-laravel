@@ -153,6 +153,10 @@ class User extends Authenticatable
             return false;
         }
 
+        if ($right === 'profile.view' && ! $this->hasExplicitRights()) {
+            return true;
+        }
+
         return $this->groups()
             ->whereHas('rights', fn ($query) => $query->where('name', $right))
             ->exists();
@@ -166,8 +170,19 @@ class User extends Authenticatable
             return false;
         }
 
+        if (in_array('profile.view', $rights, true) && ! $this->hasExplicitRights()) {
+            return true;
+        }
+
         return $this->groups()
             ->whereHas('rights', fn ($query) => $query->whereIn('name', $rights))
+            ->exists();
+    }
+
+    private function hasExplicitRights(): bool
+    {
+        return $this->groups()
+            ->whereHas('rights')
             ->exists();
     }
 

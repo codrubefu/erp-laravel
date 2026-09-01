@@ -105,6 +105,7 @@ Main files:
 Important behavior:
 
 - `right:a,b` means the user needs at least one of the listed rights.
+- A user with no explicit rights through any group is treated by `User::hasRight()` / `User::hasAnyRight()` as having `profile.view` by default. This only grants self-profile access; it does not grant admin/module rights.
 - Rights can be disabled per organization through `OrganizationAccessService`.
 - Admin-style APIs generally use rights such as `users.view`, `users.manage`, `services.manage`, `events.manage`, etc.
 
