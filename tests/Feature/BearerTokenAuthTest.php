@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Events\Models\Event;
 use App\Events\Models\EventOccurrence;
 use App\Service\Models\Service;
+use App\Users\Models\Location;
 use App\Users\Models\Organization;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -80,6 +81,53 @@ class BearerTokenAuthTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.id', $user->id)
             ->assertJsonPath('data.email', 'user@example.com');
+    }
+
+    public function test_user_can_list_children_across_location_scope(): void
+    {
+        $organization = Organization::query()->create(['name' => 'Children Org', 'slug' => 'children-org']);
+        $parentLocation = Location::query()->create([
+            'organization_id' => $organization->id,
+            'name' => 'Parent Location',
+        ]);
+        $childLocation = Location::query()->create([
+            'organization_id' => $organization->id,
+            'name' => 'Child Location',
+        ]);
+        $parent = User::factory()->create([
+            'organization_id' => $organization->id,
+            'email' => 'parent@example.com',
+            'password' => 'password',
+            'first_name' => 'Parent',
+            'last_name' => 'User',
+        ]);
+        $child = User::factory()->create([
+            'organization_id' => $organization->id,
+            'parent_user_id' => $parent->id,
+            'email' => null,
+            'first_name' => 'Child',
+            'last_name' => 'User',
+        ]);
+
+        $parent->locations()->attach($parentLocation->id);
+        $child->locations()->attach($childLocation->id);
+
+        $token = $this->postJson('/api/login', [
+            'email' => 'parent@example.com',
+            'organization_id' => $organization->id,
+            'password' => 'password',
+        ])->json('token');
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/me/children')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $child->id)
+            ->assertJsonPath('data.0.parent_user_id', $parent->id);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson("/api/me?child_id={$child->id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $child->id);
     }
 
     public function test_user_can_update_own_password(): void

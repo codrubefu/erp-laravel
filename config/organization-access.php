@@ -4,10 +4,10 @@ return [
     'settings' => [
         1 => [
             'delete_user' => [
-                'service_user' => false,
+          //      'service_user' => false,
             ],
             'delete_service' => [
-                'service_user' => false,
+            //    'service_user' => false,
             ],
         ],
     ],

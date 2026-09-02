@@ -20,7 +20,9 @@ class GdprController extends Controller
 {
     public function access(Request $request, ?User $user = null): JsonResponse
     {
-        $subject = $this->subject($request, $user);
+        $subject = $user
+            ? $this->subject($request, $user)
+            : $this->subjectOrChild($request);
 
         return response()->json([
             'data' => [
@@ -135,5 +137,20 @@ class GdprController extends Controller
         abort_unless($subject->organization_id === $request->user()->organization_id, 404);
 
         return $subject;
+    }
+
+    private function subjectOrChild(Request $request): User
+    {
+        $childId = $request->query('child_id');
+
+        if (blank($childId)) {
+            return $request->user();
+        }
+
+        return User::query()
+            ->where('id', (int) $childId)
+            ->where('parent_user_id', $request->user()->id)
+            ->where('organization_id', $request->user()->organization_id)
+            ->firstOrFail();
     }
 }

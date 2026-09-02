@@ -61,6 +61,8 @@ class DatabaseSeeder extends Seeder
             ['name' => 'segments.manage', 'label' => 'Manage segments', 'description' => 'Create, update, and delete saved member segments.'],
             ['name' => 'gdpr.export', 'label' => 'Export personal data', 'description' => 'Access and export personal data for tenant users.'],
             ['name' => 'gdpr.process', 'label' => 'Process GDPR requests', 'description' => 'Rectify data and process erasure requests.'],
+            ['name' => 'smtp_settings.view', 'label' => 'View SMTP settings', 'description' => 'Read the organization outgoing mail (SMTP) settings.'],
+            ['name' => 'smtp_settings.manage', 'label' => 'Manage SMTP settings', 'description' => 'Create, update, and delete the organization outgoing mail (SMTP) settings.'],
         ])
             ->merge(LocationGroupRightsSeeder::rights())
             ->merge(CustomFieldRightsSeeder::rights())
@@ -100,6 +102,7 @@ class DatabaseSeeder extends Seeder
             'reports.view',
             'segments.view',
             'custom-fields.view',
+            'smtp_settings.view',
         ])->pluck('id'));
 
         $staff = Group::query()->updateOrCreate(

@@ -49,6 +49,25 @@ class CreateOrganizationAdminCommandTest extends TestCase
         $this->assertSame(['profile.view'], $userGroup->rights()->pluck('name')->all());
     }
 
+    public function test_command_persists_the_organization_url_option(): void
+    {
+        $exitCode = Artisan::call('create:organisation', [
+            '--organization' => 'Url SRL',
+            '--slug' => 'url-srl',
+            '--url' => 'https://url-srl.example.com',
+            '--description' => 'Test organization',
+            '--email' => 'admin@url-srl.test',
+            '--first-name' => 'Ana',
+            '--last-name' => 'Popescu',
+            '--password' => 'password123',
+        ]);
+
+        $this->assertSame(0, $exitCode);
+
+        $organization = Organization::query()->where('name', 'Url SRL')->firstOrFail();
+        $this->assertSame('https://url-srl.example.com', $organization->url);
+    }
+
     public function test_command_can_prompt_for_organization_and_administrator_details(): void
     {
         $this->artisan('create:organisation')

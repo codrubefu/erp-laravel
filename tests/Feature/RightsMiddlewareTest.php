@@ -6,6 +6,7 @@ use App\Users\Models\Group;
 use App\Users\Models\Right;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class RightsMiddlewareTest extends TestCase
@@ -63,5 +64,40 @@ class RightsMiddlewareTest extends TestCase
             ->getJson('/api/groups')
             ->assertForbidden()
             ->assertJsonPath('message', 'Forbidden.');
+    }
+
+    public function test_user_without_any_explicit_right_has_profile_view_by_default(): void
+    {
+        Route::middleware(['auth.bearer', 'right:profile.view'])->get('/api/test-profile-right', fn () => response()->json(['ok' => true]));
+
+        $user = User::factory()->create([
+            'email' => 'profile@example.com',
+            'password' => 'password',
+        ]);
+
+        $token = $this->postJson('/api/login', [
+            'email' => 'profile@example.com',
+            'organization_id' => $user->organization_id,
+            'password' => 'password',
+        ])->json('token');
+
+        $this->assertTrue($user->hasRight('profile.view'));
+        $this->assertTrue($user->hasAnyRight(['profile.view']));
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/test-profile-right')
+            ->assertOk()
+            ->assertJsonPath('ok', true);
+    }
+
+    public function test_user_without_any_explicit_right_does_not_get_other_rights_by_default(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'no-rights@example.com',
+            'password' => 'password',
+        ]);
+
+        $this->assertFalse($user->hasRight('groups.view'));
+        $this->assertFalse($user->hasAnyRight(['groups.view']));
     }
 }

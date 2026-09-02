@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Service\Models\Service;
 use App\Payments\Models\Payment;
+use App\Users\Mail\PasswordSetupMail;
 use App\Users\Models\Group;
 use App\Users\Models\Location;
 use App\Users\Models\Organization;
@@ -12,6 +13,7 @@ use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class UserCrudTest extends TestCase
@@ -196,6 +198,34 @@ class UserCrudTest extends TestCase
             ->assertJsonMissing(['email' => 'administrator@example.com']);
     }
 
+    public function test_clients_endpoint_includes_parent_user_for_list_display(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.view']);
+        $parent = User::factory()->create([
+            'organization_id' => $admin->organization_id,
+            'first_name' => 'Parent',
+            'last_name' => 'Tutor',
+            'email' => 'parent@example.com',
+        ]);
+        $child = User::factory()->create([
+            'organization_id' => $admin->organization_id,
+            'parent_user_id' => $parent->id,
+            'first_name' => 'Child',
+            'last_name' => 'Member',
+            'email' => null,
+        ]);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/clients')
+            ->assertOk()
+            ->assertJsonFragment([
+                'id' => $child->id,
+                'parent_user_id' => $parent->id,
+            ])
+            ->assertJsonPath('data.0.parent.first_name', 'Parent')
+            ->assertJsonPath('data.0.parent.last_name', 'Tutor');
+    }
+
     public function test_administrators_endpoint_excludes_users_with_only_profile_view_right_and_without_groups(): void
     {
         [$admin, $token] = $this->authenticatedUserWithRights(['users.view']);
@@ -263,6 +293,26 @@ class UserCrudTest extends TestCase
             'email' => 'no-password@example.com',
             'password' => null,
         ]);
+    }
+
+    public function test_creating_user_sends_password_setup_email(): void
+    {
+        Mail::fake();
+
+        [, $token] = $this->authenticatedUserWithRights(['users.manage']);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/users', [
+                'first_name' => 'New',
+                'last_name' => 'User',
+                'email' => 'password-setup@example.com',
+                'password' => 'Xk9#mQ2vLp7wnR4z',
+            ])
+            ->assertCreated();
+
+        Mail::assertQueued(PasswordSetupMail::class, function (PasswordSetupMail $mail) {
+            return $mail->hasTo('password-setup@example.com') && $mail->isNewAccount === true;
+        });
     }
 
     public function test_user_email_must_be_unique_within_same_organization(): void

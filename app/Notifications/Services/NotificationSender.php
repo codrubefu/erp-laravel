@@ -4,12 +4,19 @@ namespace App\Notifications\Services;
 
 use App\Notifications\Models\NotificationDelivery;
 use App\Sms\Services\SmsPortalService;
+use App\Users\Models\User;
+use App\Users\Services\OrganizationMailerService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use RuntimeException;
 
 class NotificationSender
 {
+    public function __construct(
+        private readonly OrganizationMailerService $organizationMailer,
+    ) {
+    }
+
     /** @return array{provider:string,external_id:?string} */
     public function send(NotificationDelivery $delivery): array
     {
@@ -18,7 +25,7 @@ class NotificationSender
 
         return match ($delivery->channel) {
             'sms' => $this->sms($user->phone, $message),
-            'mail' => $this->mail($user->email, $message),
+            'mail' => $this->mail($user, $message),
             'push' => $this->push($user, $message),
             default => throw new RuntimeException("Unsupported notification channel: {$delivery->channel}"),
         };
@@ -39,14 +46,23 @@ class NotificationSender
         return ['provider' => 'smsportal', 'external_id' => null];
     }
 
-    private function mail(?string $to, string $message): array
+    private function mail(User $user, string $message): array
     {
-        if (! $to) throw new RuntimeException('User has no e-mail address.');
-        Mail::raw($message, fn ($mail) => $mail->to($to)->subject((string) config('notifications.subject')));
-        return ['provider' => (string) config('mail.default'), 'external_id' => null];
+        if (! $user->email) throw new RuntimeException('User has no e-mail address.');
+
+        $mailerName = $user->organization ? $this->organizationMailer->mailerNameFor($user->organization) : null;
+        $fromAddress = $mailerName ? $user->organization->smtpSetting?->from_address : null;
+        $fromName = $mailerName ? $user->organization->smtpSetting?->from_name : null;
+
+        Mail::mailer($mailerName ?? config('mail.default'))->raw($message, function ($mail) use ($user, $fromAddress, $fromName): void {
+            $mail->to($user->email)->subject((string) config('notifications.subject'));
+            if ($fromAddress) $mail->from($fromAddress, $fromName);
+        });
+
+        return ['provider' => $mailerName ?? (string) config('mail.default'), 'external_id' => null];
     }
 
-    private function push(\App\Users\Models\User $user, string $message): array
+    private function push(User $user, string $message): array
     {
         $devices = $user->pushDevices()->get();
         // Transitional compatibility: old tokens remain deliverable until clients register devices.

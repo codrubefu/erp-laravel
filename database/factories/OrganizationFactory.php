@@ -17,6 +17,7 @@ class OrganizationFactory extends Factory
         return [
             'name' => $name,
             'slug' => Str::slug($name).'-'.fake()->unique()->numberBetween(1000, 9999),
+            'url' => fake()->url(),
             'description' => fake()->sentence(),
             'address' => fake()->address(),
             'email' => fake()->companyEmail(),

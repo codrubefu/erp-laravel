@@ -9,8 +9,8 @@ class ServiceResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $startDate = $this->pivot?->start_date;
-        $expiresAt = $this->pivot?->expires_at;
+        $startDate = $this->pivot?->start_date?->toDateString();
+        $expiresAt = $this->pivot?->expires_at?->toDateString();
 
         return [
             'id' => $this->id,
