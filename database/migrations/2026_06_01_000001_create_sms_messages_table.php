@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('service_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('service_user_id')->nullable()->constrained('service_user')->nullOnDelete();
+            $table->foreignId('service_user_id')->nullable()->constrained('service_user')->noActionOnDelete();
             $table->string('type');
             $table->string('destination');
             $table->text('message');

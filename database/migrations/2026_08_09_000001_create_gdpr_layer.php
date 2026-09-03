@@ -19,7 +19,7 @@ return new class extends Migration
             $table->boolean('granted');
             $table->timestamp('occurred_at');
             $table->string('source', 64);
-            $table->foreignId('actor_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('actor_id')->nullable()->constrained('users')->noActionOnDelete();
             $table->timestamps();
             $table->index(['organization_id', 'user_id', 'purpose', 'channel', 'occurred_at'], 'consent_current_lookup');
         });
@@ -31,8 +31,8 @@ return new class extends Migration
             $table->string('type', 32);
             $table->string('status', 32)->default('pending');
             $table->json('details')->nullable();
-            $table->foreignId('requested_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('processed_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('requested_by')->nullable()->constrained('users')->noActionOnDelete();
+            $table->foreignId('processed_by')->nullable()->constrained('users')->noActionOnDelete();
             $table->timestamp('processed_at')->nullable();
             $table->string('subject_fingerprint', 64)->nullable();
             $table->json('execution_proof')->nullable();
@@ -42,7 +42,7 @@ return new class extends Migration
 
         Schema::create('gdpr_exports', function (Blueprint $table): void {
             $table->uuid('id')->primary();
-            $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('organization_id')->constrained()->noActionOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignUuid('gdpr_request_id')->constrained('gdpr_requests')->cascadeOnDelete();
             $table->string('status', 32)->default('pending');

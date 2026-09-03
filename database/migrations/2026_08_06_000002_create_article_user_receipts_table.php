@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('article_user_receipts', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('article_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained()->noActionOnDelete();
             $table->timestamp('delivered_at')->nullable();
             $table->timestamp('viewed_at')->nullable();
             $table->timestamps();

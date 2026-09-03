@@ -27,7 +27,7 @@ class ServiceLifecycleTest extends TestCase
         $this->assertSame('active', $assignment->status);
         $this->assertSame($payment->id, $assignment->activation_payment_id);
         $this->assertTrue($assignment->expires_at->equalTo(now()->addDays(30)));
-        $this->assertFalse(AuditLog::query()->where('model_type', ServiceUser::class)->where('model_id', $assignment->id)->where('event_type', AuditLog::SERVICE_ACTIVATED)->exists());
+        $this->assertTrue(AuditLog::query()->where('model_type', ServiceUser::class)->where('model_id', $assignment->id)->where('event_type', AuditLog::SERVICE_ACTIVATED)->exists());
     }
 
     public function test_free_service_can_be_activated_without_payment(): void

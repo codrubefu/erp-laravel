@@ -29,7 +29,7 @@ return new class extends Migration
         Schema::create('custom_field_values', function (Blueprint $table) {
             $table->id();
             $table->foreignId('organization_id')->constrained('organizations')->cascadeOnDelete();
-            $table->foreignId('custom_field_id')->constrained('custom_fields')->cascadeOnDelete();
+            $table->foreignId('custom_field_id')->constrained('custom_fields')->noActionOnDelete();
             $table->string('entity_type');
             $table->unsignedBigInteger('entity_id');
             $table->string('value_text')->nullable();

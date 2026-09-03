@@ -14,7 +14,7 @@ class SyncUserServicesRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'service_ids' => ['required_without:services', 'array'],
+            'service_ids' => [$this->has('services') ? 'sometimes' : 'required', 'array'],
             'service_ids.*' => ['integer', 'exists:services,id'],
             'services' => ['sometimes', 'array'],
             'services.*.id' => ['required_with:services', 'integer', 'exists:services,id'],

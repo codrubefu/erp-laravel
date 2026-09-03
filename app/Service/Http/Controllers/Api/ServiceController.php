@@ -95,9 +95,9 @@ class ServiceController extends Controller
         return new ServiceResource($service->load('users')->loadCount('users'));
     }
 
-    public function destroy(Service $service): JsonResponse
+    public function destroy(Request $request, Service $service): JsonResponse
     {
-        if ($error = $this->organizationAccess->deleteBlockedByManyToManyResponse($service, ['users'])) {
+        if ($error = $this->organizationAccess->deleteBlockedByManyToManyResponse($service, ['users'], $request->user()?->organization_id)) {
             return response()->json($error, 422);
         }
 
@@ -159,27 +159,27 @@ class ServiceController extends Controller
 
     public function paymentNote(Request $request, ServiceUser $assignment): Response
     {
-        $assignment->loadMissing(['service']);
-        abort_unless((int) $assignment->service->organization_id === (int) $request->user()->organization_id, 404);
+        $assignment->loadMissing(['user']);
+        abort_unless((int) $assignment->user->organization_id === (int) $request->user()->organization_id, 404);
 
         return $this->paymentNotes->download($assignment);
     }
 
     public function generateInvoice(Request $request, ServiceUser $assignment): JsonResponse
     {
-        $assignment->loadMissing(['service']);
-        abort_unless((int) $assignment->service->organization_id === (int) $request->user()->organization_id, 404);
+        $assignment->loadMissing(['user']);
+        abort_unless((int) $assignment->user->organization_id === (int) $request->user()->organization_id, 404);
 
         $assignment = DB::transaction(function () use ($assignment): ServiceUser {
             $lockedAssignment = ServiceUser::query()
                 ->whereKey($assignment->getKey())
                 ->lockForUpdate()
                 ->firstOrFail();
-            $lockedAssignment->loadMissing(['service']);
+            $lockedAssignment->loadMissing(['user']);
 
             if (blank($lockedAssignment->invoice_number)) {
                 $lockedAssignment->forceFill([
-                    'invoice_number' => $this->documentSequences->nextInvoice((int) $lockedAssignment->service->organization_id),
+                    'invoice_number' => $this->documentSequences->nextInvoice((int) $lockedAssignment->user->organization_id),
                 ])->save();
             }
 
@@ -191,8 +191,8 @@ class ServiceController extends Controller
 
     public function invoice(Request $request, ServiceUser $assignment, string $format = 'pdf'): Response
     {
-        $assignment->loadMissing(['service']);
-        abort_unless((int) $assignment->service->organization_id === (int) $request->user()->organization_id, 404);
+        $assignment->loadMissing(['user']);
+        abort_unless((int) $assignment->user->organization_id === (int) $request->user()->organization_id, 404);
         abort_if(blank($assignment->invoice_number), 404);
 
         return $format === 'xml'

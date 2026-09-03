@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('audit_logs', function (Blueprint $table): void {
             $table->foreignId('organization_id')->nullable()->after('id')->constrained()->cascadeOnDelete();
-            $table->foreignId('subject_user_id')->nullable()->after('changed_by')->constrained('users')->nullOnDelete();
+            $table->foreignId('subject_user_id')->nullable()->after('changed_by')->constrained('users')->noActionOnDelete();
             $table->string('event_type', 64)->nullable()->after('action');
             $table->index(['organization_id', 'subject_user_id', 'created_at'], 'audit_activity_lookup');
             $table->index(['organization_id', 'event_type', 'created_at'], 'audit_event_lookup');

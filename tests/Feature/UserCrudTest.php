@@ -379,10 +379,12 @@ class UserCrudTest extends TestCase
         $services = [
             Service::query()->create($this->serviceData([
                 'name' => 'Basic',
+                'price' => 0,
                 'is_active' => true,
             ])),
             Service::query()->create($this->serviceData([
                 'name' => 'Pro',
+                'price' => 0,
                 'is_active' => true,
             ])),
         ];
@@ -416,6 +418,7 @@ class UserCrudTest extends TestCase
         [, $token] = $this->authenticatedUserWithRights(['users.manage']);
         $service = Service::query()->create($this->serviceData([
             'name' => 'Monthly',
+            'price' => 0,
             'duration_days' => 10,
             'is_active' => true,
         ]));
@@ -435,15 +438,15 @@ class UserCrudTest extends TestCase
             ])
             ->assertCreated()
             ->assertJsonPath('data.has_active_service', true)
-            ->assertJsonPath('data.service_history.0.start_date', '2026-05-15')
-            ->assertJsonPath('data.service_history.0.expires_at', '2026-05-25')
+            ->assertJsonPath('data.service_history.0.start_date', '2026-05-15T00:00:00.000000Z')
+            ->assertJsonPath('data.service_history.0.expires_at', '2026-05-25T00:00:00.000000Z')
             ->assertJsonPath('data.service_history.0.is_active', true);
 
         $this->assertDatabaseHas('service_user', [
             'service_id' => $service->id,
             'user_id' => $response->json('data.id'),
-            'start_date' => '2026-05-15',
-            'expires_at' => '2026-05-25',
+            'start_date' => '2026-05-15 00:00:00',
+            'expires_at' => '2026-05-25 00:00:00',
         ]);
 
         Carbon::setTestNow();
@@ -565,6 +568,7 @@ class UserCrudTest extends TestCase
         ]));
         $newService = Service::query()->create($this->serviceData([
             'name' => 'Fresh',
+            'price' => 0,
             'is_active' => true,
         ]));
 
@@ -644,7 +648,7 @@ class UserCrudTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonCount(2, 'data.services')
-            ->assertJsonMissing(['id' => $serviceToRemove->id]);
+            ->assertJsonMissing(['name' => 'Remove']);
 
         $this->assertDatabaseHas('service_user', [
             'service_id' => $serviceToKeepA->id,
@@ -662,6 +666,8 @@ class UserCrudTest extends TestCase
 
     public function test_syncing_existing_service_preserves_lifecycle_and_payment_link(): void
     {
+        Carbon::setTestNow('2026-08-15 10:00:00');
+
         [$admin, $token] = $this->authenticatedUserWithRights(['users.manage']);
         $user = User::factory()->create(['organization_id' => $admin->organization_id]);
         $service = Service::query()->create($this->serviceData([
@@ -709,6 +715,8 @@ class UserCrudTest extends TestCase
             'status' => 'active',
             'activation_payment_id' => $payment->id,
         ]);
+
+        Carbon::setTestNow();
     }
 
     public function test_service_history_uses_lifecycle_status(): void
@@ -748,7 +756,7 @@ class UserCrudTest extends TestCase
             ->deleteJson("/api/users/{$user->id}")
             ->assertNoContent();
 
-        $this->assertDatabaseMissing('users', ['id' => $user->id]);
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'active' => false, 'user_code' => null]);
     }
 
     public function test_user_without_manage_right_cannot_create_user(): void

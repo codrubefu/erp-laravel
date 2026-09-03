@@ -315,7 +315,7 @@ class UserController extends Controller
             }
 
             $pivotData = [
-                'bill_number' => $this->documentSequences->nextBill((int) $service->organization_id),
+                'bill_number' => $this->documentSequences->nextBill((int) $user->organization_id),
                 'status' => $this->serviceInitialStatus($service, $startDate),
                 'start_date' => $startDateValue,
                 'expires_at' => $expiresAt,

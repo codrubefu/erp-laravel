@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('organization_id')->constrained('organizations')->cascadeOnDelete();
             $table->string('name');
             $table->json('criteria');
-            $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
+            $table->foreignId('created_by')->constrained('users')->noActionOnDelete();
             $table->timestamps();
             $table->unique(['organization_id', 'name']);
         });
@@ -27,7 +27,7 @@ return new class extends Migration
         Schema::create('report_exports', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->foreignId('organization_id')->constrained('organizations')->cascadeOnDelete();
-            $table->foreignId('requested_by')->constrained('users')->restrictOnDelete();
+            $table->foreignId('requested_by')->constrained('users')->noActionOnDelete();
             $table->string('format', 4);
             $table->json('filters');
             $table->string('status', 20)->default('pending');

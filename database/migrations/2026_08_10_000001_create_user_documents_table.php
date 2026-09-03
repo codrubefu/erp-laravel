@@ -13,8 +13,8 @@ return new class extends Migration
             $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('location_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('uploaded_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('replaces_document_id')->nullable()->constrained('user_documents')->nullOnDelete();
+            $table->foreignId('uploaded_by')->nullable()->constrained('users')->noActionOnDelete();
+            $table->foreignId('replaces_document_id')->nullable()->constrained('user_documents')->noActionOnDelete();
             $table->string('category', 64);
             $table->string('title');
             $table->text('description')->nullable();

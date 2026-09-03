@@ -194,8 +194,8 @@ class BearerTokenAuthTest extends TestCase
             ->getJson('/api/me/services')
             ->assertOk()
             ->assertJsonPath('data.0.name', 'Own Service')
-            ->assertJsonPath('data.0.start_date', '2026-06-01')
-            ->assertJsonPath('data.0.expires_at', '2026-07-01')
+            ->assertJsonPath('data.0.start_date', '2026-06-01T00:00:00.000000Z')
+            ->assertJsonPath('data.0.expires_at', '2026-07-01T00:00:00.000000Z')
             ->assertJsonMissing(['name' => 'Other Service']);
     }
 

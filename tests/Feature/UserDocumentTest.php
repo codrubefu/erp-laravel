@@ -33,7 +33,7 @@ class UserDocumentTest extends TestCase
                 'expires_at' => '2027-01-01',
             ]);
 
-        $response->assertOk()
+        $response->assertCreated()
             ->assertJsonPath('data.category', 'contract')
             ->assertJsonPath('data.title', 'Contract semnat');
 
@@ -62,7 +62,7 @@ class UserDocumentTest extends TestCase
                 'category' => 'contract',
                 'title' => 'Contract actualizat',
             ])
-            ->assertOk()
+            ->assertCreated()
             ->json('data.id');
 
         $this->assertDatabaseHas('user_documents', ['id' => $document->id, 'status' => UserDocument::STATUS_REPLACED]);

@@ -9,14 +9,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('articles', function (Blueprint $table): void {
-            $table->foreignId('segment_id')->nullable()->constrained('segments')->nullOnDelete();
+            $table->foreignId('segment_id')->nullable()->constrained('segments')->noActionOnDelete();
         });
 
         Schema::create('campaigns', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('segment_id')->nullable()->constrained('segments')->restrictOnDelete();
-            $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
+            $table->foreignId('segment_id')->nullable()->constrained('segments')->noActionOnDelete();
+            $table->foreignId('created_by')->constrained('users')->noActionOnDelete();
             $table->string('name');
             $table->string('channel', 10);
             $table->string('subject')->nullable();

@@ -8,6 +8,7 @@ use App\Service\Models\ServiceUser;
 use App\Service\Services\ServiceLifecycleService;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -17,6 +18,7 @@ class PaymentLifecycleTest extends TestCase
 
     public function test_cash_confirmation_activates_service_and_issues_receipt(): void
     {
+        Carbon::setTestNow('2026-09-03 10:00:00');
         [$operator, $assignmentId] = $this->serviceAssignment();
 
         $payment = app(PaymentService::class)->create($this->paymentData($assignmentId, Payment::TYPE_CASH), $operator);
@@ -26,13 +28,15 @@ class PaymentLifecycleTest extends TestCase
         $this->assertDatabaseHas('service_user', [
             'id' => $assignmentId,
             'status' => 'active',
-            'start_date' => now()->toDateString(),
+            'start_date' => now()->format('Y-m-d H:i:s'),
             'activation_payment_id' => $payment->id,
         ]);
         $this->assertDatabaseHas('organizations', [
             'id' => $operator->organization_id,
             'receipt_number' => 1,
         ]);
+
+        Carbon::setTestNow();
     }
 
     public function test_card_confirmation_activates_service_and_issues_receipt(): void

@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('payments', function (Blueprint $table): void {
-            $table->foreignId('organization_id')->nullable()->after('id')->constrained('organizations')->restrictOnDelete();
+            $table->foreignId('organization_id')->nullable()->after('id')->constrained('organizations')->noActionOnDelete();
             $table->foreignId('location_id')->nullable()->after('organization_id')->constrained('locations')->nullOnDelete();
             $table->string('status', 20)->default('initiated')->after('payment_type_id');
             $table->string('external_reference')->nullable()->after('status');

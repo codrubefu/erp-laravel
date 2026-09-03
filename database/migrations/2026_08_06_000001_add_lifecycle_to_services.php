@@ -21,8 +21,16 @@ return new class extends Migration
         });
 
         Schema::table('service_user', function (Blueprint $table): void {
+            $table->dropIndex(['user_id', 'expires_at']);
+        });
+
+        Schema::table('service_user', function (Blueprint $table): void {
             $table->dateTime('start_date')->nullable()->change();
             $table->dateTime('expires_at')->nullable()->change();
+        });
+
+        Schema::table('service_user', function (Blueprint $table): void {
+            $table->index(['user_id', 'expires_at']);
             $table->string('status')->default('pending')->after('user_id');
             $table->unsignedInteger('accesses_used')->default(0)->after('expires_at');
             $table->dateTime('activated_at')->nullable()->after('accesses_used');
@@ -45,8 +53,16 @@ return new class extends Migration
             $table->dropForeign(['activation_payment_id']);
             $table->dropIndex(['status', 'resume_at']);
             $table->dropColumn(['status', 'accesses_used', 'activated_at', 'suspended_at', 'resume_at', 'status_reason', 'activation_payment_id']);
+            $table->dropIndex(['user_id', 'expires_at']);
+        });
+
+        Schema::table('service_user', function (Blueprint $table): void {
             $table->date('start_date')->nullable()->change();
             $table->date('expires_at')->nullable()->change();
+        });
+
+        Schema::table('service_user', function (Blueprint $table): void {
+            $table->index(['user_id', 'expires_at']);
         });
 
         Schema::table('services', function (Blueprint $table): void {
