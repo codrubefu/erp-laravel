@@ -5,9 +5,23 @@ namespace App\Users\Http\Controllers\Api;
 use App\Users\Http\Controllers\Controller;
 use App\Users\Models\Organization;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class OrganizationController extends Controller
 {
+    public function index(Request $request): JsonResponse
+    {
+        $organizations = Organization::query()
+            ->when($request->query('url'), function ($query, $url): void {
+                $query->where('url', $url);
+            })
+            ->get(['id', 'name', 'url']);
+
+        return response()->json([
+            'data' => $organizations,
+        ]);
+    }
+
     public function showBySlug(string $slug): JsonResponse
     {
         $organization = Organization::query()
@@ -23,6 +37,7 @@ class OrganizationController extends Controller
                 'email' => $organization->email,
                 'phone' => $organization->phone,
                 'web' => $organization->web,
+                'url' => $organization->url,
                 'cui' => $organization->cui,
                 'nr_reg_com' => $organization->nr_reg_com,
                 'capital' => $organization->capital,

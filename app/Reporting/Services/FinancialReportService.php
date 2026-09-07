@@ -46,7 +46,7 @@ class FinancialReportService
         $period = $filters['group_by'] ?? 'month';
         $dateExpression = $this->periodExpression($period);
         $revenue = (clone $confirmed)->selectRaw($dateExpression.' as period')
-            ->selectRaw('SUM(payments.amount) as total')->groupBy('period')->orderBy('period')->get()
+            ->selectRaw('SUM(payments.amount) as total')->groupByRaw($dateExpression)->orderByRaw($dateExpression)->get()
             ->map(fn ($row) => ['period' => $row->period, 'total' => (float) $row->total])->all();
 
         $bank = (clone $confirmed)->where('payments.payment_type_id', Payment::TYPE_BANK_TRANSFER);
@@ -106,7 +106,10 @@ class FinancialReportService
     private function periodExpression(string $period): string
     {
         if ($period === 'day') {
-            return 'date(payments.paid_at)';
+            return match (DB::connection()->getDriverName()) {
+                'sqlsrv' => 'CONVERT(date, payments.paid_at)',
+                default => 'date(payments.paid_at)',
+            };
         }
 
         return match (DB::connection()->getDriverName()) {

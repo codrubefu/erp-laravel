@@ -2,11 +2,12 @@
 
 namespace Database\Factories;
 
+use App\Users\Models\Organization;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Users\Models\Organization>
+ * @extends Factory<Organization>
  */
 class OrganizationFactory extends Factory
 {
@@ -22,6 +23,7 @@ class OrganizationFactory extends Factory
             'email' => fake()->companyEmail(),
             'phone' => fake()->phoneNumber(),
             'web' => fake()->url(),
+            'url' => fake()->url(),
             'cui' => 'RO'.fake()->unique()->numberBetween(1000000, 99999999),
             'nr_reg_com' => 'J'.fake()->numberBetween(1, 52).'/'.fake()->numberBetween(1, 9999).'/'.fake()->year(),
             'capital' => '200 RON',

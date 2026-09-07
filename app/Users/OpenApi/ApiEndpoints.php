@@ -29,9 +29,45 @@ class ApiEndpoints
             new OA\Response(response: 429, description: 'Login rate limit exceeded for this IP, organization and declared identity.'),
         ],
     )]
-    public function login(): void
-    {
-    }
+    public function login(): void {}
+
+    #[OA\Get(
+        path: '/organizations',
+        summary: 'List organizations, optionally filtered by url',
+        tags: ['Auth'],
+        parameters: [
+            new OA\QueryParameter(
+                name: 'url',
+                required: false,
+                schema: new OA\Schema(type: 'string'),
+                example: 'https://acme.test',
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Organizations matching the filter.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(
+                                properties: [
+                                    new OA\Property(property: 'id', type: 'integer', example: 1),
+                                    new OA\Property(property: 'name', type: 'string', example: 'Acme SRL'),
+                                    new OA\Property(property: 'url', type: 'string', nullable: true, example: 'https://acme.test'),
+                                ],
+                                type: 'object',
+                            ),
+                        ),
+                    ],
+                    type: 'object',
+                ),
+            ),
+        ],
+    )]
+    public function organizationIndex(): void {}
 
     #[OA\Get(
         path: '/organizations/slug/{slug}',
@@ -61,6 +97,7 @@ class ApiEndpoints
                                 new OA\Property(property: 'email', type: 'string', nullable: true, example: 'office@acme.test'),
                                 new OA\Property(property: 'phone', type: 'string', nullable: true, example: '+40740111222'),
                                 new OA\Property(property: 'web', type: 'string', nullable: true, example: 'https://acme.test'),
+                                new OA\Property(property: 'url', type: 'string', nullable: true, example: 'https://acme.test'),
                                 new OA\Property(property: 'cui', type: 'string', nullable: true, example: 'RO12345678'),
                                 new OA\Property(property: 'nr_reg_com', type: 'string', nullable: true, example: 'J40/1234/2026'),
                                 new OA\Property(property: 'capital', type: 'string', nullable: true, example: '200 RON'),
@@ -82,9 +119,7 @@ class ApiEndpoints
             new OA\Response(response: 404, description: 'Organization not found.'),
         ],
     )]
-    public function organizationBySlug(): void
-    {
-    }
+    public function organizationBySlug(): void {}
 
     #[OA\Get(
         path: '/me',
@@ -105,9 +140,7 @@ class ApiEndpoints
             new OA\Response(response: 401, description: 'Unauthenticated.'),
         ],
     )]
-    public function me(): void
-    {
-    }
+    public function me(): void {}
 
     #[OA\Patch(
         path: '/me/password',
@@ -125,9 +158,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Validation failed.', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
         ],
     )]
-    public function mePassword(): void
-    {
-    }
+    public function mePassword(): void {}
 
     #[OA\Get(
         path: '/me/custom-fields',
@@ -144,9 +175,7 @@ class ApiEndpoints
             new OA\Response(response: 401, description: 'Unauthenticated.'),
         ],
     )]
-    public function meCustomFields(): void
-    {
-    }
+    public function meCustomFields(): void {}
 
     #[OA\Get(
         path: '/me/events',
@@ -175,9 +204,7 @@ class ApiEndpoints
             new OA\Response(response: 401, description: 'Unauthenticated.'),
         ],
     )]
-    public function meEvents(): void
-    {
-    }
+    public function meEvents(): void {}
 
     #[OA\Get(
         path: '/me/services',
@@ -206,9 +233,7 @@ class ApiEndpoints
             new OA\Response(response: 401, description: 'Unauthenticated.'),
         ],
     )]
-    public function meServices(): void
-    {
-    }
+    public function meServices(): void {}
 
     #[OA\Post(
         path: '/logout',
@@ -220,9 +245,7 @@ class ApiEndpoints
             new OA\Response(response: 401, description: 'Unauthenticated.'),
         ],
     )]
-    public function logout(): void
-    {
-    }
+    public function logout(): void {}
 
     #[OA\Get(
         path: '/administrators',
@@ -258,9 +281,7 @@ class ApiEndpoints
             new OA\Response(response: 403, description: 'Missing users.view right.'),
         ],
     )]
-    public function administratorsIndex(): void
-    {
-    }
+    public function administratorsIndex(): void {}
 
     #[OA\Get(
         path: '/clients',
@@ -296,9 +317,7 @@ class ApiEndpoints
             new OA\Response(response: 403, description: 'Missing users.view right.'),
         ],
     )]
-    public function clientsIndex(): void
-    {
-    }
+    public function clientsIndex(): void {}
 
     #[OA\Get(
         path: '/groups',
@@ -327,9 +346,7 @@ class ApiEndpoints
             new OA\Response(response: 403, description: 'Missing groups.view right.'),
         ],
     )]
-    public function groupsIndex(): void
-    {
-    }
+    public function groupsIndex(): void {}
 
     #[OA\Post(
         path: '/groups',
@@ -355,9 +372,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Validation failed.'),
         ],
     )]
-    public function groupsStore(): void
-    {
-    }
+    public function groupsStore(): void {}
 
     #[OA\Get(
         path: '/groups/{group}',
@@ -382,9 +397,7 @@ class ApiEndpoints
             new OA\Response(response: 404, description: 'Group not found.'),
         ],
     )]
-    public function groupsShow(): void
-    {
-    }
+    public function groupsShow(): void {}
 
     #[OA\Patch(
         path: '/groups/{group}',
@@ -414,9 +427,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Validation failed.'),
         ],
     )]
-    public function groupsUpdate(): void
-    {
-    }
+    public function groupsUpdate(): void {}
 
     #[OA\Put(
         path: '/groups/{group}',
@@ -446,9 +457,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Validation failed.'),
         ],
     )]
-    public function groupsReplace(): void
-    {
-    }
+    public function groupsReplace(): void {}
 
     #[OA\Delete(
         path: '/groups/{group}',
@@ -465,9 +474,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Cannot delete a group that still has users.'),
         ],
     )]
-    public function groupsDestroy(): void
-    {
-    }
+    public function groupsDestroy(): void {}
 
     #[OA\Get(
         path: '/rights',
@@ -496,9 +503,7 @@ class ApiEndpoints
             new OA\Response(response: 403, description: 'Missing rights.view right.'),
         ],
     )]
-    public function rightsIndex(): void
-    {
-    }
+    public function rightsIndex(): void {}
 
     #[OA\Post(
         path: '/rights',
@@ -524,9 +529,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Validation failed.'),
         ],
     )]
-    public function rightsStore(): void
-    {
-    }
+    public function rightsStore(): void {}
 
     #[OA\Get(
         path: '/rights/{right}',
@@ -551,9 +554,7 @@ class ApiEndpoints
             new OA\Response(response: 404, description: 'Right not found.'),
         ],
     )]
-    public function rightsShow(): void
-    {
-    }
+    public function rightsShow(): void {}
 
     #[OA\Patch(
         path: '/rights/{right}',
@@ -583,9 +584,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Validation failed.'),
         ],
     )]
-    public function rightsUpdate(): void
-    {
-    }
+    public function rightsUpdate(): void {}
 
     #[OA\Put(
         path: '/rights/{right}',
@@ -615,9 +614,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Validation failed.'),
         ],
     )]
-    public function rightsReplace(): void
-    {
-    }
+    public function rightsReplace(): void {}
 
     #[OA\Delete(
         path: '/rights/{right}',
@@ -634,10 +631,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Cannot delete a right assigned to groups.'),
         ],
     )]
-    public function rightsDestroy(): void
-    {
-    }
-
+    public function rightsDestroy(): void {}
 
     #[OA\Get(
         path: '/location-groups',
@@ -666,9 +660,7 @@ class ApiEndpoints
             new OA\Response(response: 403, description: 'Missing locations.view right.'),
         ],
     )]
-    public function locationGroupsIndex(): void
-    {
-    }
+    public function locationGroupsIndex(): void {}
 
     #[OA\Post(
         path: '/location-groups',
@@ -694,9 +686,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Validation failed.'),
         ],
     )]
-    public function locationGroupsStore(): void
-    {
-    }
+    public function locationGroupsStore(): void {}
 
     #[OA\Get(
         path: '/location-groups/{locationGroup}',
@@ -721,9 +711,7 @@ class ApiEndpoints
             new OA\Response(response: 404, description: 'Location group not found.'),
         ],
     )]
-    public function locationGroupsShow(): void
-    {
-    }
+    public function locationGroupsShow(): void {}
 
     #[OA\Patch(
         path: '/location-groups/{locationGroup}',
@@ -753,9 +741,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Validation failed.'),
         ],
     )]
-    public function locationGroupsUpdate(): void
-    {
-    }
+    public function locationGroupsUpdate(): void {}
 
     #[OA\Put(
         path: '/location-groups/{locationGroup}',
@@ -785,9 +771,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Validation failed.'),
         ],
     )]
-    public function locationGroupsReplace(): void
-    {
-    }
+    public function locationGroupsReplace(): void {}
 
     #[OA\Delete(
         path: '/location-groups/{locationGroup}',
@@ -803,9 +787,7 @@ class ApiEndpoints
             new OA\Response(response: 404, description: 'Location group not found.'),
         ],
     )]
-    public function locationGroupsDestroy(): void
-    {
-    }
+    public function locationGroupsDestroy(): void {}
 
     #[OA\Get(
         path: '/locations',
@@ -834,9 +816,7 @@ class ApiEndpoints
             new OA\Response(response: 403, description: 'Missing locations.view right.'),
         ],
     )]
-    public function locationsIndex(): void
-    {
-    }
+    public function locationsIndex(): void {}
 
     #[OA\Post(
         path: '/locations',
@@ -862,9 +842,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Validation failed.'),
         ],
     )]
-    public function locationsStore(): void
-    {
-    }
+    public function locationsStore(): void {}
 
     #[OA\Get(
         path: '/locations/{location}',
@@ -889,9 +867,7 @@ class ApiEndpoints
             new OA\Response(response: 404, description: 'Location not found.'),
         ],
     )]
-    public function locationsShow(): void
-    {
-    }
+    public function locationsShow(): void {}
 
     #[OA\Patch(
         path: '/locations/{location}',
@@ -921,9 +897,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Validation failed.'),
         ],
     )]
-    public function locationsUpdate(): void
-    {
-    }
+    public function locationsUpdate(): void {}
 
     #[OA\Put(
         path: '/locations/{location}',
@@ -953,9 +927,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Validation failed.'),
         ],
     )]
-    public function locationsReplace(): void
-    {
-    }
+    public function locationsReplace(): void {}
 
     #[OA\Delete(
         path: '/locations/{location}',
@@ -971,9 +943,7 @@ class ApiEndpoints
             new OA\Response(response: 404, description: 'Location not found.'),
         ],
     )]
-    public function locationsDestroy(): void
-    {
-    }
+    public function locationsDestroy(): void {}
 
     #[OA\Get(
         path: '/users',
@@ -1008,9 +978,7 @@ class ApiEndpoints
             new OA\Response(response: 403, description: 'Missing users.view right.'),
         ],
     )]
-    public function usersIndex(): void
-    {
-    }
+    public function usersIndex(): void {}
 
     #[OA\Get(
         path: '/users/search/user-code',
@@ -1046,9 +1014,7 @@ class ApiEndpoints
             new OA\Response(response: 403, description: 'Missing users.view right.'),
         ],
     )]
-    public function usersSearchByUserCode(): void
-    {
-    }
+    public function usersSearchByUserCode(): void {}
 
     #[OA\Post(
         path: '/users',
@@ -1074,9 +1040,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Validation failed.'),
         ],
     )]
-    public function usersStore(): void
-    {
-    }
+    public function usersStore(): void {}
 
     #[OA\Get(
         path: '/users/{user}',
@@ -1101,9 +1065,7 @@ class ApiEndpoints
             new OA\Response(response: 404, description: 'User not found.'),
         ],
     )]
-    public function usersShow(): void
-    {
-    }
+    public function usersShow(): void {}
 
     #[OA\Get(
         path: '/users/{user}/activity',
@@ -1156,9 +1118,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Invalid type, period, or pagination parameters.', content: new OA\JsonContent(ref: '#/components/schemas/ValidationErrorResponse')),
         ],
     )]
-    public function usersActivity(): void
-    {
-    }
+    public function usersActivity(): void {}
 
     #[OA\Patch(
         path: '/users/{user}',
@@ -1188,9 +1148,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Validation failed.'),
         ],
     )]
-    public function usersUpdate(): void
-    {
-    }
+    public function usersUpdate(): void {}
 
     #[OA\Patch(
         path: '/users/service/{user}',
@@ -1220,9 +1178,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Validation failed.'),
         ],
     )]
-    public function usersSyncServices(): void
-    {
-    }
+    public function usersSyncServices(): void {}
 
     #[OA\Put(
         path: '/users/{user}',
@@ -1252,9 +1208,7 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Validation failed.'),
         ],
     )]
-    public function usersReplace(): void
-    {
-    }
+    public function usersReplace(): void {}
 
     #[OA\Delete(
         path: '/users/{user}',
@@ -1271,124 +1225,84 @@ class ApiEndpoints
             new OA\Response(response: 422, description: 'Cannot delete your own user account.'),
         ],
     )]
-    public function usersDestroy(): void
-    {
-    }
+    public function usersDestroy(): void {}
 
     #[OA\Get(path: '/me/privacy/data', summary: 'Access own personal data', security: [['bearerAuth' => []]], tags: ['GDPR'], responses: [
         new OA\Response(response: 200, description: 'Personal profile and consent history.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/GdprDataAccess')], type: 'object')),
         new OA\Response(response: 401, description: 'Unauthenticated.'),
     ])]
-    public function gdprSelfAccess(): void
-    {
-    }
+    public function gdprSelfAccess(): void {}
 
     #[OA\Post(path: '/me/privacy/exports', summary: 'Queue an export of own personal data', security: [['bearerAuth' => []]], tags: ['GDPR'], responses: [
         new OA\Response(response: 202, description: 'Export queued.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/GdprExport')], type: 'object')),
         new OA\Response(response: 401, description: 'Unauthenticated.'),
     ])]
-    public function gdprSelfExport(): void
-    {
-    }
+    public function gdprSelfExport(): void {}
 
     #[OA\Patch(path: '/me/privacy/rectification', summary: 'Rectify own profile data', security: [['bearerAuth' => []]], tags: ['GDPR'], requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/GdprRectificationRequest')), responses: [
         new OA\Response(response: 200, description: 'Profile rectified.'),
         new OA\Response(response: 422, description: 'Validation failed.'),
     ])]
-    public function gdprSelfRectification(): void
-    {
-    }
+    public function gdprSelfRectification(): void {}
 
     #[OA\Post(path: '/me/privacy/consents', summary: 'Append an own consent or withdrawal event', security: [['bearerAuth' => []]], tags: ['GDPR'], requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/ConsentRecordRequest')), responses: [
         new OA\Response(response: 201, description: 'Consent event appended.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/ConsentRecord')], type: 'object')),
         new OA\Response(response: 422, description: 'Validation failed.'),
     ])]
-    public function gdprSelfConsent(): void
-    {
-    }
+    public function gdprSelfConsent(): void {}
 
     #[OA\Post(path: '/me/privacy/erasure-requests', summary: 'Request erasure of own data', security: [['bearerAuth' => []]], tags: ['GDPR'], responses: [
         new OA\Response(response: 202, description: 'Erasure request recorded.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/GdprRequest')], type: 'object')),
     ])]
-    public function gdprSelfErasure(): void
-    {
-    }
+    public function gdprSelfErasure(): void {}
 
     #[OA\Get(path: '/privacy/exports/{export}', summary: 'Get export status and temporary download URL', security: [['bearerAuth' => []]], tags: ['GDPR'], parameters: [new OA\PathParameter(name: 'export', required: true, schema: new OA\Schema(type: 'string', format: 'uuid'))], responses: [
         new OA\Response(response: 200, description: 'Export status.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/GdprExport')], type: 'object')),
         new OA\Response(response: 403, description: 'Not the data subject and missing gdpr.export right.'),
         new OA\Response(response: 404, description: 'Export not found in current tenant.'),
     ])]
-    public function gdprExportStatus(): void
-    {
-    }
+    public function gdprExportStatus(): void {}
 
     #[OA\Get(path: '/privacy/exports/{export}/download', summary: 'Download an unexpired private export', security: [['bearerAuth' => []]], tags: ['GDPR'], parameters: [new OA\PathParameter(name: 'export', required: true, schema: new OA\Schema(type: 'string', format: 'uuid'))], responses: [
         new OA\Response(response: 200, description: 'JSON export file.', content: new OA\MediaType(mediaType: 'application/json')),
         new OA\Response(response: 403, description: 'Invalid/expired signature or insufficient access.'),
         new OA\Response(response: 404, description: 'Export not found in current tenant.'),
     ])]
-    public function gdprExportDownload(): void
-    {
-    }
+    public function gdprExportDownload(): void {}
 
     #[OA\Get(path: '/users/{user}/privacy/data', summary: 'Administratively access a user data set (requires gdpr.export)', security: [['bearerAuth' => []]], tags: ['GDPR'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer'))], responses: [new OA\Response(response: 200, description: 'Tenant user data.'), new OA\Response(response: 403, description: 'Missing gdpr.export right.'), new OA\Response(response: 404, description: 'User not found in current tenant.')])]
-    public function gdprAdminAccess(): void
-    {
-    }
+    public function gdprAdminAccess(): void {}
 
     #[OA\Post(path: '/users/{user}/privacy/exports', summary: 'Administratively queue a user export (requires gdpr.export)', security: [['bearerAuth' => []]], tags: ['GDPR'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer'))], responses: [new OA\Response(response: 202, description: 'Export queued.'), new OA\Response(response: 403, description: 'Missing gdpr.export right.'), new OA\Response(response: 404, description: 'User not found in current tenant.')])]
-    public function gdprAdminExport(): void
-    {
-    }
+    public function gdprAdminExport(): void {}
 
     #[OA\Patch(path: '/users/{user}/privacy/rectification', summary: 'Administratively rectify user data (requires gdpr.process)', security: [['bearerAuth' => []]], tags: ['GDPR'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer'))], requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/GdprRectificationRequest')), responses: [new OA\Response(response: 200, description: 'Profile rectified.'), new OA\Response(response: 403, description: 'Missing gdpr.process right.'), new OA\Response(response: 422, description: 'Validation failed.')])]
-    public function gdprAdminRectification(): void
-    {
-    }
+    public function gdprAdminRectification(): void {}
 
     #[OA\Post(path: '/users/{user}/privacy/consents', summary: 'Administratively append a consent event (requires gdpr.process)', security: [['bearerAuth' => []]], tags: ['GDPR'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer'))], requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/ConsentRecordRequest')), responses: [new OA\Response(response: 201, description: 'Consent event appended.'), new OA\Response(response: 403, description: 'Missing gdpr.process right.'), new OA\Response(response: 422, description: 'Validation failed.')])]
-    public function gdprAdminConsent(): void
-    {
-    }
+    public function gdprAdminConsent(): void {}
 
     #[OA\Post(path: '/users/{user}/privacy/erasure-requests', summary: 'Administratively create an erasure request (requires gdpr.process)', security: [['bearerAuth' => []]], tags: ['GDPR'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer'))], responses: [new OA\Response(response: 202, description: 'Erasure request recorded.'), new OA\Response(response: 403, description: 'Missing gdpr.process right.'), new OA\Response(response: 404, description: 'User not found in current tenant.')])]
-    public function gdprAdminErasure(): void
-    {
-    }
+    public function gdprAdminErasure(): void {}
 
     #[OA\Post(path: '/privacy/requests/{gdprRequest}/process', summary: 'Process a pending erasure request (requires gdpr.process)', security: [['bearerAuth' => []]], tags: ['GDPR'], parameters: [new OA\PathParameter(name: 'gdprRequest', required: true, schema: new OA\Schema(type: 'string', format: 'uuid'))], responses: [new OA\Response(response: 200, description: 'Retention workflow completed.'), new OA\Response(response: 403, description: 'Missing gdpr.process right.'), new OA\Response(response: 404, description: 'Request not found in current tenant.'), new OA\Response(response: 422, description: 'Request cannot be processed or actor is the subject.')])]
-    public function gdprProcessErasure(): void
-    {
-    }
+    public function gdprProcessErasure(): void {}
 
     #[OA\Get(path: '/users/{user}/documents', summary: 'List member documents', security: [['bearerAuth' => []]], tags: ['User Documents'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer'))], responses: [new OA\Response(response: 200, description: 'Paginated user documents.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/UserDocument'))])), new OA\Response(response: 403, description: 'Missing user-documents.view right.'), new OA\Response(response: 404, description: 'User not found in current tenant.')])]
-    public function userDocumentsIndex(): void
-    {
-    }
+    public function userDocumentsIndex(): void {}
 
     #[OA\Post(path: '/users/{user}/documents', summary: 'Upload a member document', security: [['bearerAuth' => []]], tags: ['User Documents'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer'))], requestBody: new OA\RequestBody(required: true, content: new OA\MediaType(mediaType: 'multipart/form-data', schema: new OA\Schema(ref: '#/components/schemas/UserDocumentUploadRequest'))), responses: [new OA\Response(response: 200, description: 'Document uploaded.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/UserDocument')])), new OA\Response(response: 403, description: 'Missing user-documents.upload right.'), new OA\Response(response: 422, description: 'Validation or antivirus scan failed.')])]
-    public function userDocumentsStore(): void
-    {
-    }
+    public function userDocumentsStore(): void {}
 
     #[OA\Post(path: '/users/{user}/documents/{document}/replace', summary: 'Replace a member document with a new version', security: [['bearerAuth' => []]], tags: ['User Documents'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer')), new OA\PathParameter(name: 'document', required: true, schema: new OA\Schema(type: 'integer'))], requestBody: new OA\RequestBody(required: true, content: new OA\MediaType(mediaType: 'multipart/form-data', schema: new OA\Schema(ref: '#/components/schemas/UserDocumentUploadRequest'))), responses: [new OA\Response(response: 200, description: 'Replacement document uploaded.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/UserDocument')])), new OA\Response(response: 403, description: 'Missing user-documents.upload right.'), new OA\Response(response: 404, description: 'User or document not found in current tenant.'), new OA\Response(response: 422, description: 'Validation or antivirus scan failed.')])]
-    public function userDocumentsReplace(): void
-    {
-    }
+    public function userDocumentsReplace(): void {}
 
     #[OA\Post(path: '/users/{user}/documents/{document}/download-url', summary: 'Create a temporary signed document download URL', security: [['bearerAuth' => []]], tags: ['User Documents'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer')), new OA\PathParameter(name: 'document', required: true, schema: new OA\Schema(type: 'integer'))], responses: [new OA\Response(response: 200, description: 'Temporary signed URL.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/UserDocumentDownloadUrl')])), new OA\Response(response: 403, description: 'Missing user-documents.view right.'), new OA\Response(response: 404, description: 'User or document not found in current tenant.')])]
-    public function userDocumentsDownloadUrl(): void
-    {
-    }
+    public function userDocumentsDownloadUrl(): void {}
 
     #[OA\Get(path: '/users/{user}/documents/{document}/download', summary: 'Download a member document through a signed URL', security: [['bearerAuth' => []]], tags: ['User Documents'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer')), new OA\PathParameter(name: 'document', required: true, schema: new OA\Schema(type: 'integer'))], responses: [new OA\Response(response: 200, description: 'Private document file.', content: new OA\MediaType(mediaType: 'application/octet-stream', schema: new OA\Schema(type: 'string', format: 'binary'))), new OA\Response(response: 403, description: 'Invalid signature or missing user-documents.view right.'), new OA\Response(response: 404, description: 'User or document not found in current tenant.')])]
-    public function userDocumentsDownload(): void
-    {
-    }
+    public function userDocumentsDownload(): void {}
 
     #[OA\Delete(path: '/users/{user}/documents/{document}', summary: 'Delete a member document', security: [['bearerAuth' => []]], tags: ['User Documents'], parameters: [new OA\PathParameter(name: 'user', required: true, schema: new OA\Schema(type: 'integer')), new OA\PathParameter(name: 'document', required: true, schema: new OA\Schema(type: 'integer'))], responses: [new OA\Response(response: 204, description: 'Document deleted.'), new OA\Response(response: 403, description: 'Missing user-documents.delete right.'), new OA\Response(response: 404, description: 'User or document not found in current tenant.')])]
-    public function userDocumentsDestroy(): void
-    {
-    }
+    public function userDocumentsDestroy(): void {}
 }

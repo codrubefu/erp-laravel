@@ -67,8 +67,8 @@ class DashboardService
             ->whereBetween('paid_at', [$from, $to])
             ->selectRaw($periodExpression.' as period')
             ->selectRaw('SUM(amount) as revenue')
-            ->groupBy('period')
-            ->orderBy('period')
+            ->groupByRaw($periodExpression)
+            ->orderByRaw($periodExpression)
             ->get()
             ->map(fn ($row): array => ['period' => $row->period, 'revenue' => (float) $row->revenue])
             ->all();
@@ -109,8 +109,8 @@ class DashboardService
             ->selectRaw($periodExpression.' as period')
             ->selectRaw('COUNT(*) as active')
             ->selectRaw("SUM(CASE WHEN COALESCE(event_type, action) = 'sms.sent' THEN 1 ELSE 0 END) as messages")
-            ->groupBy('period')
-            ->orderBy('period')
+            ->groupByRaw($periodExpression)
+            ->orderByRaw($periodExpression)
             ->get()
             ->map(fn ($row): array => [
                 'period' => $row->period,
@@ -164,7 +164,10 @@ class DashboardService
     private function periodExpression(string $period, string $column): string
     {
         if ($period === 'day') {
-            return "date({$column})";
+            return match (DB::connection()->getDriverName()) {
+                'sqlsrv' => "CONVERT(date, {$column})",
+                default => "date({$column})",
+            };
         }
 
         return match (DB::connection()->getDriverName()) {

@@ -19,6 +19,7 @@ class OrganizationLookupTest extends TestCase
             'email' => 'office@acme.test',
             'phone' => '0712345678',
             'web' => 'https://acme.test',
+            'url' => 'https://acme.test',
             'cui' => 'RO12345678',
             'nr_reg_com' => 'J40/1234/2026',
             'capital' => '200 RON',
@@ -41,6 +42,7 @@ class OrganizationLookupTest extends TestCase
             ->assertJsonPath('data.email', 'office@acme.test')
             ->assertJsonPath('data.phone', '0712345678')
             ->assertJsonPath('data.web', 'https://acme.test')
+            ->assertJsonPath('data.url', 'https://acme.test')
             ->assertJsonPath('data.cui', 'RO12345678')
             ->assertJsonPath('data.nr_reg_com', 'J40/1234/2026')
             ->assertJsonPath('data.capital', '200 RON')
@@ -58,5 +60,31 @@ class OrganizationLookupTest extends TestCase
     {
         $this->getJson('/api/organizations/slug/missing')
             ->assertNotFound();
+    }
+
+    public function test_organizations_can_be_listed_and_filtered_by_url_without_authentication(): void
+    {
+        $acme = Organization::query()->create([
+            'name' => 'Acme SRL',
+            'slug' => 'acme',
+            'url' => 'https://acme.test',
+        ]);
+
+        Organization::query()->create([
+            'name' => 'Other SRL',
+            'slug' => 'other',
+            'url' => 'https://other.test',
+        ]);
+
+        $this->getJson('/api/organizations?url=https://acme.test')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $acme->id)
+            ->assertJsonPath('data.0.name', 'Acme SRL')
+            ->assertJsonPath('data.0.url', 'https://acme.test');
+
+        $this->getJson('/api/organizations')
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
     }
 }
