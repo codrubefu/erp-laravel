@@ -30,6 +30,8 @@ class StoreUserRequest extends FormRequest
                 'max:255',
                 Rule::unique('users', 'phone')->where('organization_id', $this->user()?->organization_id),
             ],
+            'cnp' => ['nullable', 'string', 'max:20'],
+            'ci' => ['nullable', 'string', 'max:20'],
             'active' => ['sometimes', 'boolean'],
             'email' => [
                 'required',

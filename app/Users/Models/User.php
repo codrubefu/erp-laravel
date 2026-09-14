@@ -29,7 +29,7 @@ use App\Notifications\Models\PushDevice;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['user_code', 'first_name', 'last_name', 'phone', 'active', 'email', 'password', 'organization_id', 'notification_consents', 'push_token'])]
+#[Fillable(['user_code', 'first_name', 'last_name', 'phone', 'cnp', 'ci', 'active', 'email', 'password', 'organization_id', 'notification_consents', 'push_token'])]
 #[Hidden(['password', 'remember_token'])]
 #[UseFactory(UserFactory::class)]
 class User extends Authenticatable

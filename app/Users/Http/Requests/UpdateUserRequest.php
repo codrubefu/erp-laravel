@@ -35,6 +35,8 @@ class UpdateUserRequest extends FormRequest
                     ->where('organization_id', $user?->organization_id)
                     ->ignore($user?->id),
             ],
+            'cnp' => ['nullable', 'string', 'max:20'],
+            'ci' => ['nullable', 'string', 'max:20'],
             'active' => ['sometimes', 'boolean'],
             'email' => [
                 'sometimes',
