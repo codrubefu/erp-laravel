@@ -5,6 +5,7 @@ namespace App\Reporting\Services;
 use App\Payments\Models\Payment;
 use App\Reporting\Models\Segment;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
 class FinancialReportService
@@ -34,7 +35,9 @@ class FinancialReportService
                 ->whereColumn('lu.user_id', 'member.id')->where('lu.location_id', $filters['location_id']));
         }
         $invoiced = (float) (clone $assignments)->sum('s.price');
-        $serviceRevenue = (float) (clone $confirmed)
+        // A debt has no payment method: receivables must count every payment, whatever the method filter.
+        $serviceRevenue = (float) $this->payments($organizationId, Arr::except($filters, 'payment_type_id'))
+            ->where('payments.status', Payment::STATUS_CONFIRMED)
             ->where('payments.model_type', Payment::MODEL_TYPE_SERVICE_USER)->sum('payments.amount');
 
         $renewals = (clone $assignments)->whereExists(fn ($q) => $q->selectRaw('1')

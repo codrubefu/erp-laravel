@@ -30,6 +30,37 @@ class FinancialReportingTest extends TestCase
             ->assertJsonPath('data.bank_reconciliation.unreconciled', 40);
     }
 
+    public function test_outstanding_does_not_depend_on_payment_type_filter(): void
+    {
+        [$operator, $token] = $this->loginWith('reports.view');
+        $member = User::factory()->create(['organization_id' => $operator->organization_id]);
+        $service = Service::query()->create([
+            'organization_id' => $operator->organization_id,
+            'name' => 'Membership',
+            'description' => 'Membership',
+            'price' => 100,
+            'currency' => 'RON',
+            'duration_days' => null,
+            'max_users' => 20,
+            'is_active' => true,
+        ]);
+        $service->users()->attach($member, ['status' => 'active', 'start_date' => '2026-07-01']);
+        $assignmentId = $service->users()->whereKey($member->id)->first()->pivot->id;
+        $this->payment($operator, 60, Payment::STATUS_CONFIRMED, Payment::TYPE_CASH, '2026-07-02', false, $assignmentId);
+        $this->payment($operator, 40, Payment::STATUS_CONFIRMED, Payment::TYPE_CARD, '2026-07-03', false, $assignmentId);
+
+        foreach (['', '?payment_type_id='.Payment::TYPE_CASH, '?payment_type_id='.Payment::TYPE_CARD] as $query) {
+            $this->withToken($token)->getJson('/api/reports/financial'.$query)
+                ->assertOk()
+                ->assertJsonPath('data.receivables.invoiced', 100)
+                ->assertJsonPath('data.receivables.paid', 100)
+                ->assertJsonPath('data.receivables.outstanding', 0);
+        }
+
+        $this->withToken($token)->getJson('/api/reports/financial?payment_type_id='.Payment::TYPE_CARD)
+            ->assertJsonPath('data.totals.confirmed', 40);
+    }
+
     public function test_report_cannot_read_or_request_another_organization(): void
     {
         [$operator, $token] = $this->loginWith('reports.view');
@@ -103,12 +134,12 @@ class FinancialReportingTest extends TestCase
             ->assertHeader('Content-Type', 'application/zip');
     }
 
-    private function payment(User $operator, float $amount, string $status, int $type, string $date, bool $reconciled = false): void
+    private function payment(User $operator, float $amount, string $status, int $type, string $date, bool $reconciled = false, ?int $modelId = null): void
     {
         Payment::query()->create([
             'organization_id' => $operator->organization_id, 'first_name' => 'Test', 'last_name' => 'Member',
             'payment_type_id' => $type, 'status' => $status, 'model_type' => Payment::MODEL_TYPE_SERVICE_USER,
-            'amount' => $amount, 'paid_at' => $date, 'admin_id' => $operator->id,
+            'model_id' => $modelId, 'amount' => $amount, 'paid_at' => $date, 'admin_id' => $operator->id,
             'reconciled_at' => $reconciled ? $date : null,
         ]);
     }
