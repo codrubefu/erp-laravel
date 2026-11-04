@@ -21,40 +21,31 @@ class PaymentNoteService
 
     public function pdf(ServiceUser $assignment): string
     {
-        $assignment->loadMissing(['service.organization', 'user.organization']);
-
         $options = new Options();
         $options->set('defaultFont', 'DejaVu Sans');
         $options->set('isRemoteEnabled', false);
         $options->set('isHtml5ParserEnabled', true);
 
         $pdf = new Dompdf($options);
-        $pdf->loadHtml($this->renderHtml($assignment), 'UTF-8');
+        $pdf->loadHtml($this->html($assignment), 'UTF-8');
         $pdf->setPaper('a4');
         $pdf->render();
 
         return $pdf->output();
     }
 
-    private function renderHtml(ServiceUser $assignment): string
+    public function html(ServiceUser $assignment): string
     {
+        $assignment->loadMissing(['service.organization', 'user.organization']);
+
         $service = $assignment->service;
         $user = $assignment->user;
         $fullName = trim("{$user->last_name} {$user->first_name}") ?: $user->email;
         $issuedAt = now();
         $amount = number_format((float) $service->price, 2, '.', ',');
         $startDate = $this->formatDate($assignment->start_date ?? $issuedAt);
-        $expiresAt = $assignment->expires_at ? $this->formatDate($assignment->expires_at) : 'fara expirare';
-        $noteNumber = $assignment->bill_number ?: sprintf('%09d', $assignment->id);
+        $noteNumber = $assignment->noteNumber();
         $cardCode = $user->user_code ?: sprintf('USR%08d', $user->id);
-        $orderDetails = sprintf(
-            'Comanda service #%d | User #%d | Service #%d | Start: %s | Expira: %s',
-            $assignment->id,
-            $user->id,
-            $service->id,
-            $startDate,
-            $expiresAt,
-        );
 
         return view('services.payment-note', [
             'assignment' => $assignment,
@@ -65,10 +56,8 @@ class PaymentNoteService
             'issuedAt' => $issuedAt,
             'amount' => $amount,
             'startDate' => $startDate,
-            'expiresAt' => $expiresAt,
             'noteNumber' => $noteNumber,
             'cardCode' => $cardCode,
-            'orderDetails' => $orderDetails,
         ])->render();
     }
 

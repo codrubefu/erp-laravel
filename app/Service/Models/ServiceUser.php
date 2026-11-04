@@ -37,6 +37,11 @@ class ServiceUser extends Pivot
         return $this->belongsTo(Payment::class, 'activation_payment_id');
     }
 
+    public function noteNumber(): string
+    {
+        return $this->bill_number ?: sprintf('%09d', $this->id);
+    }
+
     protected function casts(): array
     {
         return [

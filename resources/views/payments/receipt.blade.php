@@ -239,12 +239,6 @@
                         <td class="dots"><span class="value">{{ $payerName }}</span></td>
                     </tr>
                 </table>
-                <table class="line">
-                    <tr>
-                        <td class="line-label">Adresa</td>
-                        <td class="dots"><span class="value">{{ $payerAddress }}</span></td>
-                    </tr>
-                </table>
                 <table class="sumgrid">
                     <tr>
                         <td class="line-label">Suma de</td>
@@ -261,7 +255,7 @@
                 </table>
                 <table class="line">
                     <tr>
-                        <td class="line-label">Reprezentand contravaloare factura nr.</td>
+                        <td class="line-label">Reprezentand contravaloare</td>
                         <td class="dots"><span class="value">{{ $description }}</span></td>
                     </tr>
                 </table>

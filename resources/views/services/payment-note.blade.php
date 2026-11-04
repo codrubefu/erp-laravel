@@ -103,15 +103,6 @@
             text-transform: uppercase;
         }
 
-        .italic {
-            font-style: italic;
-        }
-
-        .bold-italic {
-            font-style: italic;
-            font-weight: bold;
-        }
-
         .items {
             width: 100%;
             margin-top: 6mm;
@@ -205,11 +196,6 @@
             text-align: right;
         }
 
-        .order {
-            margin-top: 8mm;
-            font-size: 9.5pt;
-        }
-
         .footer {
             position: absolute;
             left: 0;
@@ -258,12 +244,9 @@
 
             <div class="meta">
                 {{ $issuedAt->format('d-M-Y') }}&nbsp;&nbsp;{{ $issuedAt->format('H:i') }}<br><br>
-                <span class="code">SPA ID: {{ $user->user_code ?: $user->id }}</span><br>
+                <span class="code">SPA ID: {{ $user->id }}</span><br>
                 <span class="name">{{ $fullName }}</span>
-                {{ $user->email ?: '-' }}<br><br>
-                <span class="italic">Nota plata service</span><br>
-                <span class="bold-italic">Extern</span><br>
-                <span class="italic">Independent</span>
+                {{ $user->email ?: '-' }}
             </div>
 
             <table class="items">
@@ -293,8 +276,6 @@
                     <td class="total-amount">{{ $amount }}</td>
                 </tr>
             </table>
-
-            <div class="order">{{ $orderDetails }}</div>
 
             <div class="footer">
                 <div class="company">{{ $organization?->name ?? 'Organizatie' }}</div>

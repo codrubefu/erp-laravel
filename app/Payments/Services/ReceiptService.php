@@ -3,6 +3,7 @@
 namespace App\Payments\Services;
 
 use App\Payments\Models\Payment;
+use App\Service\Models\ServiceUser;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Support\Carbon;
@@ -22,15 +23,13 @@ class ReceiptService
 
     public function pdf(Payment $payment): string
     {
-        $payment->loadMissing(['admin.organization', 'location']);
-
         $options = new Options();
         $options->set('defaultFont', 'DejaVu Sans');
         $options->set('isRemoteEnabled', false);
         $options->set('isHtml5ParserEnabled', true);
 
         $pdf = new Dompdf($options);
-        $pdf->loadHtml($this->renderHtml($payment), 'UTF-8');
+        $pdf->loadHtml($this->html($payment), 'UTF-8');
         $pdf->setPaper('a4');
         $pdf->render();
 
@@ -42,8 +41,10 @@ class ReceiptService
         return ($payment->receipt_number ?: 'chitanta-'.$payment->id).'.pdf';
     }
 
-    private function renderHtml(Payment $payment): string
+    public function html(Payment $payment): string
     {
+        $payment->loadMissing(['admin.organization', 'location']);
+
         $paidAt = $payment->confirmed_at ?? $payment->paid_at ?? $payment->created_at ?? now();
         $payerName = trim($payment->first_name.' '.$payment->last_name) ?: 'Client #'.$payment->id;
         $amount = number_format((float) $payment->amount, 2, '.', ',');
@@ -60,7 +61,6 @@ class ReceiptService
             'paidAt' => $paidAt,
             'paidAtFormatted' => $this->formatDate($paidAt),
             'payerName' => $payerName,
-            'payerAddress' => $this->payerAddress($payment),
             'amount' => $amount,
             'amountText' => $amountText,
             'cashier' => $cashier,
@@ -101,14 +101,14 @@ class ReceiptService
         $parts = [];
 
         if ($payment->model_type === Payment::MODEL_TYPE_SERVICE_USER && $payment->model_id) {
-            $assignment = DB::table('service_user')
-                ->join('services', 'services.id', '=', 'service_user.service_id')
-                ->where('service_user.id', $payment->model_id)
-                ->select('services.id', 'services.name', 'service_user.start_date', 'service_user.expires_at')
-                ->first();
+            $assignment = ServiceUser::query()->with('service')->find($payment->model_id);
 
             if ($assignment) {
-                $parts[] = 'serviciu '.$assignment->name.' #'.$assignment->id;
+                $parts[] = 'nota de plata nr. '.$assignment->noteNumber();
+                if ($assignment->invoice_number) {
+                    $parts[] = 'factura nr. '.$assignment->invoice_number;
+                }
+                $parts[] = 'serviciu '.$assignment->service?->name.' #'.$assignment->service_id;
                 if ($assignment->start_date) {
                     $parts[] = 'start '.$this->formatDate($assignment->start_date);
                 }
@@ -132,26 +132,7 @@ class ReceiptService
             }
         }
 
-        $parts[] = 'plata #'.$payment->id;
-        $parts[] = 'metoda '.str_replace('_', ' ', $payment->paymentTypeName() ?? '-');
-
         return implode(' | ', $parts);
-    }
-
-    private function payerAddress(Payment $payment): string
-    {
-        $items = [];
-        if ($payment->location?->name) {
-            $items[] = 'Locatie: '.$payment->location->name;
-        }
-        if ($payment->provider) {
-            $items[] = 'Provider: '.$payment->provider;
-        }
-        if ($payment->provider_transaction_id) {
-            $items[] = 'Tranzactie: '.$payment->provider_transaction_id;
-        }
-
-        return $items ? implode(' | ', $items) : 'Plata interna #'.$payment->id;
     }
 
     private function amountInWords(float $amount): string
