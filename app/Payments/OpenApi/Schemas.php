@@ -44,6 +44,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'refunded_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'cancelled_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'failure_reason', type: 'string', nullable: true, example: 'Card declined'),
+        new OA\Property(property: 'cancellation_reason', type: 'string', nullable: true, example: 'Suma gresita'),
         new OA\Property(property: 'admin_id', type: 'integer', example: 34),
         new OA\Property(property: 'admin', ref: '#/components/schemas/PaymentAdmin'),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),

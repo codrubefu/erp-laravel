@@ -153,6 +153,104 @@ class PaymentApiTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_payment_with_issued_receipt_cannot_be_reattached(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['payments.update']);
+        $modelId = $this->serviceAssignment($admin);
+        $payment = Payment::query()->create($this->paymentData([
+            'model_id' => 10,
+            'receipt_number' => 'CH000001',
+            'status' => Payment::STATUS_CONFIRMED,
+            'admin_id' => $admin->id,
+            'organization_id' => $admin->organization_id,
+        ]));
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->patchJson("/api/payments/{$payment->id}/attach-model", [
+                'model_type' => Payment::MODEL_TYPE_SERVICE_USER,
+                'model_id' => $modelId,
+            ])
+            ->assertStatus(409);
+
+        $this->assertDatabaseHas('payments', ['id' => $payment->id, 'model_id' => 10]);
+    }
+
+    public function test_user_with_manage_right_can_cancel_a_receipt_and_still_download_it(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['payments.manage']);
+        $payment = $this->confirmedPayment($admin);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson("/api/payments/{$payment->id}/cancel", ['reason' => 'Suma gresita'])
+            ->assertOk()
+            ->assertJsonPath('data.status', Payment::STATUS_CANCELLED)
+            ->assertJsonPath('data.cancellation_reason', 'Suma gresita')
+            ->assertJsonPath('data.receipt_number', 'CH000001')
+            ->assertJsonMissingPath('data.receipt_snapshot');
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->get("/api/payments/{$payment->id}/receipt")
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+    }
+
+    public function test_cancelling_requires_the_manage_right(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['payments.update', 'payments.create']);
+        $payment = $this->confirmedPayment($admin);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson("/api/payments/{$payment->id}/cancel", ['reason' => 'Suma gresita'])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('payments', ['id' => $payment->id, 'status' => Payment::STATUS_CONFIRMED]);
+    }
+
+    public function test_cancelling_requires_a_reason(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['payments.manage']);
+        $payment = $this->confirmedPayment($admin);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson("/api/payments/{$payment->id}/cancel", [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('reason');
+    }
+
+    public function test_only_confirmed_payments_with_a_receipt_can_be_cancelled(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['payments.manage']);
+        $payment = $this->confirmedPayment($admin);
+        $payment->update(['status' => Payment::STATUS_INITIATED, 'receipt_number' => null]);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson("/api/payments/{$payment->id}/cancel", ['reason' => 'Suma gresita'])
+            ->assertStatus(409);
+    }
+
+    public function test_payment_from_another_organization_cannot_be_cancelled(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['payments.manage']);
+        $payment = $this->confirmedPayment(User::factory()->create());
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson("/api/payments/{$payment->id}/cancel", ['reason' => 'Suma gresita'])
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('payments', ['id' => $payment->id, 'status' => Payment::STATUS_CONFIRMED]);
+    }
+
+    private function confirmedPayment(User $admin): Payment
+    {
+        return Payment::query()->create($this->paymentData([
+            'model_id' => $this->serviceAssignment($admin),
+            'status' => Payment::STATUS_CONFIRMED,
+            'receipt_number' => 'CH000001',
+            'admin_id' => $admin->id,
+            'organization_id' => $admin->organization_id,
+        ]));
+    }
+
     private function paymentData(array $overrides = []): array
     {
         return array_merge([

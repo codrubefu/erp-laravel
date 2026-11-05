@@ -37,7 +37,7 @@ class FinancialDocumentReportService
         if ($type === 'receipt') {
             $payment = Payment::query()
                 ->where('organization_id', $organizationId)
-                ->where('status', Payment::STATUS_CONFIRMED)
+                ->whereIn('status', Payment::RECEIPT_STATUSES)
                 ->whereNotNull('receipt_number')
                 ->findOrFail($id);
 
@@ -145,7 +145,7 @@ class FinancialDocumentReportService
     {
         $query = Payment::query()
             ->where('organization_id', $organizationId)
-            ->where('status', Payment::STATUS_CONFIRMED)
+            ->whereIn('status', Payment::RECEIPT_STATUSES)
             ->whereNotNull('receipt_number');
 
         $this->applyDateFilters($query, 'paid_at', $filters);
@@ -154,7 +154,8 @@ class FinancialDocumentReportService
             return [
                 'id' => $payment->id,
                 'type' => 'receipt',
-                'type_label' => 'Chitanta',
+                'type_label' => $payment->status === Payment::STATUS_CANCELLED ? 'Chitanta anulata' : 'Chitanta',
+                'status' => $payment->status,
                 'number' => $payment->receipt_number,
                 'date' => ($payment->paid_at ?? $payment->created_at)->toDateString(),
                 'member' => trim($payment->last_name.' '.$payment->first_name),

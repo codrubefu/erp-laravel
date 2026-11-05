@@ -92,6 +92,40 @@ class ServiceLifecycleService
         });
     }
 
+    public function revertActivation(ServiceUser $assignment): ServiceUser
+    {
+        return DB::transaction(function () use ($assignment): ServiceUser {
+            $assignment = $this->locked($assignment);
+
+            $replacementPaymentId = Payment::query()
+                ->where('model_type', Payment::MODEL_TYPE_SERVICE_USER)
+                ->where('model_id', $assignment->id)
+                ->where('status', Payment::STATUS_CONFIRMED)
+                ->latest('confirmed_at')
+                ->value('id');
+
+            if ($replacementPaymentId !== null) {
+                $assignment->forceFill(['activation_payment_id' => $replacementPaymentId])->saveQuietly();
+
+                return $assignment->refresh();
+            }
+
+            if (in_array($assignment->status, ['active', 'reserved', 'suspended'], true)) {
+                $assignment->forceFill([
+                    'status' => 'pending',
+                    'expires_at' => null,
+                    'activated_at' => null,
+                    'activation_payment_id' => null,
+                    'suspended_at' => null,
+                    'resume_at' => null,
+                    'status_reason' => null,
+                ])->saveQuietly();
+            }
+
+            return $assignment->refresh();
+        });
+    }
+
     public function suspend(ServiceUser $assignment, string $reason, ?CarbonInterface $resumeAt = null): ServiceUser
     {
         return DB::transaction(function () use ($assignment, $reason, $resumeAt): ServiceUser {

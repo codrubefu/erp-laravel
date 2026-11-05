@@ -17,6 +17,7 @@ class UserResource extends JsonResource
             'phone' => $this->phone,
             'cnp' => $this->cnp,
             'ci' => $this->ci,
+            'address' => $this->address,
             'notification_consents' => $this->notification_consents ?? [],
             'push_token' => $this->push_token,
             'active' => $this->active,

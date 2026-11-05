@@ -12,6 +12,14 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ReceiptService
 {
+    private const ORGANIZATION_FIELDS = ['name', 'address', 'email', 'web', 'phone', 'cui', 'nr_reg_com', 'capital', 'cont', 'bank'];
+
+    private const PAYMENT_METHODS = [
+        Payment::TYPE_CASH => 'Numerar',
+        Payment::TYPE_CARD => 'Card',
+        Payment::TYPE_BANK_TRANSFER => 'Transfer bancar',
+    ];
+
     public function download(Payment $payment): Response
     {
         return response($this->pdf($payment), 200, [
@@ -43,6 +51,22 @@ class ReceiptService
 
     public function html(Payment $payment): string
     {
+        $receipt = $payment->receipt_snapshot ?? $this->snapshot($payment);
+
+        return view('payments.receipt', [
+            ...$receipt,
+            'organization' => (object) $receipt['organization'],
+            'isCancelled' => $payment->status === Payment::STATUS_CANCELLED,
+            'cancellationReason' => $payment->cancellation_reason,
+        ])->render();
+    }
+
+    /**
+     * Everything printed on the receipt, frozen when the receipt is issued so later
+     * changes to the member, service or organization do not alter the document.
+     */
+    public function snapshot(Payment $payment): array
+    {
         $payment->loadMissing(['admin.organization', 'location']);
 
         $paidAt = $payment->confirmed_at ?? $payment->paid_at ?? $payment->created_at ?? now();
@@ -55,20 +79,41 @@ class ReceiptService
         $receiptNumber = $payment->receipt_number ?? sprintf('CH%09d', $payment->id);
         $receiptSeries = preg_replace('/\d+$/', '', $receiptNumber) ?: 'CH';
 
-        return view('payments.receipt', [
-            'payment' => $payment,
-            'organization' => $this->organization($payment),
-            'paidAt' => $paidAt,
+        $organization = $this->organization($payment);
+
+        return [
+            'organization' => collect(self::ORGANIZATION_FIELDS)
+                ->mapWithKeys(fn (string $field): array => [$field => $organization?->{$field}])
+                ->all(),
+            'locationName' => $payment->location?->name,
             'paidAtFormatted' => $this->formatDate($paidAt),
             'payerName' => $payerName,
+            'payerAddress' => $this->payerAddress($payment),
+            'paymentMethod' => self::PAYMENT_METHODS[$payment->payment_type_id] ?? '-',
             'amount' => $amount,
             'amountText' => $amountText,
             'cashier' => $cashier,
             'description' => $description,
             'receiptNumber' => $receiptNumber,
             'receiptSeries' => $receiptSeries,
-            'archiveCode' => 'PAY-'.$payment->id.'-'.$paidAt->format('Ymd'),
-        ])->render();
+        ];
+    }
+
+    private function payerAddress(Payment $payment): ?string
+    {
+        $pivotTable = match ($payment->model_type) {
+            Payment::MODEL_TYPE_SERVICE_USER => 'service_user',
+            Payment::MODEL_TYPE_EVENT_OCCURRENCE_USER => 'event_occurrence_user',
+            default => null,
+        };
+
+        if ($pivotTable === null || ! $payment->model_id) {
+            return null;
+        }
+
+        $userId = DB::table($pivotTable)->where('id', $payment->model_id)->value('user_id');
+
+        return $userId ? DB::table('users')->where('id', $userId)->value('address') : null;
     }
 
     private function organization(Payment $payment): mixed

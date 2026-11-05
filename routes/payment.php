@@ -12,6 +12,8 @@ Route::middleware('auth.bearer')->group(function (): void {
         ->middleware('right:payments.create,payments.manage');
     Route::patch('/payments/{payment}/attach-model', [PaymentController::class, 'attachModel'])
         ->middleware('right:payments.update,payments.manage');
+    Route::post('/payments/{payment}/cancel', [PaymentController::class, 'cancel'])
+        ->middleware('right:payments.manage');
     Route::get('/payments/{payment}/receipt', [PaymentController::class, 'receipt'])
         ->middleware('right:payments.view,payments.manage');
 });

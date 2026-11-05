@@ -29,6 +29,7 @@ class AuditLog extends Model
     public const SERVICE_RENEWED = 'service.renewed';
     public const SERVICE_SUSPENDED = 'service.suspended';
     public const PAYMENT_RECORDED = 'payment.recorded';
+    public const PAYMENT_CANCELLED = 'payment.cancelled';
     public const APPROVAL_GRANTED = 'approval.granted';
     public const CARD_ISSUED = 'card.issued';
     public const SMS_SENT = 'sms.sent';

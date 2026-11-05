@@ -118,6 +118,20 @@ class FinancialReportingTest extends TestCase
             ->assertJsonFragment(['type' => 'payment_note', 'number' => 'BILL000001'])
             ->assertJsonFragment(['type' => 'receipt', 'number' => 'REC000001']);
 
+        $payment->update(['status' => Payment::STATUS_CANCELLED]);
+
+        $this->withToken($token)
+            ->getJson('/api/reports/financial-documents?from=2026-08-01&to=2026-08-31')
+            ->assertOk()
+            ->assertJsonFragment(['number' => 'REC000001', 'type_label' => 'Chitanta anulata', 'status' => Payment::STATUS_CANCELLED]);
+
+        $this->withToken($token)
+            ->get("/api/reports/financial-documents/receipt/{$payment->id}/download")
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+
+        $payment->update(['status' => Payment::STATUS_CONFIRMED]);
+
         $this->withToken($token)
             ->get("/api/reports/financial-documents/invoice/{$assignmentId}/download")
             ->assertOk()

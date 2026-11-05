@@ -59,11 +59,13 @@ class GdprWorkflowTest extends TestCase
     public function test_erasure_anonymizes_activity_and_retains_minimized_financial_record(): void
     {
         $actor = User::factory()->create();
-        $subject = User::factory()->create(['organization_id' => $actor->organization_id]);
+        $subject = User::factory()->create(['organization_id' => $actor->organization_id, 'address' => 'Str. Privata 1']);
         $payment = Payment::query()->create([
             'organization_id' => $subject->organization_id, 'first_name' => $subject->first_name, 'last_name' => $subject->last_name,
             'payment_type_id' => Payment::TYPE_CASH, 'status' => Payment::STATUS_CONFIRMED, 'amount' => 50,
             'paid_at' => now(), 'admin_id' => $subject->id, 'provider_payload' => ['secret' => 'provider-secret'],
+            'cancellation_reason' => 'Motiv cu nume',
+            'receipt_snapshot' => ['payerName' => 'Ana Popescu', 'payerAddress' => 'Str. Privata 1', 'cashier' => 'Ana Popescu', 'amount' => '50.00'],
         ]);
         $log = AuditLog::query()->create([
             'organization_id' => $subject->organization_id, 'model_type' => User::class, 'model_id' => $subject->id,
@@ -79,6 +81,12 @@ class GdprWorkflowTest extends TestCase
 
         $this->assertDatabaseHas('payments', ['id' => $payment->id, 'first_name' => 'REDACTED', 'amount' => 50]);
         $this->assertNull($payment->fresh()->provider_payload);
+        $this->assertNull($payment->fresh()->cancellation_reason);
+        $this->assertSame(
+            ['payerName' => 'REDACTED', 'payerAddress' => null, 'cashier' => 'REDACTED', 'amount' => '50.00'],
+            $payment->fresh()->receipt_snapshot,
+        );
+        $this->assertNull($subject->fresh()->address);
         $this->assertNull($log->fresh()->subject_user_id);
         $this->assertNull($log->fresh()->old_values);
         $this->assertFalse($subject->fresh()->active);

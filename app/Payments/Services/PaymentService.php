@@ -19,6 +19,7 @@ class PaymentService
     public function __construct(
         private readonly BusinessActivityLogger $activityLogger,
         private readonly ServiceLifecycleService $serviceLifecycle,
+        private readonly ReceiptService $receipts,
     ) {}
 
     public function create(array $data, User $admin): Payment
@@ -58,12 +59,56 @@ class PaymentService
 
     public function attachModel(Payment $payment, string $modelType, int $modelId): Payment
     {
+        abort_if($payment->receipt_number !== null, 409, 'A payment with an issued receipt cannot be changed.');
+
         $this->ensureSupportedModelType($modelType);
         $this->ensurePayableBelongsToOrganization($modelType, $modelId, (int) $payment->organization_id);
 
         $payment->update(['model_type' => $modelType, 'model_id' => $modelId]);
 
         return $payment;
+    }
+
+    public function cancel(Payment $payment, string $reason, User $admin): Payment
+    {
+        return DB::transaction(function () use ($payment, $reason, $admin): Payment {
+            $payment = Payment::query()->lockForUpdate()->findOrFail($payment->id);
+
+            abort_unless(
+                $payment->status === Payment::STATUS_CONFIRMED && $payment->receipt_number !== null,
+                409,
+                'Only confirmed payments with an issued receipt can be cancelled.',
+            );
+
+            // Receipts issued before snapshots existed are frozen here, while their assignment still has its dates.
+            $payment->update([
+                'status' => Payment::STATUS_CANCELLED,
+                'cancelled_at' => now(),
+                'cancellation_reason' => $reason,
+                'receipt_snapshot' => $payment->receipt_snapshot ?? $this->receipts->snapshot($payment),
+            ]);
+
+            if ($payment->model_type === Payment::MODEL_TYPE_SERVICE_USER) {
+                $assignment = ServiceUser::query()
+                    ->whereKey($payment->model_id)
+                    ->where('activation_payment_id', $payment->id)
+                    ->first();
+
+                if ($assignment !== null) {
+                    $this->serviceLifecycle->revertActivation($assignment);
+                }
+            }
+
+            $this->activityLogger->record(AuditLog::PAYMENT_CANCELLED, $this->subjectFor($payment), $payment, [
+                'status' => Payment::STATUS_CONFIRMED,
+            ], [
+                'status' => Payment::STATUS_CANCELLED,
+                'receipt_number' => $payment->receipt_number,
+                'cancellation_reason' => $reason,
+            ], $admin);
+
+            return $payment->refresh();
+        });
     }
 
     public function processCallback(array $payload): Payment
@@ -115,12 +160,13 @@ class PaymentService
             $payment->update(['receipt_number' => sprintf('%s%06d', $organization->receipt_code ?: 'CH', $nextNumber)]);
         }
 
-        if ($payment->model_type !== Payment::MODEL_TYPE_SERVICE_USER) {
-            return;
+        if ($payment->model_type === Payment::MODEL_TYPE_SERVICE_USER) {
+            $assignment = ServiceUser::query()->findOrFail($payment->model_id);
+            $this->serviceLifecycle->activate($assignment, $payment);
         }
 
-        $assignment = ServiceUser::query()->findOrFail($payment->model_id);
-        $this->serviceLifecycle->activate($assignment, $payment);
+        // Taken after activation, because the receipt prints the assignment's start and expiry dates.
+        $payment->update(['receipt_snapshot' => $this->receipts->snapshot($payment)]);
     }
 
     private function confirmsImmediately(int $paymentTypeId): bool

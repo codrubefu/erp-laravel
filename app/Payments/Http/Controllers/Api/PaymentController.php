@@ -3,6 +3,7 @@
 namespace App\Payments\Http\Controllers\Api;
 
 use App\Payments\Http\Requests\AttachPaymentModelRequest;
+use App\Payments\Http\Requests\CancelPaymentRequest;
 use App\Payments\Http\Requests\StorePaymentRequest;
 use App\Payments\Http\Resources\PaymentResource;
 use App\Payments\Models\Payment;
@@ -55,7 +56,11 @@ class PaymentController extends Controller
     public function receipt(Request $request, Payment $payment): Response
     {
         abort_unless((int) $payment->organization_id === (int) $request->user()->organization_id, 404);
-        abort_unless($payment->status === Payment::STATUS_CONFIRMED && $payment->receipt_number !== null, 409, 'Receipt is only available for confirmed payments.');
+        abort_unless(
+            in_array($payment->status, Payment::RECEIPT_STATUSES, true) && $payment->receipt_number !== null,
+            409,
+            'Receipt is only available for confirmed or cancelled payments.',
+        );
 
         return $this->receipts->download($payment);
     }
@@ -67,6 +72,15 @@ class PaymentController extends Controller
         return (new PaymentResource($payment->load(['admin'])))
             ->response()
             ->setStatusCode(201);
+    }
+
+    public function cancel(CancelPaymentRequest $request, Payment $payment): PaymentResource
+    {
+        abort_unless((int) $payment->organization_id === (int) $request->user()->organization_id, 404);
+
+        $payment = $this->payments->cancel($payment, $request->validated('reason'), $request->user());
+
+        return new PaymentResource($payment->load(['admin']));
     }
 
     public function attachModel(AttachPaymentModelRequest $request, Payment $payment): PaymentResource

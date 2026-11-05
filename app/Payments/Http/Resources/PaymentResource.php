@@ -32,6 +32,7 @@ class PaymentResource extends JsonResource
             'refunded_at' => $this->refunded_at,
             'cancelled_at' => $this->cancelled_at,
             'failure_reason' => $this->failure_reason,
+            'cancellation_reason' => $this->cancellation_reason,
             'admin_id' => $this->admin_id,
             'admin' => new UserResource($this->whenLoaded('admin')),
             'created_at' => $this->created_at,

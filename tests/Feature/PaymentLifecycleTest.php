@@ -6,6 +6,7 @@ use App\Payments\Models\Payment;
 use App\Payments\Services\PaymentService;
 use App\Service\Models\ServiceUser;
 use App\Service\Services\ServiceLifecycleService;
+use App\Users\Models\AuditLog;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -129,6 +130,96 @@ class PaymentLifecycleTest extends TestCase
             ServiceUser::query()->findOrFail($assignmentId),
             $payment,
         );
+    }
+
+    public function test_cancelling_the_activation_payment_returns_assignment_to_pending_and_allows_a_new_payment(): void
+    {
+        [$operator, $assignmentId] = $this->serviceAssignment();
+        $payments = app(PaymentService::class);
+        $payment = $payments->create($this->paymentData($assignmentId, Payment::TYPE_CASH), $operator);
+
+        $cancelled = $payments->cancel($payment, 'Suma gresita', $operator);
+
+        $this->assertSame(Payment::STATUS_CANCELLED, $cancelled->status);
+        $this->assertSame('Suma gresita', $cancelled->cancellation_reason);
+        $this->assertNotNull($cancelled->cancelled_at);
+        $this->assertSame('CH000001', $cancelled->receipt_number);
+        $this->assertDatabaseHas('service_user', [
+            'id' => $assignmentId,
+            'status' => 'pending',
+            'activation_payment_id' => null,
+            'expires_at' => null,
+            'activated_at' => null,
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'event_type' => AuditLog::PAYMENT_CANCELLED,
+            'model_id' => $payment->id,
+            'changed_by' => $operator->id,
+        ]);
+
+        $replacement = $payments->create($this->paymentData($assignmentId, Payment::TYPE_CASH), $operator);
+
+        $this->assertSame('CH000002', $replacement->receipt_number);
+        $this->assertDatabaseHas('service_user', [
+            'id' => $assignmentId,
+            'status' => 'active',
+            'activation_payment_id' => $replacement->id,
+        ]);
+    }
+
+    public function test_cancelling_keeps_the_assignment_active_when_another_confirmed_payment_covers_it(): void
+    {
+        [$operator, $assignmentId] = $this->serviceAssignment();
+        $payments = app(PaymentService::class);
+        $payment = $payments->create($this->paymentData($assignmentId, Payment::TYPE_CASH), $operator);
+        $other = Payment::query()->create([
+            ...$this->paymentData($assignmentId, Payment::TYPE_CASH),
+            'organization_id' => $operator->organization_id,
+            'admin_id' => $operator->id,
+            'status' => Payment::STATUS_CONFIRMED,
+            'confirmed_at' => now(),
+        ]);
+
+        $payments->cancel($payment, 'Dublura', $operator);
+
+        $this->assertDatabaseHas('service_user', [
+            'id' => $assignmentId,
+            'status' => 'active',
+            'activation_payment_id' => $other->id,
+        ]);
+    }
+
+    public function test_late_provider_callback_does_not_revive_a_cancelled_payment(): void
+    {
+        [$operator, $assignmentId] = $this->serviceAssignment();
+        $payments = app(PaymentService::class);
+        $payment = $payments->create($this->paymentData($assignmentId, Payment::TYPE_CASH), $operator);
+        $payments->cancel($payment, 'Suma gresita', $operator);
+
+        $result = $payments->processCallback([
+            'external_reference' => $payment->external_reference,
+            'status' => Payment::STATUS_CONFIRMED,
+        ]);
+
+        $this->assertSame(Payment::STATUS_CANCELLED, $result->status);
+        $this->assertDatabaseHas('service_user', ['id' => $assignmentId, 'status' => 'pending']);
+    }
+
+    public function test_bank_callback_freezes_the_receipt(): void
+    {
+        [$operator, $assignmentId] = $this->serviceAssignment();
+        $payments = app(PaymentService::class);
+        $payment = $payments->create($this->paymentData($assignmentId, Payment::TYPE_BANK_TRANSFER), $operator);
+
+        $this->assertNull($payment->receipt_snapshot);
+
+        $confirmed = $payments->processCallback([
+            'external_reference' => $payment->external_reference,
+            'status' => Payment::STATUS_CONFIRMED,
+        ]);
+
+        $this->assertSame('Transfer bancar', $confirmed->receipt_snapshot['paymentMethod']);
+        $this->assertStringContainsString('expira', $confirmed->receipt_snapshot['description']);
     }
 
     private function serviceAssignment(): array

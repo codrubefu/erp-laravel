@@ -396,6 +396,7 @@ Routes:
 - `POST /api/payments`
 - `PATCH /api/payments/{payment}/attach-model`
 - `GET /api/payments/{payment}/receipt`
+- `POST /api/payments/{payment}/cancel` (right `payments.manage`, required `reason`)
 - `POST /api/payments/callback`
 
 Functional behavior:
@@ -412,7 +413,12 @@ Functional behavior:
 - A payment can activate an assignment only when its `status` is exactly `confirmed`, its `organization_id` matches the service organization, and its `model_type`/`model_id` point to that exact `service_user` row. A populated `paid_at` field alone is not confirmation.
 - Activation locks the assignment and atomically writes its lifecycle `status`, `start_date`, `expires_at`, `activated_at`, and `activation_payment_id`. Expiration follows the service's `expiration_rule` (`duration`, `fixed_date`, or `none`), including future starts becoming `reserved`.
 - Confirmed payments receive a receipt number in the same transaction as service activation.
-- Receipt download is allowed only for confirmed payments with receipt numbers. `ReceiptService` generates the PDF from `storage/chitanta.html` and fills payment number, date, payer, amount, amount in Romanian words, paid model details, and cashier from the persisted payment.
+- Receipt download is allowed for confirmed and cancelled payments with receipt numbers. `ReceiptService` renders `resources/views/payments/receipt.blade.php` with the organization details, location, number, date, payer name and address (`users.address`), payment method, amount, amount in Romanian words, paid model details, and cashier.
+- Issued receipts are frozen. `PaymentService::completeConfirmation` stores everything printed in `payments.receipt_snapshot` after service activation, so later changes to the member, service, or organization do not alter the PDF. Payments confirmed before this column existed have no snapshot and are still rendered from current data until they are cancelled. The snapshot is hidden from API output and audit logs.
+- There is no payment update endpoint, and `PATCH /api/payments/{payment}/attach-model` answers 409 once a receipt number exists.
+- Cancelling a receipt (`PaymentService::cancel`, `CancelPaymentRequest`) applies only to confirmed payments with a receipt number, otherwise it answers 409. It sets `status = cancelled`, `cancelled_at`, and `cancellation_reason` and records the `payment.cancelled` audit event. The receipt number stays consumed. The PDF stays downloadable, stamped `ANULATA` with the reason, and financial document reports keep it as `Chitanta anulata`. Revenue totals count only confirmed payments.
+- When the cancelled payment activated an assignment, `ServiceLifecycleService::revertActivation` moves `activation_payment_id` to another confirmed payment of that assignment if one exists. Otherwise `active`, `reserved`, and `suspended` assignments return to `pending` with expiry and activation data cleared, so a new payment can activate them and issue a new receipt. Cancelling does not move money or call the payment provider.
+- GDPR erasure clears `users.address`, redacts the payer (and cashier, for a cashier subject) inside `receipt_snapshot`, and clears `cancellation_reason`.
 - Callback processing is idempotent and handles terminal statuses; a duplicate confirmed callback does not activate or notify twice.
 - The `service.activated` notification and audit business event are emitted only after the activation transaction commits, so rolled-back activations have no external activation side effects.
 - Callback signatures use `services.payments.callback_secret`.

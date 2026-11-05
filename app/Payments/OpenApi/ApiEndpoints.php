@@ -93,10 +93,51 @@ class ApiEndpoints
             ),
             new OA\Response(response: 403, description: 'Missing payments.update or payments.manage right.'),
             new OA\Response(response: 404, description: 'Payment not found.'),
+            new OA\Response(response: 409, description: 'The payment already has an issued receipt.'),
             new OA\Response(response: 422, description: 'Validation failed.'),
         ],
     )]
     public function attachModel(): void
+    {
+    }
+
+    #[OA\Post(
+        path: '/payments/{payment}/cancel',
+        summary: 'Cancel a confirmed payment and its issued receipt',
+        description: 'The receipt number stays consumed and the receipt remains downloadable, marked as cancelled. An assignment activated by this payment returns to pending unless another confirmed payment covers it. No money is refunded.',
+        security: [['bearerAuth' => []]],
+        tags: ['Payment'],
+        parameters: [
+            new OA\PathParameter(name: 'payment', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['reason'],
+                properties: [
+                    new OA\Property(property: 'reason', type: 'string', maxLength: 2000, example: 'Suma gresita'),
+                ],
+                type: 'object',
+            ),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Payment cancelled.',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/Payment'),
+                    ],
+                    type: 'object',
+                ),
+            ),
+            new OA\Response(response: 403, description: 'Missing payments.manage right.'),
+            new OA\Response(response: 404, description: 'Payment not found.'),
+            new OA\Response(response: 409, description: 'The payment is not confirmed or has no issued receipt.'),
+            new OA\Response(response: 422, description: 'Validation failed.'),
+        ],
+    )]
+    public function cancel(): void
     {
     }
 

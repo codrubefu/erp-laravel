@@ -32,6 +32,7 @@ class StoreUserRequest extends FormRequest
             ],
             'cnp' => ['nullable', 'string', 'max:20'],
             'ci' => ['nullable', 'string', 'max:20'],
+            'address' => ['nullable', 'string', 'max:500'],
             'active' => ['sometimes', 'boolean'],
             'email' => [
                 'required',

@@ -7,7 +7,7 @@
 
 
         html {
-            margin: 22px;
+            margin: 18px;
             background: #fff;
         }
         body {
@@ -27,8 +27,13 @@
         .receipt {
             border: 2px solid #111 ; 
             position: relative;
-            padding: 20px;
-            margin-bottom: 6mm;
+            padding: 10px 14px;
+            margin-bottom: 3mm;
+            page-break-inside: avoid;
+        }
+
+        .receipt:last-child {
+            margin-bottom: 0;
         }
 
         .receipt_org_info {
@@ -69,14 +74,14 @@
         .company .small {
             font-weight: normal;
             font-size: 7pt;
-            line-height: 1.7;
+            line-height: 1.3;
         }
 
         .title {
             text-align: left;
             font-size: 18pt;
             font-weight: bold;
-            margin-top: 8mm;
+            margin-top: 4mm;
         }
 
         .docmeta {
@@ -93,8 +98,8 @@
 
         .bank {
             font-size: 7.3pt;
-            line-height: 1.5;
-            margin-top: 2mm;
+            line-height: 1.25;
+            margin-top: 1mm;
         }
 
         .bank b {
@@ -109,8 +114,8 @@
 
         .form {
             font-size: 9pt;
-            margin-top: 4mm;
-            line-height: 1.55;
+            margin-top: 2mm;
+            line-height: 1.4;
         }
 
         .line {
@@ -161,6 +166,24 @@
             vertical-align: bottom;
         }
 
+        .cancelled-stamp {
+            position: absolute;
+            right: 12mm;
+            top: 22mm;
+            border: 2px solid #b00020;
+            color: #b00020;
+            font-size: 20pt;
+            font-weight: bold;
+            letter-spacing: 2pt;
+            padding: 1mm 4mm;
+        }
+
+        .cancelled-reason {
+            color: #b00020;
+            font-size: 8pt;
+            margin-top: 1mm;
+        }
+
         .footerlogo {
             position: absolute;
             left: 0;
@@ -204,6 +227,9 @@
         @foreach (['Exemplar Client', 'Exemplar Contabilitate', 'Exemplar Arhiva'] as $copyName)
         <section class="receipt">
             <div class="copyname">{{ $copyName }}</div>
+            @if ($isCancelled)
+            <div class="cancelled-stamp">ANULATA</div>
+            @endif
             <div class="header">
                 <div class="receipt_org_info">
                     <div class="company">
@@ -219,7 +245,7 @@
                         <b>Capital social:</b> {{ $organization?->capital ?? '-' }}<br>
                         <b>Cont:</b> {{ $organization?->cont ?? '-' }}<br>
                         <b>Banca:</b> {{ $organization?->bank ?? '-' }}
-                        <div class="work">Punct de lucru: {{ $payment->location?->name ?? '-' }}</div>
+                        <div class="work">Punct de lucru: {{ $locationName ?? '-' }}</div>
                     </div>
                 </div>
                 <div class="receipt_info">
@@ -239,6 +265,12 @@
                         <td class="dots"><span class="value">{{ $payerName }}</span></td>
                     </tr>
                 </table>
+                <table class="line">
+                    <tr>
+                        <td class="line-label">Adresa</td>
+                        <td class="dots"><span class="value">{{ $payerAddress }}</span></td>
+                    </tr>
+                </table>
                 <table class="sumgrid">
                     <tr>
                         <td class="line-label">Suma de</td>
@@ -249,14 +281,14 @@
                 </table>
                 <table class="line">
                     <tr>
-                        <td class="line-label">&nbsp;</td>
-                        <td class="dots"></td>
+                        <td class="line-label">Reprezentand contravaloare</td>
+                        <td class="dots"><span class="value">{{ $description }}</span></td>
                     </tr>
                 </table>
                 <table class="line">
                     <tr>
-                        <td class="line-label">Reprezentand contravaloare</td>
-                        <td class="dots"><span class="value">{{ $description }}</span></td>
+                        <td class="line-label">Modalitate de plata</td>
+                        <td class="dots"><span class="value">{{ $paymentMethod }}</span></td>
                     </tr>
                 </table>
                 <table class="cash">
@@ -266,7 +298,9 @@
                         <td class="dots"></td>
                     </tr>
                 </table>
-              
+                @if ($isCancelled)
+                <div class="cancelled-reason">Motiv anulare: {{ $cancellationReason }}</div>
+                @endif
             </div>
             
         </section>

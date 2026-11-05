@@ -6,6 +6,7 @@ use App\Users\Models\Concerns\LogsModelChanges;
 use App\Users\Models\Location;
 use App\Users\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'status',
     'external_reference',
     'receipt_number',
+    'receipt_snapshot',
     'provider',
     'provider_transaction_id',
     'bank_reference',
@@ -34,7 +36,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'refunded_at',
     'cancelled_at',
     'failure_reason',
+    'cancellation_reason',
 ])]
+#[Hidden(['receipt_snapshot'])]
 class Payment extends Model
 {
     use HasFactory;
@@ -56,6 +60,11 @@ class Payment extends Model
         self::STATUS_CONFIRMED,
         self::STATUS_FAILED,
         self::STATUS_REFUNDED,
+        self::STATUS_CANCELLED,
+    ];
+
+    public const RECEIPT_STATUSES = [
+        self::STATUS_CONFIRMED,
         self::STATUS_CANCELLED,
     ];
 
@@ -96,6 +105,7 @@ class Payment extends Model
             'amount' => 'decimal:2',
             'paid_at' => 'datetime',
             'provider_payload' => 'array',
+            'receipt_snapshot' => 'array',
             'reconciled_at' => 'datetime',
             'confirmed_at' => 'datetime',
             'failed_at' => 'datetime',

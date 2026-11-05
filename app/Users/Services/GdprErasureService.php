@@ -39,19 +39,34 @@ class GdprErasureService
             DB::table('audit_logs')->where('changed_by', $subject->id)->update(['changed_by' => null]);
 
             // Financial records stay intact, but direct identifiers and provider data do not.
-            DB::table('payments')->where('organization_id', $subject->organization_id)
+            $payments = DB::table('payments')->where('organization_id', $subject->organization_id)
                 ->where(function ($query) use ($subject): void {
                     $query->where('admin_id', $subject->id)->orWhereIn('model_id', $subject->serviceAssignments()->pluck('id'));
-                })->update([
-                    'first_name' => 'REDACTED', 'last_name' => 'REDACTED', 'provider_payload' => null,
-                    'external_reference' => null, 'bank_reference' => null,
-                ]);
+                });
+
+            (clone $payments)->whereNotNull('receipt_snapshot')
+                ->get(['id', 'admin_id', 'receipt_snapshot'])
+                ->each(function ($payment) use ($subject): void {
+                    $snapshot = json_decode($payment->receipt_snapshot, true);
+                    $snapshot['payerName'] = 'REDACTED';
+                    $snapshot['payerAddress'] = null;
+                    if ((int) $payment->admin_id === (int) $subject->id) {
+                        $snapshot['cashier'] = 'REDACTED';
+                    }
+
+                    DB::table('payments')->where('id', $payment->id)->update(['receipt_snapshot' => json_encode($snapshot)]);
+                });
+
+            $payments->update([
+                'first_name' => 'REDACTED', 'last_name' => 'REDACTED', 'provider_payload' => null,
+                'external_reference' => null, 'bank_reference' => null, 'cancellation_reason' => null,
+            ]);
 
             $subject->accessTokens()->delete();
             $subject->groups()->detach();
             $subject->locations()->detach();
             $subject->forceFill([
-                'first_name' => 'Deleted', 'last_name' => 'User', 'phone' => null, 'push_token' => null,
+                'first_name' => 'Deleted', 'last_name' => 'User', 'phone' => null, 'address' => null, 'push_token' => null,
                 'email' => "deleted+{$fingerprint}@invalid.local", 'password' => null, 'user_code' => null, 'active' => false,
             ])->save();
 

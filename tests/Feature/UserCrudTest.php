@@ -36,6 +36,26 @@ class UserCrudTest extends TestCase
             ->assertJsonFragment(['email' => 'jane@example.com']);
     }
 
+    public function test_member_address_is_saved_and_returned(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['users.manage']);
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/users', [
+                'first_name' => 'Jane',
+                'last_name' => 'Doe',
+                'email' => 'address@example.com',
+                'address' => 'Str. Exemplu 1, Iasi',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.address', 'Str. Exemplu 1, Iasi');
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->patchJson('/api/users/'.$response->json('data.id'), ['address' => 'Str. Noua 2, Iasi'])
+            ->assertOk()
+            ->assertJsonPath('data.address', 'Str. Noua 2, Iasi');
+    }
+
     public function test_users_are_listed_alphabetically_by_default(): void
     {
         [$admin, $token] = $this->authenticatedUserWithRights(['users.view']);
