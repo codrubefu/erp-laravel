@@ -27,27 +27,12 @@ class UpdateUserRequest extends FormRequest
             ],
             'first_name' => ['sometimes', 'required', 'string', 'max:255'],
             'last_name' => ['sometimes', 'required', 'string', 'max:255'],
-            'phone' => [
-                'nullable',
-                'string',
-                'max:255',
-                Rule::unique('users', 'phone')
-                    ->where('organization_id', $user?->organization_id)
-                    ->ignore($user?->id),
-            ],
+            'phone' => ['nullable', 'string', 'max:255'],
             'cnp' => ['nullable', 'string', 'max:20'],
             'ci' => ['nullable', 'string', 'max:20'],
             'address' => ['nullable', 'string', 'max:500'],
             'active' => ['sometimes', 'boolean'],
-            'email' => [
-                'sometimes',
-                'required',
-                'email',
-                'max:255',
-                Rule::unique('users', 'email')
-                    ->where('organization_id', $user?->organization_id)
-                    ->ignore($user?->id),
-            ],
+            'email' => ['sometimes', 'nullable', 'email', 'max:255'],
             'password' => ['sometimes', 'nullable', 'string', 'min:8'],
             'notification_consents' => ['sometimes', 'array:sms,mail,push'],
             'notification_consents.*' => ['boolean'],
