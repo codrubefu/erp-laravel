@@ -285,7 +285,46 @@ class UserCrudTest extends TestCase
         ]);
     }
 
-    public function test_user_email_must_be_unique_within_same_organization(): void
+    public function test_user_can_be_created_without_email_or_phone(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['users.manage']);
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/users', [
+                'first_name' => 'No',
+                'last_name' => 'Contact',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.email', null)
+            ->assertJsonPath('data.phone', null);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $response->json('data.id'),
+            'email' => null,
+            'phone' => null,
+        ]);
+    }
+
+    public function test_user_email_and_phone_can_be_cleared_on_update(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.manage']);
+        $user = User::factory()->create([
+            'organization_id' => $admin->organization_id,
+            'email' => 'clear-me@example.com',
+            'phone' => '+40722000099',
+        ]);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->patchJson("/api/users/{$user->id}", [
+                'email' => null,
+                'phone' => null,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.email', null)
+            ->assertJsonPath('data.phone', null);
+    }
+
+    public function test_user_email_and_phone_can_be_shared_within_same_organization(): void
     {
         $organization = Organization::query()->create(['name' => 'Same Org', 'slug' => 'same-org']);
         [$admin, $token] = $this->authenticatedUserWithRights(['users.manage']);
@@ -294,16 +333,26 @@ class UserCrudTest extends TestCase
         User::factory()->create([
             'organization_id' => $organization->id,
             'email' => 'shared@example.com',
+            'phone' => '+40722000001',
         ]);
 
-        $this->withHeader('Authorization', "Bearer {$token}")
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/users', [
                 'first_name' => 'Duplicate',
-                'last_name' => 'Email',
+                'last_name' => 'Contact',
                 'email' => 'shared@example.com',
+                'phone' => '+40722000001',
             ])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('email');
+            ->assertCreated()
+            ->assertJsonPath('data.email', 'shared@example.com')
+            ->assertJsonPath('data.phone', '+40722000001');
+
+        $this->assertSame(2, User::query()
+            ->where('organization_id', $organization->id)
+            ->where('email', 'shared@example.com')
+            ->where('phone', '+40722000001')
+            ->count());
+        $this->assertNotNull($response->json('data.id'));
     }
 
     public function test_user_email_can_be_reused_in_different_organizations(): void
@@ -334,7 +383,7 @@ class UserCrudTest extends TestCase
         ]);
     }
 
-    public function test_user_code_and_phone_must_be_unique_within_same_organization(): void
+    public function test_user_code_must_be_unique_within_same_organization(): void
     {
         $organization = Organization::query()->create(['name' => 'Unique Codes Org', 'slug' => 'unique-codes-org']);
         [$admin, $token] = $this->authenticatedUserWithRights(['users.manage']);
@@ -353,10 +402,10 @@ class UserCrudTest extends TestCase
                 'last_name' => 'Identifiers',
                 'email' => 'duplicate-identifiers@example.com',
                 'user_code' => 'CARD-001',
-                'phone' => '+40722000001',
             ])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['user_code', 'phone']);
+            ->assertJsonValidationErrors(['user_code'])
+            ->assertJsonMissingValidationErrors(['phone']);
     }
 
     public function test_user_code_and_phone_can_be_reused_in_different_organizations(): void

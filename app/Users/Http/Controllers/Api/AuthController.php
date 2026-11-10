@@ -28,13 +28,20 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::query()
+        // E-mail addresses are not unique, so several users of the same organization may share one.
+        // Authenticate the active account whose password matches.
+        $candidates = User::query()
             ->where('email', $credentials['email'])
             ->where('organization_id', $credentials['organization_id'])
-            ->first();
+            ->orderBy('id')
+            ->get();
 
-        if (! $user || ! $user->active || $user->password === null || ! Hash::check($credentials['password'], $user->password)) {
-            $this->logAuthentication($request, false, $user?->id, (int) $credentials['organization_id'], $credentials['email']);
+        $user = $candidates->first(fn (User $candidate): bool => $candidate->active
+            && $candidate->password !== null
+            && Hash::check($credentials['password'], $candidate->password));
+
+        if (! $user) {
+            $this->logAuthentication($request, false, $candidates->first()?->id, (int) $credentials['organization_id'], $credentials['email']);
             return response()->json([
                 'message' => 'Invalid credentials.',
             ], 401);

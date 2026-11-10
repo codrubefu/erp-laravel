@@ -317,6 +317,36 @@ class BearerTokenAuthTest extends TestCase
             ->assertUnauthorized();
     }
 
+    public function test_login_matches_the_password_when_email_is_shared_within_organization(): void
+    {
+        $organization = Organization::query()->create(['name' => 'Shared Email Org', 'slug' => 'shared-email-org']);
+        User::factory()->create([
+            'organization_id' => $organization->id,
+            'email' => 'family@example.com',
+            'password' => 'parent-password',
+        ]);
+        $child = User::factory()->create([
+            'organization_id' => $organization->id,
+            'email' => 'family@example.com',
+            'password' => 'child-password',
+        ]);
+
+        $this->postJson('/api/login', [
+            'email' => 'family@example.com',
+            'organization_id' => $organization->id,
+            'password' => 'child-password',
+        ])
+            ->assertOk()
+            ->assertJsonPath('user.id', $child->id);
+
+        $this->postJson('/api/login', [
+            'email' => 'family@example.com',
+            'organization_id' => $organization->id,
+            'password' => 'wrong-password',
+        ])
+            ->assertUnauthorized();
+    }
+
     private function eventData(array $overrides = []): array
     {
         return array_merge([
