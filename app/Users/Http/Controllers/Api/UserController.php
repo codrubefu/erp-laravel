@@ -62,7 +62,7 @@ class UserController extends Controller
                 $query->where('user_code', 'like', "%{$search}%");
             })
             ->orderBy('user_code', 'asc')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(min(max($request->integer('per_page', 15), 1), 200));
 
         return UserResource::collection($users);
     }
@@ -106,7 +106,7 @@ class UserController extends Controller
             })
             ->orderBy('last_name', 'asc')
             ->orderBy('first_name', 'asc')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(min(max($request->integer('per_page', 15), 1), 200));
 
         return UserResource::collection($users);
     }
@@ -364,7 +364,7 @@ class UserController extends Controller
             'type' => ['nullable', 'string', 'max:64'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:200'],
         ]);
 
         $activities = AuditLog::query()

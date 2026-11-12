@@ -38,7 +38,7 @@ class UserDocumentController extends Controller
             ->where('organization_id', $request->user()->organization_id)
             ->where('status', '!=', UserDocument::STATUS_DELETED)
             ->latest()
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(min(max($request->integer('per_page', 15), 1), 200));
 
         return UserDocumentResource::collection($documents);
     }

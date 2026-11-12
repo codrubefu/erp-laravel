@@ -64,7 +64,7 @@ class EventController extends Controller
             ->when($request->filled('requires_payment'), fn ($query) => $query->where('requires_payment', $request->boolean('requires_payment')))
             ->when($request->string('search')->isNotEmpty(), fn ($query) => $query->where('title', 'like', '%'.$request->string('search')->toString().'%'))
             ->orderBy($sort, $direction)
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(min(max($request->integer('per_page', 15), 1), 200));
 
         return EventResource::collection($events);
     }

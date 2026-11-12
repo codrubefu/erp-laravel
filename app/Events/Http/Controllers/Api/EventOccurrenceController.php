@@ -49,7 +49,7 @@ class EventOccurrenceController extends Controller
             ->when($request->filled('date_from'), fn ($query) => $query->whereDate('occurrence_date', '>=', $request->date('date_from')->toDateString()))
             ->when($request->filled('date_to'), fn ($query) => $query->whereDate('occurrence_date', '<=', $request->date('date_to')->toDateString()))
             ->orderBy('start_datetime')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(min(max($request->integer('per_page', 15), 1), 200));
 
         return EventOccurrenceResource::collection($occurrences);
     }

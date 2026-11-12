@@ -48,7 +48,7 @@ class ServiceController extends Controller
             })
             ->when($request->filled('is_active'), fn ($query) => $query->where('is_active', $request->boolean('is_active')))
             ->orderBy('name')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(min(max($request->integer('per_page', 15), 1), 200));
 
         return ServiceResource::collection($services);
     }

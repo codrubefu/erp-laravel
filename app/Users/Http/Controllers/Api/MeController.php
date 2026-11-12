@@ -69,7 +69,7 @@ class MeController extends Controller
             ->eventOccurrences()
             ->with('event')
             ->orderByDesc('start_datetime')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(min(max($request->integer('per_page', 15), 1), 200));
 
         return EventOccurrenceResource::collection($occurrences);
     }
@@ -79,7 +79,7 @@ class MeController extends Controller
         $services = $request->user()
             ->services()
             ->orderByDesc('service_user.created_at')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(min(max($request->integer('per_page', 15), 1), 200));
 
         return ServiceResource::collection($services);
     }

@@ -35,7 +35,7 @@ class RightController extends Controller
                 });
             })
             ->orderBy('name')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(min(max($request->integer('per_page', 15), 1), 200));
 
         return RightResource::collection($rights);
     }

@@ -41,7 +41,7 @@ class SegmentController extends Controller
     public function members(Request $request, Segment $segment, SegmentService $segments): JsonResponse
     {
         $this->owned($request, $segment);
-        $members = $segments->members($segment)->paginate($request->integer('per_page', 15));
+        $members = $segments->members($segment)->paginate(min(max($request->integer('per_page', 15), 1), 200));
         return response()->json($members);
     }
 

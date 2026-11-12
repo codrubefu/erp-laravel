@@ -26,7 +26,7 @@ class LocationGroupController extends Controller
                 });
             })
             ->orderBy('name', 'asc')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(min(max($request->integer('per_page', 15), 1), 200));
 
         return LocationGroupResource::collection($locationGroups);
     }

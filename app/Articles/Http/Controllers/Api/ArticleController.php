@@ -26,7 +26,7 @@ class ArticleController extends Controller
         $articles = Article::query()->visibleTo($user)
             ->with(['author', 'groups', 'locations', 'receipts' => fn ($query) => $query->where('user_id', $user->id)])
             ->orderByDesc('priority')->orderByDesc('publish_at')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(min(max($request->integer('per_page', 15), 1), 200));
 
         $now = now();
         foreach ($articles as $article) {
@@ -80,7 +80,7 @@ class ArticleController extends Controller
                 });
             })
             ->latest()
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(min(max($request->integer('per_page', 15), 1), 200));
 
         return ArticleResource::collection($articles);
     }

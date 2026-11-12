@@ -45,7 +45,7 @@ class EventParticipantController extends Controller
     public function index(EventOccurrence $occurrence): AnonymousResourceCollection
     {
         return EventParticipantResource::collection(
-            $occurrence->participants()->orderBy('last_name')->orderBy('first_name')->paginate(request()->integer('per_page', 15))
+            $occurrence->participants()->orderBy('last_name')->orderBy('first_name')->paginate(min(max(request()->integer('per_page', 15), 1), 200))
         );
     }
 

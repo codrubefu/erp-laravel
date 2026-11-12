@@ -1103,7 +1103,7 @@ class ApiEndpoints
             ),
             new OA\QueryParameter(name: 'from', description: 'Include activity on or after this date.', required: false, schema: new OA\Schema(type: 'string', format: 'date'), example: '2026-08-01'),
             new OA\QueryParameter(name: 'to', description: 'Include activity on or before this date.', required: false, schema: new OA\Schema(type: 'string', format: 'date'), example: '2026-08-31'),
-            new OA\QueryParameter(name: 'per_page', required: false, schema: new OA\Schema(type: 'integer', minimum: 1, maximum: 100, default: 15), example: 25),
+            new OA\QueryParameter(name: 'per_page', required: false, schema: new OA\Schema(type: 'integer', minimum: 1, maximum: 200, default: 15), example: 25),
             new OA\QueryParameter(name: 'page', required: false, schema: new OA\Schema(type: 'integer', minimum: 1), example: 1),
         ],
         responses: [

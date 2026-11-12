@@ -39,7 +39,7 @@ class SmsMessageController extends Controller
             ->when($request->filled('sent_to'), fn ($query) => $query->whereDate('sent_at', '<=', $request->string('sent_to')->toString()))
             ->orderByDesc('sent_at')
             ->orderByDesc('id')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(min(max($request->integer('per_page', 15), 1), 200));
 
         return SmsMessageResource::collection($smsMessages);
     }

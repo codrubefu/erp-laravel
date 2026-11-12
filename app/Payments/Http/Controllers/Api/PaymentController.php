@@ -29,7 +29,7 @@ class PaymentController extends Controller
             ->with(['admin'])
             ->where('organization_id', $request->user()->organization_id)
             ->latest('paid_at')
-            ->paginate($request->integer('per_page', 15));
+            ->paginate(min(max($request->integer('per_page', 15), 1), 200));
 
         return PaymentResource::collection($payments);
     }
