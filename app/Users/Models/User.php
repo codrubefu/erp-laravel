@@ -9,7 +9,6 @@ use App\Payments\Models\Payment;
 use App\Articles\Models\Article;
 use App\Service\Models\Service;
 use App\Service\Models\ServiceUser;
-use App\Service\Services\ServiceLifecycleService;
 use App\Events\Models\EventOccurrence;
 use App\Users\Models\Concerns\BelongsToAuthenticatedOrganization;
 use App\Users\Models\Concerns\LogsModelChanges;
@@ -99,11 +98,13 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    /**
+     * Pure relation: call ServiceLifecycleService::refreshForUsers() beforehand
+     * if statuses must be up to date. Running queries here breaks eager loading
+     * (constraints are disabled, so it would refresh every assignment in the table).
+     */
     public function activeServices(): BelongsToMany
     {
-        $this->serviceAssignments()->with('service')->get()
-            ->each(fn (ServiceUser $assignment) => app(ServiceLifecycleService::class)->refresh($assignment));
-
         return $this->services()
             ->where('services.is_active', true)
             ->wherePivot('status', 'active');

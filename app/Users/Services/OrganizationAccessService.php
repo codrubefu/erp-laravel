@@ -2,6 +2,7 @@
 
 namespace App\Users\Services;
 
+use App\Service\Services\ServiceLifecycleService;
 use App\Users\Models\Right;
 use App\Users\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -136,6 +137,8 @@ class OrganizationAccessService
 
     public function loadUserAccessRelations(User $user): User
     {
+        app(ServiceLifecycleService::class)->refreshForUsers($user);
+
         return $user->load([
             'groups.rights' => fn ($query) => $this->applyAvailableRightsFilter($query, $user->organization_id),
             'locations',

@@ -4,6 +4,7 @@ namespace App\Events\Services;
 
 use App\Events\Models\EventOccurrence;
 use App\Service\Models\Service;
+use App\Service\Services\ServiceLifecycleService;
 use App\Users\Models\User;
 
 class EventEligibilityService
@@ -21,6 +22,8 @@ class EventEligibilityService
 
     public function hasActiveService(User $user, ?Service $requiredService = null): bool
     {
+        app(ServiceLifecycleService::class)->refreshForUsers($user);
+
         $query = $user->activeServices();
 
         if ($requiredService) {

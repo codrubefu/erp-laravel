@@ -5,6 +5,7 @@ namespace App\Users\Http\Controllers\Api;
 use App\Notifications\Events\NotificationRequested;
 use App\Service\Models\Service;
 use App\Service\Services\ServiceDocumentSequenceService;
+use App\Service\Services\ServiceLifecycleService;
 use App\Users\Http\Controllers\Controller;
 use App\Users\Http\Requests\SyncUserServicesRequest;
 use App\Users\Http\Requests\StoreUserRequest;
@@ -20,6 +21,7 @@ use App\Users\Models\GdprRequest;
 use App\Users\Services\GdprErasureService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -32,6 +34,7 @@ class UserController extends Controller
         private readonly BusinessActivityLogger $activityLogger,
         private readonly GdprErasureService $gdprErasureService,
         private readonly ServiceDocumentSequenceService $documentSequences,
+        private readonly ServiceLifecycleService $serviceLifecycle,
     )
     {
     }
@@ -55,7 +58,6 @@ class UserController extends Controller
     {
         $users = User::query()
             ->withoutGlobalScope(LocationAccessScope::class)
-            ->with($this->userRelationsForResponse($request->user()?->organization_id))
             ->when($request->string('search')->isNotEmpty(), function ($query) use ($request): void {
                 $search = $request->string('search')->toString();
 
@@ -63,6 +65,8 @@ class UserController extends Controller
             })
             ->orderBy('user_code', 'asc')
             ->paginate($request->integer('per_page', 15));
+
+        $this->loadUsersForResponse($users->getCollection(), $request->user()?->organization_id);
 
         return UserResource::collection($users);
     }
@@ -75,7 +79,6 @@ class UserController extends Controller
     ): AnonymousResourceCollection
     {
         $users = User::query()
-            ->with($this->userRelationsForResponse($request->user()?->organization_id))
             ->when($hasGroups === true, fn ($query) => $query->has('groups'))
             ->when($hasGroups === false, fn ($query) => $query->doesntHave('groups'))
             ->when($onlyRight !== null, function ($query) use ($onlyRight): void {
@@ -107,6 +110,8 @@ class UserController extends Controller
             ->orderBy('last_name', 'asc')
             ->orderBy('first_name', 'asc')
             ->paginate($request->integer('per_page', 15));
+
+        $this->loadUsersForResponse($users->getCollection(), $request->user()?->organization_id);
 
         return UserResource::collection($users);
     }
@@ -275,7 +280,15 @@ class UserController extends Controller
 
     private function loadUserForResponse(User $user, ?int $organizationId, bool $includeServices = false): User
     {
+        $this->serviceLifecycle->refreshForUsers($user);
+
         return $user->load($this->userRelationsForResponse($organizationId, $includeServices));
+    }
+
+    private function loadUsersForResponse(Collection $users, ?int $organizationId): void
+    {
+        $this->serviceLifecycle->refreshForUsers($users);
+        $users->load($this->userRelationsForResponse($organizationId));
     }
 
     private function abortIfUserIsNotVisible(User $user): void

@@ -162,6 +162,59 @@ class ServiceLifecycleService
         });
     }
 
+    /**
+     * Refresh the service statuses of the given users with a single query,
+     * touching only the assignments whose status would actually change.
+     *
+     * @param  iterable<User>|User  $users
+     */
+    public function refreshForUsers(iterable|User $users, ?CarbonInterface $at = null): void
+    {
+        $at ??= now();
+        $userIds = collect($users instanceof User ? [$users] : $users)
+            ->map(fn (User $user) => $user->getKey())
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($userIds->isEmpty()) {
+            return;
+        }
+
+        ServiceUser::query()
+            ->with('service')
+            ->whereIn('user_id', $userIds->all())
+            ->whereIn('status', ['active', 'reserved', 'suspended'])
+            ->get()
+            ->filter(fn (ServiceUser $assignment): bool => $this->needsRefresh($assignment, $at))
+            ->each(fn (ServiceUser $assignment) => $this->refresh($assignment, $at));
+    }
+
+    public function needsRefresh(ServiceUser $assignment, CarbonInterface $at): bool
+    {
+        if ($assignment->status === 'suspended') {
+            return (bool) $assignment->resume_at?->lte($at);
+        }
+
+        if (! in_array($assignment->status, ['active', 'reserved'], true)) {
+            return false;
+        }
+
+        return $this->computedStatus($assignment, $at) !== $assignment->status;
+    }
+
+    private function computedStatus(ServiceUser $assignment, CarbonInterface $at): string
+    {
+        $status = $assignment->start_date?->isAfter($at) ? 'reserved' : 'active';
+        if ($this->isExpired($assignment, $at)) {
+            $status = 'expired';
+        } elseif ($assignment->service->max_accesses !== null && $assignment->accesses_used >= $assignment->service->max_accesses) {
+            $status = 'consumed';
+        }
+
+        return $status;
+    }
+
     public function refresh(ServiceUser $assignment, ?CarbonInterface $at = null): ServiceUser
     {
         $at ??= now();
@@ -169,12 +222,7 @@ class ServiceLifecycleService
             return $this->resume($assignment, $at);
         }
         if (in_array($assignment->status, ['active', 'reserved'], true)) {
-            $status = $assignment->start_date?->isAfter($at) ? 'reserved' : 'active';
-            if ($this->isExpired($assignment, $at)) {
-                $status = 'expired';
-            } elseif ($assignment->service->max_accesses !== null && $assignment->accesses_used >= $assignment->service->max_accesses) {
-                $status = 'consumed';
-            }
+            $status = $this->computedStatus($assignment, $at);
             if ($status !== $assignment->status) {
                 $assignment->update(['status' => $status]);
             }
