@@ -796,6 +796,9 @@ class ApiEndpoints
         tags: ['Locations'],
         parameters: [
             new OA\QueryParameter(name: 'search', required: false, schema: new OA\Schema(type: 'string'), example: 'office'),
+            new OA\QueryParameter(name: 'location_group_id', description: 'Location group id, or "none" for locations without a group.', required: false, schema: new OA\Schema(type: 'string'), example: '1'),
+            new OA\QueryParameter(name: 'sort_by', required: false, schema: new OA\Schema(type: 'string', default: 'name', enum: ['name', 'location_group', 'users_count', 'updated_at'])),
+            new OA\QueryParameter(name: 'sort_dir', required: false, schema: new OA\Schema(type: 'string', default: 'asc', enum: ['asc', 'desc'])),
             new OA\QueryParameter(name: 'per_page', required: false, schema: new OA\Schema(type: 'integer'), example: 15),
         ],
         responses: [

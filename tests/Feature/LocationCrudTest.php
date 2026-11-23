@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Users\Models\Group;
 use App\Users\Models\Location;
+use App\Users\Models\LocationGroup;
+use App\Users\Models\Organization;
 use App\Users\Models\Right;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -42,6 +44,80 @@ class LocationCrudTest extends TestCase
             ->assertJsonPath('data.0.name', 'Annex')
             ->assertJsonPath('data.1.name', 'Main Office')
             ->assertJsonPath('data.2.name', 'Warehouse');
+    }
+
+    public function test_locations_can_be_filtered_by_location_group(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['locations.view']);
+        [$north, $south] = $this->locationsInTwoGroups();
+
+        $this->assertSame(['Annex', 'Warehouse'], $this->listedNames($token, ['location_group_id' => $north->id]));
+        $this->assertSame(['Main Office'], $this->listedNames($token, ['location_group_id' => $south->id]));
+        $this->assertSame(['Depot'], $this->listedNames($token, ['location_group_id' => 'none']));
+        $this->assertSame(['Warehouse'], $this->listedNames($token, ['location_group_id' => $north->id, 'search' => 'ware']));
+        $this->assertSame(['Annex', 'Depot', 'Main Office', 'Warehouse'], $this->listedNames($token, ['location_group_id' => '']));
+    }
+
+    public function test_locations_can_be_sorted(): void
+    {
+        [$viewer, $token] = $this->authenticatedUserWithRights(['locations.view']);
+        $this->locationsInTwoGroups();
+
+        $users = User::factory()->count(2)->create(['organization_id' => $viewer->organization_id]);
+        $depot = Location::query()->where('name', 'Depot')->firstOrFail();
+        $depot->users()->sync($users->pluck('id'));
+        Location::query()->where('name', 'Warehouse')->firstOrFail()->users()->sync([$users->first()->id]);
+        Location::query()->where('name', 'Main Office')->toBase()->update(['updated_at' => now()->addDay()]);
+        Location::query()->where('name', 'Annex')->toBase()->update(['updated_at' => now()->subDay()]);
+
+        $this->assertSame(['Warehouse', 'Main Office', 'Depot', 'Annex'], $this->listedNames($token, ['sort_by' => 'name', 'sort_dir' => 'desc']));
+        $this->assertSame(['Depot', 'Annex', 'Warehouse', 'Main Office'], $this->listedNames($token, ['sort_by' => 'location_group']));
+        $this->assertSame(['Main Office', 'Annex', 'Warehouse', 'Depot'], $this->listedNames($token, ['sort_by' => 'location_group', 'sort_dir' => 'desc']));
+        $this->assertSame(['Depot', 'Warehouse', 'Annex', 'Main Office'], $this->listedNames($token, ['sort_by' => 'users_count', 'sort_dir' => 'desc']));
+        $this->assertSame('Annex', $this->listedNames($token, ['sort_by' => 'updated_at'])[0]);
+        $this->assertSame('Main Office', $this->listedNames($token, ['sort_by' => 'updated_at', 'sort_dir' => 'desc'])[0]);
+    }
+
+    public function test_location_list_rejects_invalid_filter_and_sort_values(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['locations.view']);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/locations?sort_by=password&sort_dir=sideways&location_group_id=abc')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['sort_by', 'sort_dir', 'location_group_id']);
+    }
+
+    public function test_location_group_filter_does_not_expose_other_organizations(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['locations.view']);
+        $other = Organization::factory()->create();
+        $group = LocationGroup::query()->create(['name' => 'Foreign', 'organization_id' => $other->id]);
+        Location::query()->create(['name' => 'Hidden', 'organization_id' => $other->id, 'location_group_id' => $group->id]);
+
+        $this->assertSame([], $this->listedNames($token, ['location_group_id' => $group->id]));
+    }
+
+    /** @return array{LocationGroup, LocationGroup} */
+    private function locationsInTwoGroups(): array
+    {
+        $north = LocationGroup::query()->create(['name' => 'North']);
+        $south = LocationGroup::query()->create(['name' => 'South']);
+
+        Location::query()->create(['name' => 'Warehouse', 'location_group_id' => $north->id]);
+        Location::query()->create(['name' => 'Main Office', 'location_group_id' => $south->id]);
+        Location::query()->create(['name' => 'Annex', 'location_group_id' => $north->id]);
+        Location::query()->create(['name' => 'Depot']);
+
+        return [$north, $south];
+    }
+
+    private function listedNames(string $token, array $query): array
+    {
+        return $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/locations?'.http_build_query($query))
+            ->assertOk()
+            ->json('data.*.name');
     }
 
     public function test_user_with_manage_right_can_create_location_with_users(): void
