@@ -78,7 +78,29 @@ class UserController extends Controller
         ?string $exceptOnlyRight = null,
     ): AnonymousResourceCollection
     {
+        $filters = $request->validate([
+            'location_id' => ['nullable', 'regex:/^(none|\d{1,18})$/'],
+            'location_group_id' => ['nullable', 'regex:/^(none|\d{1,18})$/'],
+        ]);
+
+        $locationId = $filters['location_id'] ?? null;
+        $locationGroupId = $filters['location_group_id'] ?? null;
+        $hasLocationId = $locationId !== null && $locationId !== 'none';
+
         $users = User::query()
+            ->when($locationId === 'none', fn ($query) => $query->whereDoesntHave('locations'))
+            ->when($hasLocationId || $locationGroupId !== null, function ($query) use ($hasLocationId, $locationId, $locationGroupId): void {
+                // One whereHas, so both filters apply to the same location.
+                $query->whereHas('locations', function ($query) use ($hasLocationId, $locationId, $locationGroupId): void {
+                    $query
+                        ->when($hasLocationId, fn ($query) => $query->where('locations.id', (int) $locationId))
+                        ->when($locationGroupId === 'none', fn ($query) => $query->whereNull('locations.location_group_id'))
+                        ->when(
+                            $locationGroupId !== null && $locationGroupId !== 'none',
+                            fn ($query) => $query->where('locations.location_group_id', (int) $locationGroupId),
+                        );
+                });
+            })
             ->when($hasGroups === true, fn ($query) => $query->has('groups'))
             ->when($hasGroups === false, fn ($query) => $query->doesntHave('groups'))
             ->when($onlyRight !== null, function ($query) use ($onlyRight): void {

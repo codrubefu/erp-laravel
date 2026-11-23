@@ -6,6 +6,7 @@ use App\Service\Models\Service;
 use App\Payments\Models\Payment;
 use App\Users\Models\Group;
 use App\Users\Models\Location;
+use App\Users\Models\LocationGroup;
 use App\Users\Models\Organization;
 use App\Users\Models\Right;
 use App\Users\Models\User;
@@ -85,6 +86,88 @@ class UserCrudTest extends TestCase
             ->assertJsonPath('data.0.email', 'sort-user-alpha-adam@example.com')
             ->assertJsonPath('data.1.email', 'sort-user-alpha-zoe@example.com')
             ->assertJsonPath('data.2.email', 'sort-user-bravo-adam@example.com');
+    }
+
+    public function test_user_lists_can_be_filtered_by_location_and_location_group(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.view']);
+        $north = LocationGroup::query()->create(['name' => 'North', 'organization_id' => $admin->organization_id]);
+        $south = LocationGroup::query()->create(['name' => 'South', 'organization_id' => $admin->organization_id]);
+        $location = fn (string $name, ?LocationGroup $group) => Location::query()->create([
+            'name' => $name,
+            'organization_id' => $admin->organization_id,
+            'location_group_id' => $group?->id,
+        ]);
+        $annex = $location('Annex', $north);
+        $warehouse = $location('Warehouse', $north);
+        $office = $location('Office', $south);
+        $depot = $location('Depot', null);
+        $client = function (string $lastName, array $locations) use ($admin): void {
+            User::factory()
+                ->create(['organization_id' => $admin->organization_id, 'first_name' => 'Client', 'last_name' => $lastName])
+                ->locations()->sync(collect($locations)->pluck('id'));
+        };
+        $client('Alpha', [$annex, $office]);
+        $client('Beta', [$warehouse]);
+        $client('Gamma', [$depot]);
+        $client('Delta', []);
+
+        $list = fn (array $query): array => $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/clients?'.http_build_query(['search' => 'Client', ...$query]))
+            ->assertOk()
+            ->json('data.*.last_name');
+
+        $this->assertSame(['Alpha', 'Beta', 'Delta', 'Gamma'], $list([]));
+        $this->assertSame(['Alpha', 'Beta', 'Delta', 'Gamma'], $list(['location_id' => '', 'location_group_id' => '']));
+        $this->assertSame(['Alpha'], $list(['location_id' => $annex->id]));
+        $this->assertSame(['Delta'], $list(['location_id' => 'none']));
+        $this->assertSame(['Alpha', 'Beta'], $list(['location_group_id' => $north->id]));
+        $this->assertSame(['Gamma'], $list(['location_group_id' => 'none']));
+        $this->assertSame(['Beta'], $list(['location_group_id' => $north->id, 'location_id' => $warehouse->id]));
+        $this->assertSame(['Beta'], $list(['location_group_id' => $north->id, 'search' => 'Bet']));
+        // Both filters must match the same location, not two different ones.
+        $this->assertSame([], $list(['location_group_id' => $south->id, 'location_id' => $annex->id]));
+
+        foreach (['users', 'administrators'] as $resource) {
+            $admin->locations()->sync([$office->id]);
+            $this->withHeader('Authorization', "Bearer {$token}")
+                ->getJson("/api/{$resource}?location_id={$office->id}&search=".urlencode($admin->email))
+                ->assertOk()
+                ->assertJsonPath('data.*.id', [$admin->id]);
+            $this->withHeader('Authorization', "Bearer {$token}")
+                ->getJson("/api/{$resource}?location_id={$depot->id}&search=".urlencode($admin->email))
+                ->assertOk()
+                ->assertJsonCount(0, 'data');
+        }
+    }
+
+    public function test_user_list_rejects_invalid_location_filters(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['users.view']);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/clients?location_id=abc&location_group_id=-1')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['location_id', 'location_group_id']);
+    }
+
+    public function test_user_location_filters_respect_location_access_and_organization(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.view']);
+        $mine = Location::query()->create(['name' => 'Mine', 'organization_id' => $admin->organization_id]);
+        $hidden = Location::query()->create(['name' => 'Hidden', 'organization_id' => $admin->organization_id]);
+        $other = Organization::factory()->create();
+        $foreign = Location::query()->create(['name' => 'Foreign', 'organization_id' => $other->id]);
+        $admin->locations()->sync([$mine->id]);
+        User::factory()->create(['organization_id' => $admin->organization_id])->locations()->sync([$hidden->id]);
+        User::factory()->create(['organization_id' => $other->id])->locations()->sync([$foreign->id]);
+
+        foreach ([$hidden, $foreign] as $location) {
+            $this->withHeader('Authorization', "Bearer {$token}")
+                ->getJson("/api/users?location_id={$location->id}")
+                ->assertOk()
+                ->assertJsonCount(0, 'data');
+        }
     }
 
     public function test_user_with_locations_only_sees_users_from_shared_locations(): void
