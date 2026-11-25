@@ -149,12 +149,15 @@ Main routes:
 Functional behavior:
 
 - Users can be listed, filtered by search, viewed, created, updated, and deleted.
+- `GET /api/users`, `/api/clients`, `/api/administrators`, and `POST /api/clients/exports` (right `users.view`) accept `active_service=1|0` for users with/without an active service, combinable with the other filters. `ServiceLifecycleService::filterUsersByActiveService` reads `services` and `service_user` and evaluates start date, expiration plus grace period, accesses, and due resumptions at request time, so stale stored statuses do not affect the result. The filter itself has no side effects; on export it is included in the audited filters.
+- The same lists and the export accept `active=1|0` for active/inactive users (`users.active`), independent of their services; on export it is included in the audited filters.
 - Administrators are users with groups, excluding users who only have `profile.view`.
 - Clients are users with no groups or only `profile.view`.
 - Users can have groups, locations, services, notification consents, push tokens, and user codes.
 - User e-mail, user code, and phone are unique within the organization when present; the same values may be reused in another organization.
 - Users cannot delete their own account.
 - User visibility is affected by location access scope.
+- Member export (right `users.view`): `POST /api/clients/exports` (limiter `expensive`) stores a `member_exports` row (filters encrypted) and queues `GenerateMemberExport`; `GET /api/clients/exports` lists the requester's latest exports with progress; `GET /api/clients/exports/{export}/download` returns the CSV. Files: `MemberExportController`, `MemberExportService`, `UserListQuery`. The job runs authenticated as the requester, so organization and location scopes apply, and fails if they are inactive or lost `users.view`. It needs a running queue worker; a redelivered job is ignored, and an export without progress for 10 minutes is reported as failed. Only the requester can download. The private file `member-exports/{organization_id}/{id}.csv` expires after 24 hours. Each generated export writes a `members.exported` audit log; expired service statuses may be refreshed while exporting.
 - Service sync detaches old services, attaches new ones, calculates expiration, logs activity, and dispatches service activation notifications.
 
 ### Profile: `/me`
@@ -503,6 +506,7 @@ Scheduled in `routes/console.php`:
 - `DispatchServiceLifecycleNotifications`: daily at 08:00, sends generic service lifecycle notifications.
 - `SendExpiringServiceSms`: daily, sends legacy SMS service expiration notices.
 - `TransitionArticlePublicationStatus`: every minute, publishes scheduled articles and expires old articles.
+- `members.prune-exports`: hourly, deletes expired member exports and their files.
 - Campaign scheduler callback: every minute, queues `DispatchCampaign` for due scheduled campaigns; `CampaignService` expands their current tenant-safe audience.
 
 Console commands:

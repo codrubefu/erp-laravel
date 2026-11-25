@@ -37,6 +37,7 @@ class AuditLog extends Model
     public const USER_DOCUMENT_DOWNLOADED = 'user_document.downloaded';
     public const USER_DOCUMENT_REPLACED = 'user_document.replaced';
     public const USER_DOCUMENT_DELETED = 'user_document.deleted';
+    public const MEMBERS_EXPORTED = 'members.exported';
 
     public function user(): BelongsTo
     {

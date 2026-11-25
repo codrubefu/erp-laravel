@@ -121,6 +121,7 @@ class DeleteOrganisation extends Command
             ->orWhere(fn ($query) => $this->auditLogScope($query, PersonalAccessToken::class, $personalAccessTokenIds->all()))
             ->delete();
 
+        DB::table('member_exports')->where('organization_id', $organizationId)->delete();
         DB::table('personal_access_tokens')->whereIn('id', $personalAccessTokenIds)->delete();
         DB::table('event_occurrences')->whereIn('id', $eventOccurrenceIds)->delete();
         DB::table('events')->whereIn('id', $eventIds)->delete();

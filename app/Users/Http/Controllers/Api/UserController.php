@@ -17,10 +17,10 @@ use App\Users\Models\Scopes\LocationAccessScope;
 use App\Users\Models\User;
 use App\Users\Services\BusinessActivityLogger;
 use App\Users\Services\OrganizationAccessService;
+use App\Users\Services\UserListQuery;
 use App\Users\Models\GdprRequest;
 use App\Users\Services\GdprErasureService;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -35,6 +35,7 @@ class UserController extends Controller
         private readonly GdprErasureService $gdprErasureService,
         private readonly ServiceDocumentSequenceService $documentSequences,
         private readonly ServiceLifecycleService $serviceLifecycle,
+        private readonly UserListQuery $userListQuery,
     )
     {
     }
@@ -78,59 +79,13 @@ class UserController extends Controller
         ?string $exceptOnlyRight = null,
     ): AnonymousResourceCollection
     {
-        $filters = $request->validate([
-            'location_id' => ['nullable', 'regex:/^(none|\d{1,18})$/'],
-            'location_group_id' => ['nullable', 'regex:/^(none|\d{1,18})$/'],
-        ]);
+        $request->validate(UserListQuery::FILTER_RULES);
+        $filters = [
+            ...$request->only(array_keys(UserListQuery::FILTER_RULES)),
+            'search' => $request->string('search')->toString(),
+        ];
 
-        $locationId = $filters['location_id'] ?? null;
-        $locationGroupId = $filters['location_group_id'] ?? null;
-        $hasLocationId = $locationId !== null && $locationId !== 'none';
-
-        $users = User::query()
-            ->when($locationId === 'none', fn ($query) => $query->whereDoesntHave('locations'))
-            ->when($hasLocationId || $locationGroupId !== null, function ($query) use ($hasLocationId, $locationId, $locationGroupId): void {
-                // One whereHas, so both filters apply to the same location.
-                $query->whereHas('locations', function ($query) use ($hasLocationId, $locationId, $locationGroupId): void {
-                    $query
-                        ->when($hasLocationId, fn ($query) => $query->where('locations.id', (int) $locationId))
-                        ->when($locationGroupId === 'none', fn ($query) => $query->whereNull('locations.location_group_id'))
-                        ->when(
-                            $locationGroupId !== null && $locationGroupId !== 'none',
-                            fn ($query) => $query->where('locations.location_group_id', (int) $locationGroupId),
-                        );
-                });
-            })
-            ->when($hasGroups === true, fn ($query) => $query->has('groups'))
-            ->when($hasGroups === false, fn ($query) => $query->doesntHave('groups'))
-            ->when($onlyRight !== null, function ($query) use ($onlyRight): void {
-                $query->where(function ($query) use ($onlyRight): void {
-                    $query->whereDoesntHave('groups.rights')
-                        ->orWhere(function ($query) use ($onlyRight): void {
-                            $query->whereHas('groups.rights', fn ($query) => $query->where('name', $onlyRight))
-                                ->whereDoesntHave('groups.rights', fn ($query) => $query->where('name', '!=', $onlyRight));
-                        });
-                });
-            })
-            ->when($exceptOnlyRight !== null, function ($query) use ($exceptOnlyRight): void {
-                $query->where(function ($query) use ($exceptOnlyRight): void {
-                    $query->whereDoesntHave('groups.rights', fn ($query) => $query->where('name', $exceptOnlyRight))
-                        ->orWhereHas('groups.rights', fn ($query) => $query->where('name', '!=', $exceptOnlyRight));
-                });
-            })
-            ->when($request->string('search')->isNotEmpty(), function ($query) use ($request): void {
-                $search = $request->string('search')->toString();
-
-                $query->where(function ($query) use ($search): void {
-                    $query->where('first_name', 'like', "%{$search}%")
-                        ->orWhere('last_name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhere('phone', 'like', "%{$search}%")
-                        ->orWhere('user_code', 'like', "%{$search}%");
-                });
-            })
-            ->orderBy('last_name', 'asc')
-            ->orderBy('first_name', 'asc')
+        $users = $this->userListQuery->build($filters, $hasGroups, $onlyRight, $exceptOnlyRight)
             ->paginate($request->integer('per_page', 15));
 
         $this->loadUsersForResponse($users->getCollection(), $request->user()?->organization_id);

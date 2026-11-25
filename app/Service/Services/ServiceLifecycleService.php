@@ -4,11 +4,13 @@ namespace App\Service\Services;
 
 use App\Notifications\Events\NotificationRequested;
 use App\Payments\Models\Payment;
+use App\Service\Models\Service;
 use App\Service\Models\ServiceUser;
 use App\Users\Models\AuditLog;
 use App\Users\Models\User;
 use App\Users\Services\BusinessActivityLogger;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -183,11 +185,52 @@ class ServiceLifecycleService
 
         ServiceUser::query()
             ->with('service')
-            ->whereIn('user_id', $userIds->all())
+            // Inlined integers: faster than bindings, and not limited to 2100 on SQL Server.
+            ->whereIntegerInRaw('user_id', $userIds->all())
             ->whereIn('status', ['active', 'reserved', 'suspended'])
             ->get()
             ->filter(fn (ServiceUser $assignment): bool => $this->needsRefresh($assignment, $at))
             ->each(fn (ServiceUser $assignment) => $this->refresh($assignment, $at));
+    }
+
+    /**
+     * Keep only the users with (or without) an active service. Stored statuses may be
+     * stale, so this mirrors the rules of refresh() and resume(); keep them in sync.
+     */
+    public function filterUsersByActiveService(Builder $users, bool $hasActiveService, ?CarbonInterface $at = null): Builder
+    {
+        $at ??= now();
+        // One date condition per distinct grace period avoids driver-specific date arithmetic.
+        $gracePeriods = Service::query()->where('is_active', true)->distinct()->pluck('grace_period_days');
+
+        return $users->whereHas('services', function (Builder $query) use ($at, $gracePeriods): void {
+            $query->where('services.is_active', true)
+                ->where(function (Builder $query) use ($at): void {
+                    $query->whereIn('service_user.status', ['active', 'reserved'])
+                        ->orWhere(function (Builder $query) use ($at): void {
+                            $query->where('service_user.status', 'suspended')
+                                ->where('service_user.resume_at', '<=', $at);
+                        });
+                })
+                ->where(function (Builder $query) use ($at): void {
+                    $query->whereNull('service_user.start_date')
+                        ->orWhere('service_user.start_date', '<=', $at);
+                })
+                ->where(function (Builder $query) use ($at, $gracePeriods): void {
+                    $query->whereNull('service_user.expires_at');
+
+                    foreach ($gracePeriods as $days) {
+                        $query->orWhere(function (Builder $query) use ($at, $days): void {
+                            $query->where('services.grace_period_days', $days)
+                                ->where('service_user.expires_at', '>=', $at->copy()->subDays($days));
+                        });
+                    }
+                })
+                ->where(function (Builder $query): void {
+                    $query->whereNull('services.max_accesses')
+                        ->orWhereColumn('service_user.accesses_used', '<', 'services.max_accesses');
+                });
+        }, $hasActiveService ? '>=' : '<', 1);
     }
 
     public function needsRefresh(ServiceUser $assignment, CarbonInterface $at): bool

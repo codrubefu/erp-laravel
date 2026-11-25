@@ -262,6 +262,8 @@ class ApiEndpoints
             ),
             new OA\QueryParameter(name: 'location_id', description: 'Location id, or "none" for users without a location.', required: false, schema: new OA\Schema(type: 'string'), example: '1'),
             new OA\QueryParameter(name: 'location_group_id', description: 'Location group id, or "none" for users in a location without a group.', required: false, schema: new OA\Schema(type: 'string'), example: '1'),
+            new OA\QueryParameter(name: 'active', description: '1 for active users, 0 for inactive users.', required: false, schema: new OA\Schema(type: 'string', enum: ['0', '1']), example: '1'),
+            new OA\QueryParameter(name: 'active_service', description: '1 for users with an active service, 0 for users without one.', required: false, schema: new OA\Schema(type: 'string', enum: ['0', '1']), example: '1'),
             new OA\QueryParameter(name: 'per_page', required: false, schema: new OA\Schema(type: 'integer'), example: 15),
             new OA\QueryParameter(name: 'page', required: false, schema: new OA\Schema(type: 'integer'), example: 1),
         ],
@@ -300,6 +302,8 @@ class ApiEndpoints
             ),
             new OA\QueryParameter(name: 'location_id', description: 'Location id, or "none" for users without a location.', required: false, schema: new OA\Schema(type: 'string'), example: '1'),
             new OA\QueryParameter(name: 'location_group_id', description: 'Location group id, or "none" for users in a location without a group.', required: false, schema: new OA\Schema(type: 'string'), example: '1'),
+            new OA\QueryParameter(name: 'active', description: '1 for active users, 0 for inactive users.', required: false, schema: new OA\Schema(type: 'string', enum: ['0', '1']), example: '1'),
+            new OA\QueryParameter(name: 'active_service', description: '1 for users with an active service, 0 for users without one.', required: false, schema: new OA\Schema(type: 'string', enum: ['0', '1']), example: '1'),
             new OA\QueryParameter(name: 'per_page', required: false, schema: new OA\Schema(type: 'integer'), example: 15),
             new OA\QueryParameter(name: 'page', required: false, schema: new OA\Schema(type: 'integer'), example: 1),
         ],
@@ -322,6 +326,61 @@ class ApiEndpoints
         ],
     )]
     public function clientsIndex(): void {}
+
+    #[OA\Get(
+        path: '/clients/exports',
+        summary: 'List own recent client exports',
+        description: 'The latest five unexpired exports requested by the authenticated user. Poll it to follow progress.',
+        security: [['bearerAuth' => []]],
+        tags: ['Users'],
+        responses: [
+            new OA\Response(response: 200, description: 'Exports with status (pending, processing, ready, failed), total, processed, created_at, and expires_at.'),
+            new OA\Response(response: 403, description: 'Missing users.view right.'),
+        ],
+    )]
+    public function clientExportsIndex(): void {}
+
+    #[OA\Post(
+        path: '/clients/exports',
+        summary: 'Queue a CSV export of client users',
+        description: 'Queues an export of every client matching the filters as an Excel-friendly CSV (UTF-8 with BOM, ";" separator). Every export is audited.',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(
+            required: ['fields'],
+            properties: [
+                new OA\Property(property: 'fields', description: 'Columns to export. Column order is fixed.', type: 'array', items: new OA\Items(type: 'string', enum: ['user_code', 'last_name', 'first_name', 'phone', 'email', 'address', 'cnp', 'ci', 'status', 'location_groups', 'locations', 'active_services', 'created_at'])),
+                new OA\Property(property: 'lang', description: 'Language of headers and statuses.', type: 'string', default: 'ro', enum: ['ro', 'en', 'uk']),
+                new OA\Property(property: 'search', type: 'string', maxLength: 255),
+                new OA\Property(property: 'location_id', description: 'Location id, or "none" for users without a location.', type: 'string', example: '1'),
+                new OA\Property(property: 'location_group_id', description: 'Location group id, or "none" for users in a location without a group.', type: 'string', example: '1'),
+                new OA\Property(property: 'active', description: '1 for active users, 0 for inactive users.', type: 'string', enum: ['0', '1']),
+                new OA\Property(property: 'active_service', description: '1 for users with an active service, 0 for users without one.', type: 'string', enum: ['0', '1']),
+            ],
+        )),
+        tags: ['Users'],
+        responses: [
+            new OA\Response(response: 202, description: 'Export queued.'),
+            new OA\Response(response: 403, description: 'Missing users.view right.'),
+            new OA\Response(response: 422, description: 'Invalid fields, language, or filters.'),
+            new OA\Response(response: 429, description: 'Too many exports.'),
+        ],
+    )]
+    public function clientExportsStore(): void {}
+
+    #[OA\Get(
+        path: '/clients/exports/{export}/download',
+        summary: 'Download a finished client export',
+        security: [['bearerAuth' => []]],
+        tags: ['Users'],
+        parameters: [new OA\PathParameter(name: 'export', required: true, schema: new OA\Schema(type: 'string', format: 'uuid'))],
+        responses: [
+            new OA\Response(response: 200, description: 'CSV file.', content: new OA\MediaType(mediaType: 'text/csv', schema: new OA\Schema(type: 'string', format: 'binary'))),
+            new OA\Response(response: 403, description: 'Missing users.view right.'),
+            new OA\Response(response: 404, description: 'Unknown or expired export, or requested by another user.'),
+            new OA\Response(response: 409, description: 'Export is not ready.'),
+        ],
+    )]
+    public function clientExportsDownload(): void {}
 
     #[OA\Get(
         path: '/groups',
@@ -967,6 +1026,8 @@ class ApiEndpoints
             ),
             new OA\QueryParameter(name: 'location_id', description: 'Location id, or "none" for users without a location.', required: false, schema: new OA\Schema(type: 'string'), example: '1'),
             new OA\QueryParameter(name: 'location_group_id', description: 'Location group id, or "none" for users in a location without a group.', required: false, schema: new OA\Schema(type: 'string'), example: '1'),
+            new OA\QueryParameter(name: 'active', description: '1 for active users, 0 for inactive users.', required: false, schema: new OA\Schema(type: 'string', enum: ['0', '1']), example: '1'),
+            new OA\QueryParameter(name: 'active_service', description: '1 for users with an active service, 0 for users without one.', required: false, schema: new OA\Schema(type: 'string', enum: ['0', '1']), example: '1'),
             new OA\QueryParameter(name: 'per_page', required: false, schema: new OA\Schema(type: 'integer'), example: 15),
         ],
         responses: [

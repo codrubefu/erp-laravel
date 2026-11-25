@@ -13,6 +13,7 @@ use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class UserCrudTest extends TestCase
@@ -149,6 +150,147 @@ class UserCrudTest extends TestCase
             ->getJson('/api/clients?location_id=abc&location_group_id=-1')
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['location_id', 'location_group_id']);
+    }
+
+    public function test_user_lists_can_be_filtered_by_active_service(): void
+    {
+        Carbon::setTestNow('2026-11-25 10:00:00');
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.view']);
+        $service = fn (array $attributes = []): Service => Service::query()->create([
+            'organization_id' => $admin->organization_id, 'name' => 'Service', 'price' => 10, 'currency' => 'RON',
+            'duration_days' => 30, 'is_active' => true, ...$attributes,
+        ]);
+        $plain = $service();
+        $grace = $service(['grace_period_days' => 3]);
+        $limited = $service(['max_accesses' => 2]);
+        $disabled = $service(['is_active' => false]);
+        $deleted = $service();
+        $client = function (string $lastName, ?Service $service = null, array $pivot = []) use ($admin): User {
+            $user = User::factory()->create(['organization_id' => $admin->organization_id, 'first_name' => 'Client', 'last_name' => $lastName]);
+            if ($service !== null) {
+                $user->services()->attach($service->id, ['status' => 'active', 'start_date' => now()->subDays(10), ...$pivot]);
+            }
+
+            return $user;
+        };
+        // Stored statuses are only refreshed when a user is loaded, so some are deliberately stale.
+        $client('A current', $plain, ['expires_at' => now()->addDay()]);
+        $client('A no expiry', $plain);
+        $client('A no start', $plain, ['start_date' => null]);
+        $client('A grace boundary', $grace, ['expires_at' => now()->subDays(3)]);
+        $client('A accesses left', $limited, ['accesses_used' => 1]);
+        $client('A reservation started', $plain, ['status' => 'reserved']);
+        $client('A suspension ended', $plain, ['status' => 'suspended', 'resume_at' => now()]);
+        $client('A mixed', $plain, ['status' => 'expired'])->services()->attach($limited->id, ['status' => 'active']);
+        $client('I none');
+        $client('I expired stale', $plain, ['expires_at' => now()->subSecond()]);
+        $client('I past grace', $grace, ['expires_at' => now()->subDays(3)->subSecond()]);
+        $client('I consumed stale', $limited, ['accesses_used' => 2]);
+        $client('I future', $plain, ['status' => 'reserved', 'start_date' => now()->addDay()]);
+        $client('I future stale', $plain, ['start_date' => now()->addDay()]);
+        $client('I suspended', $plain, ['status' => 'suspended']);
+        $client('I suspended later', $plain, ['status' => 'suspended', 'resume_at' => now()->addDay()]);
+        $client('I resumed expired', $plain, ['status' => 'suspended', 'resume_at' => now(), 'expires_at' => now()->subDay()]);
+        $client('I pending', $plain, ['status' => 'pending']);
+        $client('I disabled', $disabled);
+        $client('I deleted', $deleted);
+        $deleted->delete();
+
+        $list = fn (array $query): TestResponse => $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/clients?'.http_build_query(['search' => 'Client', 'per_page' => 50, ...$query]))
+            ->assertOk();
+        $names = fn (array $query): array => $list($query)->json('data.*.last_name');
+
+        // Filter first: listing refreshes the stored statuses.
+        $active = $list(['active_service' => '1']);
+        $inactive = $list(['active_service' => '0']);
+
+        $this->assertSame([
+            'A accesses left', 'A current', 'A grace boundary', 'A mixed', 'A no expiry',
+            'A no start', 'A reservation started', 'A suspension ended',
+        ], $active->json('data.*.last_name'));
+        $this->assertSame(8, $active->json('meta.total'));
+        $this->assertSame([
+            'I consumed stale', 'I deleted', 'I disabled', 'I expired stale', 'I future', 'I future stale',
+            'I none', 'I past grace', 'I pending', 'I resumed expired', 'I suspended', 'I suspended later',
+        ], $inactive->json('data.*.last_name'));
+
+        // The filter agrees with the active services shown for each user.
+        foreach ($active->json('data') as $user) {
+            $this->assertNotEmpty($user['active_services'], $user['last_name']);
+        }
+        foreach ($inactive->json('data') as $user) {
+            $this->assertEmpty($user['active_services'], $user['last_name']);
+        }
+
+        $this->assertCount(20, $names([]));
+        $this->assertCount(20, $names(['active_service' => '']));
+        $this->assertSame(['A mixed'], $names(['active_service' => '1', 'search' => 'mixed']));
+
+        $location = Location::query()->create(['name' => 'Annex', 'organization_id' => $admin->organization_id]);
+        $location->users()->sync(User::query()->whereIn('last_name', ['A current', 'I none'])->pluck('id'));
+        $this->assertSame(['A current'], $names(['active_service' => '1', 'location_id' => $location->id]));
+        $this->assertSame(['I none'], $names(['active_service' => '0', 'location_id' => $location->id]));
+
+        foreach (['users', 'administrators'] as $resource) {
+            foreach (['1' => 0, '0' => 1] as $value => $count) {
+                $this->withHeader('Authorization', "Bearer {$token}")
+                    ->getJson("/api/{$resource}?active_service={$value}&search=".urlencode($admin->email))
+                    ->assertOk()
+                    ->assertJsonCount($count, 'data');
+            }
+        }
+    }
+
+    public function test_user_list_rejects_invalid_active_service_filter(): void
+    {
+        [, $token] = $this->authenticatedUserWithRights(['users.view']);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/clients?active_service=maybe')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['active_service']);
+    }
+
+    public function test_user_lists_can_be_filtered_by_active_status(): void
+    {
+        [$admin, $token] = $this->authenticatedUserWithRights(['users.view']);
+        $service = Service::query()->create([
+            'organization_id' => $admin->organization_id, 'name' => 'Service', 'price' => 10, 'currency' => 'RON', 'is_active' => true,
+        ]);
+        foreach (['Alpha' => true, 'Beta' => false, 'Delta' => false] as $lastName => $active) {
+            $user = User::factory()->create([
+                'organization_id' => $admin->organization_id, 'first_name' => 'Client', 'last_name' => $lastName, 'active' => $active,
+            ]);
+            if ($lastName !== 'Delta') {
+                $user->services()->attach($service->id, ['status' => 'active']);
+            }
+        }
+
+        $names = fn (array $query): array => $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/clients?'.http_build_query(['search' => 'Client', ...$query]))
+            ->assertOk()
+            ->json('data.*.last_name');
+
+        $this->assertSame(['Alpha', 'Beta', 'Delta'], $names(['active' => '']));
+        $this->assertSame(['Alpha'], $names(['active' => '1']));
+        $this->assertSame(['Beta', 'Delta'], $names(['active' => '0']));
+        // User status and active service are independent filters.
+        $this->assertSame(['Beta'], $names(['active' => '0', 'active_service' => '1']));
+
+        foreach (['users', 'administrators'] as $resource) {
+            foreach (['1' => 1, '0' => 0] as $value => $count) {
+                $this->withHeader('Authorization', "Bearer {$token}")
+                    ->getJson("/api/{$resource}?active={$value}&search=".urlencode($admin->email))
+                    ->assertOk()
+                    ->assertJsonCount($count, 'data');
+            }
+        }
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/clients?active=maybe')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['active']);
     }
 
     public function test_user_location_filters_respect_location_access_and_organization(): void

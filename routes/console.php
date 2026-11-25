@@ -5,6 +5,7 @@ use App\Campaigns\Models\Campaign;
 use App\Notifications\Jobs\DispatchServiceLifecycleNotifications;
 use App\Articles\Jobs\TransitionArticlePublicationStatus;
 use App\Service\Jobs\SendExpiringServiceSms;
+use App\Users\Services\MemberExportService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -28,4 +29,9 @@ Schedule::job(new SendExpiringServiceSms)->daily();
 Schedule::job(new TransitionArticlePublicationStatus)
     ->name('articles.transition-publication-status')
     ->everyMinute()
+    ->withoutOverlapping();
+
+Schedule::call(fn (MemberExportService $exports) => $exports->prune())
+    ->hourly()
+    ->description('members.prune-exports')
     ->withoutOverlapping();
