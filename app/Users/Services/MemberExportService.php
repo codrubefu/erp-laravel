@@ -110,17 +110,21 @@ class MemberExportService
         );
     }
 
+    public function delete(MemberExport $export): void
+    {
+        if ($export->path !== null) {
+            Storage::disk(self::DISK)->delete($export->path);
+        }
+
+        $export->delete();
+    }
+
     /** Deletes expired exports, and files whose record no longer exists. */
     public function prune(): void
     {
         $disk = Storage::disk(self::DISK);
 
-        MemberExport::query()->where('expires_at', '<=', now())->get()->each(function (MemberExport $export) use ($disk): void {
-            if ($export->path !== null) {
-                $disk->delete($export->path);
-            }
-            $export->delete();
-        });
+        MemberExport::query()->where('expires_at', '<=', now())->get()->each(fn (MemberExport $export) => $this->delete($export));
 
         $oldest = now()->subHours(self::LIFETIME_HOURS + 1)->getTimestamp();
         foreach ($disk->allFiles(self::DIRECTORY) as $file) {

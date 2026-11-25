@@ -335,6 +335,55 @@ class MemberExportTest extends TestCase
         $this->getJson("/api/clients/exports/{$id}/download")->assertForbidden();
     }
 
+    public function test_deleted_export_leaves_the_list_and_its_file_is_removed(): void
+    {
+        [, $token] = $this->admin();
+        $kept = $this->export($token, ['fields' => ['email']])->json('data.id');
+        $id = $this->export($token, ['fields' => ['cnp']])->json('data.id');
+        $this->assertCount(2, Storage::disk('local')->allFiles());
+
+        $this->deleteJson("/api/clients/exports/{$id}")->assertNoContent();
+
+        $this->getJson('/api/clients/exports')->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $kept);
+        $this->getJson("/api/clients/exports/{$id}/download")->assertNotFound();
+        $this->getJson("/api/clients/exports/{$kept}/download")->assertOk();
+        $this->assertCount(1, Storage::disk('local')->allFiles());
+        $this->assertDatabaseHas('audit_logs', ['event_type' => AuditLog::MEMBERS_EXPORTED]);
+    }
+
+    public function test_only_the_requester_with_users_view_can_delete_an_export(): void
+    {
+        [$admin, $token] = $this->admin();
+        $id = $this->export($token, ['fields' => ['cnp']])->json('data.id');
+
+        [, $colleagueToken] = $this->admin(attributes: ['organization_id' => $admin->organization_id]);
+        [, $strangerToken] = $this->admin(attributes: ['organization_id' => Organization::factory()]);
+        foreach ([$colleagueToken, $strangerToken] as $otherToken) {
+            Auth::forgetUser();
+            $this->withHeader('Authorization', "Bearer {$otherToken}");
+            $this->deleteJson("/api/clients/exports/{$id}")->assertNotFound();
+        }
+        $this->deleteJson('/api/clients/exports/not-a-uuid')->assertNotFound();
+
+        Auth::forgetUser();
+        $this->withHeader('Authorization', "Bearer {$token}");
+        $admin->groups()->detach();
+        $this->deleteJson("/api/clients/exports/{$id}")->assertForbidden();
+        $this->assertDatabaseHas('member_exports', ['id' => $id]);
+        $this->assertCount(1, Storage::disk('local')->allFiles());
+    }
+
+    public function test_unfinished_export_cannot_be_deleted(): void
+    {
+        Queue::fake();
+        [, $token] = $this->admin();
+        $id = $this->export($token, ['fields' => ['email']])->json('data.id');
+
+        $this->deleteJson("/api/clients/exports/{$id}")->assertConflict();
+
+        $this->assertDatabaseHas('member_exports', ['id' => $id]);
+    }
+
     public function test_expired_exports_are_unavailable_and_pruned(): void
     {
         [, $token] = $this->admin();

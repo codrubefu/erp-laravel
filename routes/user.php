@@ -72,6 +72,7 @@ Route::middleware('auth.bearer')->group(function (): void {
     Route::get('/clients/exports', [MemberExportController::class, 'index'])->middleware('right:users.view');
     Route::post('/clients/exports', [MemberExportController::class, 'store'])->middleware(['right:users.view', 'throttle:expensive']);
     Route::get('/clients/exports/{export}/download', [MemberExportController::class, 'download'])->middleware('right:users.view');
+    Route::delete('/clients/exports/{export}', [MemberExportController::class, 'destroy'])->middleware('right:users.view');
     Route::get('/users', [UserController::class, 'index'])->middleware('right:users.view');
     Route::get('/users/search/user-code', [UserController::class, 'searchByUserCode'])->middleware('right:users.view');
     Route::post('/users', [UserController::class, 'store'])->middleware('right:users.manage');

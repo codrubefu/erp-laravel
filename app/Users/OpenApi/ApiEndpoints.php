@@ -382,6 +382,22 @@ class ApiEndpoints
     )]
     public function clientExportsDownload(): void {}
 
+    #[OA\Delete(
+        path: '/clients/exports/{export}',
+        summary: 'Delete a finished client export and its file',
+        description: 'Clients call it after a successful download.',
+        security: [['bearerAuth' => []]],
+        tags: ['Users'],
+        parameters: [new OA\PathParameter(name: 'export', required: true, schema: new OA\Schema(type: 'string', format: 'uuid'))],
+        responses: [
+            new OA\Response(response: 204, description: 'Export deleted.'),
+            new OA\Response(response: 403, description: 'Missing users.view right.'),
+            new OA\Response(response: 404, description: 'Unknown or expired export, or requested by another user.'),
+            new OA\Response(response: 409, description: 'Export is not ready.'),
+        ],
+    )]
+    public function clientExportsDestroy(): void {}
+
     #[OA\Get(
         path: '/groups',
         summary: 'List user groups',
